@@ -1,0 +1,368 @@
+import React, { useState, useEffect } from 'react';
+import { Search, Headset, ChevronRight, Store, ShieldCheck, FileText, Volume2, Wallet, Package, Truck, Plus, ShoppingCart, WifiOff, RefreshCcw, FileX, ArrowRight } from 'lucide-react';
+import { Card } from '../../components/ui/Card';
+import { Skeleton } from '../../components/ui/Skeleton';
+import { ForceAnnouncementModal } from '../../components/biz/ForceAnnouncementModal';
+import { WebViewActionSheet } from '../../components/biz/WebViewActionSheet';
+import { ImagePickerActionSheet } from '../../components/biz/ImagePickerActionSheet';
+import { useFeedback } from '../../components/ui/FeedbackProvider';
+
+export const HomePage = () => {
+  const [loading, setLoading] = useState(true);
+  const [offline, setOffline] = useState(false);
+  const [error, setError] = useState(false);
+  const [emptyFeed, setEmptyFeed] = useState(false);
+  const [showForceAnnouncement, setShowForceAnnouncement] = useState(false);
+  const [showWebViewSheet, setShowWebViewSheet] = useState(false);
+  const [showImagePicker, setShowImagePicker] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const { showNoticeBar, showToast, showLoading, hideLoading } = useFeedback();
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoading(false);
+      // Show announcement shortly after loading
+      setTimeout(() => setShowForceAnnouncement(true), 500);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const renderHeader = () => (
+    <div className="sticky top-0 z-40 bg-white dark:bg-gray-900/90 dark:bg-gray-900/90 backdrop-blur-md px-4 py-2 flex items-center space-x-3 border-b border-gray-100 dark:border-gray-800">
+      <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 bg-[#FF4142] flex items-center justify-center text-white">
+        <img src="https://picsum.photos/seed/jdlogo/100/100" alt="Logo" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+      </div>
+      <div 
+        className="flex-1 h-8 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center px-3 shadow-sm border border-transparent dark:border-gray-700 cursor-pointer"
+        onClick={() => {
+          const event = new CustomEvent('change-view', { detail: 'search' });
+          window.dispatchEvent(event);
+        }}
+      >
+        <Search size={14} className="text-gray-400 dark:text-gray-500 mr-2 shrink-0" />
+        <span className="text-[12px] text-gray-400 dark:text-gray-500 truncate">搜索商品 / SKU / 订单</span>
+      </div>
+      <button 
+        className="flex items-center justify-center w-8 h-8 text-gray-900 dark:text-gray-100 shrink-0 active:opacity-70"
+        onClick={() => {
+          const event = new CustomEvent('change-view', { detail: 'help_center' });
+          window.dispatchEvent(event);
+        }}
+      >
+        <Headset size={20} />
+      </button>
+    </div>
+  );
+
+  const renderContent = () => {
+    if (error) {
+      return (
+        <div className="flex-1 flex flex-col items-center justify-center p-4 pt-20">
+          <RefreshCcw size={40} className="text-gray-300 dark:text-gray-600 dark:text-gray-400 dark:text-gray-500 mb-4" />
+          <p className="text-[14px] text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-6">页面加载失败，请检查网络后重试</p>
+          <button 
+            onClick={() => { setLoading(true); setError(false); setTimeout(() => setLoading(false), 1000); }} 
+            className="px-6 py-2 border border-gray-200 dark:border-gray-700 rounded-full text-[13px] text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 shadow-sm active:bg-gray-50 dark:active:bg-gray-700"
+          >
+            重新加载
+          </button>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex-1 overflow-y-auto no-scrollbar pb-4">
+        {/* Quick Entry */}
+        <div className="grid grid-cols-5 gap-2 px-4 mt-4 mb-4">
+          <div 
+            className="flex flex-col items-center cursor-pointer active:opacity-70"
+            onClick={() => {
+              const event = new CustomEvent('change-view', { detail: 'store' });
+              window.dispatchEvent(event);
+            }}
+          >
+            <div className="w-11 h-11 rounded-[14px] bg-white dark:bg-gray-800 shadow-sm flex items-center justify-center text-[#FF4142] mb-1.5">
+              <Store size={22} strokeWidth={1.5} />
+            </div>
+            <span className="text-[12px] text-gray-900 dark:text-gray-100">商城</span>
+          </div>
+          <div 
+            className="flex flex-col items-center cursor-pointer active:opacity-70"
+            onClick={() => {
+              const event = new CustomEvent('change-view', { detail: 'shield' });
+              window.dispatchEvent(event);
+            }}
+          >
+            <div className="w-11 h-11 rounded-[14px] bg-white dark:bg-gray-800 shadow-sm flex items-center justify-center text-[#FF4142] mb-1.5">
+              <ShieldCheck size={22} strokeWidth={1.5} />
+            </div>
+            <span className="text-[12px] text-gray-900 dark:text-gray-100">确权中心</span>
+          </div>
+          <div 
+            className="flex flex-col items-center cursor-pointer active:opacity-70"
+            onClick={() => {
+              const event = new CustomEvent('change-view', { detail: 'order' });
+              window.dispatchEvent(event);
+            }}
+          >
+            <div className="w-11 h-11 rounded-[14px] bg-white dark:bg-gray-800 shadow-sm flex items-center justify-center text-[#FF4142] mb-1.5">
+              <FileText size={22} strokeWidth={1.5} />
+            </div>
+            <span className="text-[12px] text-gray-900 dark:text-gray-100">订单</span>
+          </div>
+          <div 
+            className="flex flex-col items-center cursor-pointer active:opacity-70"
+            onClick={() => {
+              const event = new CustomEvent('change-view', { detail: 'live' });
+              window.dispatchEvent(event);
+            }}
+          >
+            <div className="w-11 h-11 rounded-[14px] bg-white dark:bg-gray-800 shadow-sm flex items-center justify-center text-[#FF4142] mb-1.5">
+              <Volume2 size={22} strokeWidth={1.5} />
+            </div>
+            <span className="text-[12px] text-gray-900 dark:text-gray-100">直播</span>
+          </div>
+          <div 
+            className="flex flex-col items-center cursor-pointer active:opacity-70"
+            onClick={() => {
+              const event = new CustomEvent('change-view', { detail: 'help_center' });
+              window.dispatchEvent(event);
+            }}
+          >
+            <div className="w-11 h-11 rounded-[14px] bg-white dark:bg-gray-800 shadow-sm flex items-center justify-center text-[#FF4142] mb-1.5">
+              <Headset size={22} strokeWidth={1.5} />
+            </div>
+            <span className="text-[12px] text-gray-900 dark:text-gray-100">客服</span>
+          </div>
+        </div>
+
+        {/* Announcement */}
+        <div 
+          className="mx-4 mb-4 h-9 bg-white dark:bg-gray-800 rounded-full flex items-center px-3 shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden cursor-pointer active:opacity-80"
+          onClick={() => {
+            const event = new CustomEvent('change-view', { detail: 'announcement' });
+            window.dispatchEvent(event);
+          }}
+        >
+          <Volume2 size={16} className="text-[#FF4142] mr-2 shrink-0" />
+          <div className="flex-1 overflow-hidden relative h-full flex items-center">
+            <div className="absolute whitespace-nowrap text-[12px] text-gray-900 dark:text-gray-100 animate-marquee">
+              最新公告：数据资产确权交易平台正式上线，欢迎体验...
+            </div>
+          </div>
+        </div>
+
+        {/* Trading Zone Banner (Replaced Asset/Flash Sale Banner) */}
+        <div 
+          className="mx-4 mb-4 rounded-[16px] bg-gradient-to-r from-[#D32F2F] to-[#FF4B2B] p-5 relative overflow-hidden shadow-md cursor-pointer active:opacity-90 transition-opacity flex items-center justify-between min-h-[88px]"
+          onClick={() => {
+            const event = new CustomEvent('change-view', { detail: 'trading_zone' });
+            window.dispatchEvent(event);
+          }}
+        >
+          {/* Decorative background elements */}
+          <div className="absolute right-0 top-0 bottom-0 w-1/2 bg-gradient-to-l from-white/10 to-transparent"></div>
+          <div className="absolute -right-4 -top-4 w-24 h-24 rounded-full border-4 border-white/10"></div>
+          
+          <div className="relative z-10">
+            <h3 className="text-white font-bold text-[20px] mb-1 tracking-wide">交易专区</h3>
+            <p className="text-white/90 text-[13px] font-medium">数据资产确权交易</p>
+          </div>
+          
+          <div className="relative z-10 w-10 h-10 rounded-full bg-white dark:bg-gray-900/20 backdrop-blur-sm flex items-center justify-center border border-white/30 shrink-0">
+            <ArrowRight size={20} className="text-white" />
+          </div>
+        </div>
+
+        {/* Order Status */}
+        <div className="mx-4 mb-4 bg-white dark:bg-gray-900 rounded-[16px] shadow-sm border border-gray-100 dark:border-gray-800 py-4">
+          <div className="flex justify-around">
+            <div 
+              className="flex flex-col items-center text-gray-900 dark:text-gray-100 relative cursor-pointer active:opacity-70 w-1/4"
+              onClick={() => {
+                const event = new CustomEvent('change-view', { detail: 'order' });
+                window.dispatchEvent(event);
+              }}
+            >
+              <Wallet size={24} strokeWidth={1.5} className="mb-1.5 text-gray-700 dark:text-gray-300 dark:text-gray-600" />
+              <span className="text-[12px]">待付款</span>
+              <div className="absolute top-0 right-4 bg-[#FF4142] text-white text-[10px] font-bold px-1.5 rounded-full border border-white dark:border-gray-900">2</div>
+            </div>
+            <div 
+              className="flex flex-col items-center text-gray-900 dark:text-gray-100 cursor-pointer active:opacity-70 w-1/4"
+              onClick={() => {
+                const event = new CustomEvent('change-view', { detail: 'order' });
+                window.dispatchEvent(event);
+              }}
+            >
+              <Package size={24} strokeWidth={1.5} className="mb-1.5 text-gray-700 dark:text-gray-300 dark:text-gray-600" />
+              <span className="text-[12px]">待发货</span>
+            </div>
+            <div 
+              className="flex flex-col items-center text-gray-900 dark:text-gray-100 cursor-pointer active:opacity-70 w-1/4"
+              onClick={() => {
+                const event = new CustomEvent('change-view', { detail: 'order' });
+                window.dispatchEvent(event);
+              }}
+            >
+              <Truck size={24} strokeWidth={1.5} className="mb-1.5 text-gray-700 dark:text-gray-300 dark:text-gray-600" />
+              <span className="text-[12px]">待收货</span>
+            </div>
+            <div 
+              className="flex flex-col items-center text-gray-900 dark:text-gray-100 cursor-pointer active:opacity-70 w-1/4"
+              onClick={() => {
+                const event = new CustomEvent('change-view', { detail: 'after_sales' });
+                window.dispatchEvent(event);
+              }}
+            >
+              <Headset size={24} strokeWidth={1.5} className="mb-1.5 text-gray-700 dark:text-gray-300 dark:text-gray-600" />
+              <span className="text-[12px]">售后</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Product Feed */}
+        <div className="px-4 mb-4">
+          <h3 className="text-[16px] font-bold text-gray-900 dark:text-gray-100 mb-3 flex items-center justify-center">
+            <span className="w-4 h-px bg-gray-300 dark:bg-gray-600 mr-2"></span>
+            推荐商品
+            <span className="w-4 h-px bg-gray-300 dark:bg-gray-600 ml-2"></span>
+          </h3>
+          
+          {emptyFeed ? (
+            <div className="bg-white dark:bg-gray-900 rounded-[16px] flex flex-col items-center justify-center py-10 border border-gray-100 dark:border-gray-800 shadow-sm">
+              <FileX size={40} className="text-gray-300 dark:text-gray-600 dark:text-gray-400 dark:text-gray-500 mb-3" strokeWidth={1.5} />
+              <p className="text-[14px] text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-4">暂无推荐商品</p>
+              <button 
+                className="px-5 py-2 border border-[#FF4142] text-[#FF4142] rounded-full text-[13px] font-medium active:bg-red-50 dark:active:bg-red-900/20 transition-colors"
+                onClick={() => {
+                  const event = new CustomEvent('change-view', { detail: 'category' });
+                  window.dispatchEvent(event);
+                }}
+              >
+                去分类看看
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              {loading ? (
+                [1, 2, 3, 4].map(i => (
+                  <div key={i} className="bg-white dark:bg-gray-900 rounded-[16px] overflow-hidden shadow-sm border border-gray-100 dark:border-gray-800 flex flex-col">
+                    <Skeleton className="w-full aspect-square rounded-none" />
+                    <div className="p-3 space-y-2">
+                      <Skeleton className="w-full h-3" />
+                      <Skeleton className="w-2/3 h-3" />
+                      <Skeleton className="w-1/2 h-4 mt-2" />
+                    </div>
+                  </div>
+                ))
+              ) : (
+                [1, 2, 3, 4].map((i) => (
+                  <div 
+                    key={i} 
+                    className="bg-white dark:bg-gray-900 rounded-[16px] overflow-hidden shadow-sm border border-gray-100 dark:border-gray-800 cursor-pointer active:opacity-70 transition-opacity flex flex-col"
+                    onClick={() => {
+                      const event = new CustomEvent('change-view', { detail: 'product_detail' });
+                      window.dispatchEvent(event);
+                    }}
+                  >
+                    <img src={`https://picsum.photos/seed/prod${i}/200/200`} alt="Product" className="w-full aspect-square object-cover" referrerPolicy="no-referrer" />
+                    <div className="p-3 flex-1 flex flex-col">
+                      <div className="text-[13px] text-gray-900 dark:text-gray-100 line-clamp-2 mb-2 leading-tight">
+                        <span className="inline-block bg-[#FF4142] text-white text-[10px] px-1 rounded-[4px] mr-1 font-medium">自营</span>
+                        Sony/索尼 WH-1000XM5 头戴式无线降噪耳机 蓝牙耳机
+                      </div>
+                      <div className="flex space-x-1 mb-2 mt-auto">
+                        <span className="text-[10px] text-[#FF4142] border border-[#FF4142]/30 rounded-[4px] px-1">包邮</span>
+                        <span className="text-[10px] text-[#FF4142] border border-[#FF4142]/30 rounded-[4px] px-1">热卖</span>
+                      </div>
+                      <div className="flex justify-between items-end">
+                        <div className="text-[16px] font-bold text-[#FF4142] leading-none">
+                          <span className="text-[12px]">¥</span>2499
+                        </div>
+                        <button className="w-6 h-6 rounded-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center text-gray-900 dark:text-gray-100">
+                          <ShoppingCart size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="flex-1 flex flex-col bg-[#F7F8FA] dark:bg-gray-950 relative overflow-hidden">
+      {/* Offline Banner */}
+      {offline && (
+        <div className="bg-red-50 dark:bg-red-900/30 text-[#FF4142] dark:text-red-400 px-4 py-2 flex items-center justify-between text-[12px] z-50 absolute top-0 left-0 right-0">
+          <div className="flex items-center">
+            <WifiOff size={14} className="mr-2" />
+            <span>网络不稳定，请检查网络设置</span>
+          </div>
+          <button onClick={() => setOffline(false)} className="font-medium px-2 py-1 bg-white dark:bg-gray-800 rounded shadow-sm">刷新</button>
+        </div>
+      )}
+
+      {/* Demo Controls */}
+      <div className={`px-4 py-2 flex space-x-2 overflow-x-auto no-scrollbar bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 text-[10px] absolute ${offline ? 'top-10' : 'top-12'} left-0 right-0 z-50 opacity-50 hover:opacity-100 transition-opacity`}>
+        <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 flex items-center shrink-0">Demo:</span>
+        <button onClick={() => setLoading(!loading)} className={`px-2 py-1 rounded border ${loading ? 'bg-[#FF4142] text-white border-[#FF4142]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 dark:text-gray-600'}`}>Loading</button>
+        <button onClick={() => setOffline(!offline)} className={`px-2 py-1 rounded border ${offline ? 'bg-[#FF4142] text-white border-[#FF4142]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 dark:text-gray-600'}`}>Offline</button>
+        <button onClick={() => setError(!error)} className={`px-2 py-1 rounded border ${error ? 'bg-[#FF4142] text-white border-[#FF4142]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 dark:text-gray-600'}`}>Error</button>
+        <button onClick={() => setEmptyFeed(!emptyFeed)} className={`px-2 py-1 rounded border ${emptyFeed ? 'bg-[#FF4142] text-white border-[#FF4142]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 dark:text-gray-600'}`}>Empty</button>
+        <button onClick={() => setShowForceAnnouncement(true)} className="px-2 py-1 rounded border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 dark:text-gray-600 shrink-0">Show Modal</button>
+        <button onClick={() => setShowWebViewSheet(true)} className="px-2 py-1 rounded border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 dark:text-gray-600 shrink-0">Web Action</button>
+        <button onClick={() => setShowImagePicker(true)} className="px-2 py-1 rounded border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 dark:text-gray-600 shrink-0">Image Picker</button>
+        <button onClick={() => showNoticeBar({ message: '您的账号存在安全风险，请尽快修改密码', type: 'warning', actionText: '去修改' })} className="px-2 py-1 rounded border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 dark:text-gray-600 shrink-0">Notice</button>
+        <button onClick={() => showToast({ message: '操作成功', type: 'success' })} className="px-2 py-1 rounded border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 dark:text-gray-600 shrink-0">Toast</button>
+        <button onClick={() => {
+          showLoading({ message: '提交中...', subMessage: '请勿关闭页面', timeout: 3000, cancelable: true, onCancel: () => console.log('cancelled') });
+          setTimeout(() => hideLoading(), 5000); // Hide after 5s to demo timeout
+        }} className="px-2 py-1 rounded border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 dark:text-gray-600 shrink-0">HUD</button>
+      </div>
+
+      {renderHeader()}
+      {renderContent()}
+
+      <ForceAnnouncementModal 
+        isOpen={showForceAnnouncement} 
+        onClose={() => setShowForceAnnouncement(false)}
+        onViewDetail={() => {
+          setShowForceAnnouncement(false);
+          const event = new CustomEvent('change-view', { detail: 'announcement' });
+          window.dispatchEvent(event);
+        }}
+      />
+
+      <WebViewActionSheet
+        isOpen={showWebViewSheet}
+        onClose={() => setShowWebViewSheet(false)}
+        isLoading={isRefreshing}
+        onRefresh={() => {
+          setIsRefreshing(true);
+          setTimeout(() => setIsRefreshing(false), 1500);
+        }}
+        onOpenBrowser={() => alert('在系统浏览器中打开')}
+        onFeedback={() => alert('跳转到问题反馈')}
+        onClearCache={() => alert('缓存已清除')}
+      />
+
+      <ImagePickerActionSheet
+        isOpen={showImagePicker}
+        onClose={() => setShowImagePicker(false)}
+        hasUploadedImage={true}
+        hasCameraPermission={false} // Set to false to demo the disabled state
+        hasAlbumPermission={true}
+        onTakePhoto={() => alert('打开相机')}
+        onChooseAlbum={() => alert('打开相册')}
+        onViewImage={() => alert('预览图片')}
+      />
+    </div>
+  );
+};

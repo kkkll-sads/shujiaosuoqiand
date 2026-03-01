@@ -1,0 +1,58 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary-start: var(--primary-start);
+  --color-primary-end: var(--primary-end);
+  --color-bg-base: var(--bg-base);
+  --color-bg-card: var(--bg-card);
+  --color-text-main: var(--text-main);
+  --color-text-sub: var(--text-sub);
+  --color-text-aux: var(--text-aux);
+  --color-border-light: var(--border-light);
+
+  --shadow-soft: var(--shadow-soft);
+}
+
+@layer base {
+  :root {
+    --primary-start: #E93B3B;
+    --primary-end: #FF5C5C;
+    --bg-base: #FFF7F8;
+    --bg-card: #FFFFFF;
+    --text-main: #1A1A1A;
+    --text-sub: #666666;
+    --text-aux: #999999;
+    --border-light: #F2F2F2;
+    --shadow-soft: 0 4px 16px rgba(0, 0, 0, 0.04);
+  }
+
+  .dark {
+    --primary-start: #D32F2F;
+    --primary-end: #E53935;
+    --bg-base: #121212;
+    --bg-card: #1C1C1E;
+    --text-main: #F5F5F5;
+    --text-sub: #A0A0A0;
+    --text-aux: #707070;
+    --border-light: #2C2C2E;
+    --shadow-soft: 0 4px 16px rgba(0, 0, 0, 0.2);
+  }
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@keyframes marquee {
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+.animate-marquee {
+  display: inline-block;
+  white-space: nowrap;
+  animation: marquee 15s linear infinite;
+}

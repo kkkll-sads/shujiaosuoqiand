@@ -1,0 +1,330 @@
+import React, { useState, useEffect } from 'react';
+import { Search, MessageSquare, Grid, Zap, Ticket, Gift, Flame, Award, FileText, MapPin, ChevronRight, ShoppingCart, ShieldCheck, Clock, CheckCircle2, WifiOff, RefreshCcw, FileX } from 'lucide-react';
+import { Card } from '../../components/ui/Card';
+import { BottomTab } from '../../components/layout/BottomTab';
+import { Skeleton } from '../../components/ui/Skeleton';
+
+const Button = ({ children, variant = 'primary', className = '', ...props }: any) => {
+  const baseStyle = "h-[48px] rounded-[16px] font-medium text-[15px] flex items-center justify-center transition-opacity active:opacity-80 w-full";
+  const variants: any = {
+    primary: "bg-gradient-to-r from-primary-start to-primary-end text-white shadow-soft",
+    secondary: "bg-bg-card text-text-main border border-border-light shadow-soft",
+    outline: "bg-transparent border border-primary-start text-primary-start",
+    ghost: "bg-transparent text-text-sub",
+  };
+  return (
+    <button className={`${baseStyle} ${variants[variant]} ${className}`} {...props}>
+      {children}
+    </button>
+  );
+};
+
+export const StorePage = () => {
+  // States for demonstration
+  const [loading, setLoading] = useState(true);
+  const [offline, setOffline] = useState(false);
+  const [moduleError, setModuleError] = useState(true);
+  const [emptyFeed, setEmptyFeed] = useState(false);
+
+  useEffect(() => {
+    // Simulate initial loading
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const kingKongItems = [
+    { icon: Grid, label: '全部分类' },
+    { icon: Zap, label: '限时秒杀' },
+    { icon: Ticket, label: '领券中心' },
+    { icon: Gift, label: '新人专享' },
+    { icon: Flame, label: '热卖排行' },
+    { icon: Award, label: '品牌闪购' },
+    { icon: FileText, label: '我的订单' },
+    { icon: MapPin, label: '地址/客服' },
+  ];
+
+  return (
+    <div className="flex-1 flex flex-col bg-bg-base relative overflow-hidden">
+      {/* Offline Banner */}
+      {offline && (
+        <div className="bg-red-50 text-primary-start px-4 py-2 flex items-center justify-between text-[12px] z-50">
+          <div className="flex items-center">
+            <WifiOff size={14} className="mr-2" />
+            <span>网络不稳定，请检查网络设置</span>
+          </div>
+          <button onClick={() => setOffline(false)} className="font-medium px-2 py-1 bg-white dark:bg-gray-900 rounded shadow-sm">刷新</button>
+        </div>
+      )}
+
+      {/* Header */}
+      <div className="sticky top-0 z-40 bg-bg-base/95 px-4 py-2 flex items-center space-x-3 border-b border-border-light">
+        <div className="flex flex-col items-center justify-center shrink-0">
+          <div className="bg-primary-start text-white text-[10px] font-bold px-1.5 py-0.5 rounded-[4px] leading-none">
+            树交所
+            <br/>
+            自营
+          </div>
+        </div>
+        <div 
+          className="flex-1 h-8 bg-bg-card rounded-full flex items-center px-3 shadow-sm border border-border-light cursor-text"
+          onClick={() => {
+            const event = new CustomEvent('change-view', { detail: 'search' });
+            window.dispatchEvent(event);
+          }}
+        >
+          <Search size={14} className="text-text-aux mr-2 shrink-0" />
+          <span className="text-[12px] text-text-aux truncate">搜索商品 / SKU / 关键词</span>
+        </div>
+        <div className="flex items-center space-x-1 shrink-0">
+          <button 
+            className="flex items-center justify-center w-8 h-8 text-text-main relative active:opacity-70"
+            onClick={() => {
+              const event = new CustomEvent('change-view', { detail: 'cart' });
+              window.dispatchEvent(event);
+            }}
+          >
+            <ShoppingCart size={20} />
+          </button>
+          <button 
+            className="flex items-center justify-center w-8 h-8 text-text-main relative active:opacity-70"
+            onClick={() => {
+              const event = new CustomEvent('change-view', { detail: 'message_center' });
+              window.dispatchEvent(event);
+            }}
+          >
+            <MessageSquare size={20} />
+            <span className="absolute top-1 right-1 w-2 h-2 bg-primary-start rounded-full border border-bg-base"></span>
+          </button>
+        </div>
+      </div>
+
+      {/* Demo Controls (Hidden in production, just for reviewer to toggle states) */}
+      <div className="px-4 py-2 flex space-x-2 overflow-x-auto no-scrollbar bg-bg-card border-b border-border-light text-[10px]">
+        <span className="text-text-aux flex items-center shrink-0">Demo States:</span>
+        <button onClick={() => setLoading(!loading)} className={`px-2 py-1 rounded border ${loading ? 'bg-primary-start text-white border-primary-start' : 'border-border-light'}`}>Loading</button>
+        <button onClick={() => setOffline(!offline)} className={`px-2 py-1 rounded border ${offline ? 'bg-primary-start text-white border-primary-start' : 'border-border-light'}`}>Offline</button>
+        <button onClick={() => setModuleError(!moduleError)} className={`px-2 py-1 rounded border ${moduleError ? 'bg-primary-start text-white border-primary-start' : 'border-border-light'}`}>Error</button>
+        <button onClick={() => setEmptyFeed(!emptyFeed)} className={`px-2 py-1 rounded border ${emptyFeed ? 'bg-primary-start text-white border-primary-start' : 'border-border-light'}`}>Empty</button>
+      </div>
+
+      {/* Scrollable Content */}
+      <div className="flex-1 overflow-y-auto no-scrollbar pb-4">
+        
+        {/* King Kong Area (8 Grid) */}
+        <div className="grid grid-cols-4 gap-y-4 px-4 mt-4 mb-4">
+          {kingKongItems.map((item, index) => {
+            const Icon = item.icon;
+            return (
+              <div 
+                key={index} 
+                className="flex flex-col items-center cursor-pointer active:opacity-70 transition-opacity"
+                onClick={() => {
+                  if (item.label === '全部分类') {
+                    const event = new CustomEvent('change-view', { detail: 'category' });
+                    window.dispatchEvent(event);
+                  } else if (item.label === '领券中心') {
+                    const event = new CustomEvent('change-view', { detail: 'coupon' });
+                    window.dispatchEvent(event);
+                  } else if (item.label === '我的订单') {
+                    const event = new CustomEvent('change-view', { detail: 'order' });
+                    window.dispatchEvent(event);
+                  } else if (item.label === '地址/客服') {
+                    const event = new CustomEvent('change-view', { detail: 'help_center' });
+                    window.dispatchEvent(event);
+                  }
+                }}
+              >
+                <div className="w-10 h-10 rounded-[12px] bg-bg-card shadow-sm flex items-center justify-center mb-1.5 text-text-main">
+                  <Icon size={20} strokeWidth={1.5} />
+                </div>
+                <span className="text-[12px] text-text-main">{item.label}</span>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Main Banner */}
+        <div className="px-4 mb-4">
+          {loading ? (
+            <Skeleton className="w-full h-[100px] rounded-[16px]" />
+          ) : (
+            <div className="rounded-[16px] bg-gradient-to-r from-[#E93B3B] to-[#FF5C5C] p-4 relative overflow-hidden shadow-soft flex items-center justify-between h-[100px]">
+              <div className="relative z-10">
+                <h2 className="text-white font-bold text-[20px] mb-1">自营精选</h2>
+                <p className="text-white/90 text-[12px]">官方保障 · 极速发货</p>
+              </div>
+              <button className="bg-white dark:bg-gray-900 text-primary-start text-[12px] font-bold px-3 py-1.5 rounded-full shadow-sm relative z-10">
+                去逛逛
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Service Guarantees */}
+        <div className="px-4 mb-3 flex justify-between items-center text-[11px] text-text-sub">
+          <span className="flex items-center"><CheckCircle2 size={12} className="text-primary-start mr-1" /> 自营保障</span>
+          <span className="flex items-center"><CheckCircle2 size={12} className="text-primary-start mr-1" /> 极速发货</span>
+          <span className="flex items-center"><CheckCircle2 size={12} className="text-primary-start mr-1" /> 售后无忧</span>
+        </div>
+
+        {/* Coupons Module */}
+        <div className="px-4 mb-4">
+          {loading ? (
+            <Skeleton className="w-full h-[70px] rounded-[12px]" />
+          ) : (
+            <div className="bg-bg-card rounded-[12px] p-3 shadow-soft border border-border-light flex items-center">
+              <div className="flex-1 flex items-center border-r border-border-light border-dashed pr-3">
+                <div className="text-primary-start font-bold mr-2">
+                  <span className="text-[14px]">¥</span><span className="text-[24px] leading-none">100</span>
+                </div>
+                <div>
+                  <div className="text-[13px] font-bold text-text-main">满199可用</div>
+                  <div className="text-[10px] text-text-aux">自营全品类通用</div>
+                </div>
+              </div>
+              <div className="pl-3 shrink-0">
+                <button className="bg-primary-start text-white text-[12px] font-medium px-3 py-1.5 rounded-full">
+                  立即领取
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Flash Sale */}
+        <div className="px-4 mb-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center">
+              <h3 className="text-[16px] font-bold text-text-main mr-2">限时秒杀</h3>
+              <div className="flex items-center space-x-1 text-[10px] font-mono">
+                <span className="bg-primary-start text-white px-1.5 py-0.5 rounded-[4px]">10点场</span>
+                <span className="text-primary-start font-bold">01:45:22</span>
+              </div>
+            </div>
+            <span className="text-[12px] text-text-aux flex items-center">更多 <ChevronRight size={12} /></span>
+          </div>
+          
+          {moduleError ? (
+            <Card className="flex flex-col items-center justify-center py-6 border border-border-light">
+              <RefreshCcw size={24} className="text-text-aux mb-2" />
+              <p className="text-[13px] text-text-sub mb-3">模块加载失败</p>
+              <button onClick={() => setModuleError(false)} className="px-4 py-1.5 border border-border-light rounded-full text-[12px] text-text-main">重试</button>
+            </Card>
+          ) : (
+            <div className="flex space-x-3 overflow-x-auto no-scrollbar pb-2">
+              {loading ? (
+                [1, 2, 3, 4].map(i => (
+                  <div key={i} className="w-[100px] shrink-0 space-y-2">
+                    <Skeleton className="w-full aspect-square rounded-[12px]" />
+                    <Skeleton className="w-3/4 h-3" />
+                    <Skeleton className="w-1/2 h-4" />
+                  </div>
+                ))
+              ) : (
+                [1, 2, 3, 4].map((i) => (
+                  <div 
+                    key={i} 
+                    className="w-[100px] shrink-0 flex flex-col cursor-pointer active:opacity-70 transition-opacity"
+                    onClick={() => {
+                      const event = new CustomEvent('change-view', { detail: 'product_detail' });
+                      window.dispatchEvent(event);
+                    }}
+                  >
+                    <div className="w-full aspect-square bg-bg-card rounded-[12px] mb-2 overflow-hidden shadow-sm border border-border-light">
+                      <img src={`https://picsum.photos/seed/jdflash${i}/150/150`} alt="Product" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                    </div>
+                    <div className="text-[12px] text-text-main line-clamp-1 mb-1">Apple iPhone 15</div>
+                    <div className="text-[15px] font-bold text-primary-start leading-none mb-1">
+                      <span className="text-[11px]">¥</span>5999
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <div className="text-[10px] text-text-aux line-through">¥6999</div>
+                      <div className="text-[10px] text-text-aux">已抢80%</div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Today's Picks / Feed */}
+        <div className="px-4 mb-4">
+          <h3 className="text-[16px] font-bold text-text-main mb-3 flex items-center justify-center">
+            <span className="w-4 h-px bg-border-light mr-2"></span>
+            今日精选
+            <span className="w-4 h-px bg-border-light ml-2"></span>
+          </h3>
+          
+          {emptyFeed ? (
+            <Card className="flex flex-col items-center justify-center py-10 border border-border-light">
+              <FileX size={40} className="text-text-aux mb-3 opacity-50" strokeWidth={1.5} />
+              <p className="text-[14px] text-text-sub mb-4">暂无商品推荐，去分类看看</p>
+              <button 
+                className="px-5 py-2 border border-primary-start text-primary-start rounded-full text-[13px] font-medium active:bg-red-50 transition-colors"
+                onClick={() => {
+                  const event = new CustomEvent('change-view', { detail: 'category' });
+                  window.dispatchEvent(event);
+                }}
+              >
+                去分类
+              </button>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              {loading ? (
+                [1, 2, 3, 4].map(i => (
+                  <div key={i} className="bg-bg-card rounded-[16px] overflow-hidden shadow-soft border border-border-light flex flex-col">
+                    <Skeleton className="w-full aspect-square rounded-none" />
+                    <div className="p-3 space-y-2">
+                      <Skeleton className="w-full h-3" />
+                      <Skeleton className="w-2/3 h-3" />
+                      <Skeleton className="w-1/2 h-4 mt-2" />
+                    </div>
+                  </div>
+                ))
+              ) : (
+                [1, 2, 3, 4, 5, 6].map((i) => (
+                  <div 
+                    key={i} 
+                    className="bg-bg-card rounded-[16px] overflow-hidden shadow-soft border border-border-light flex flex-col cursor-pointer active:opacity-70 transition-opacity"
+                    onClick={() => {
+                      const event = new CustomEvent('change-view', { detail: 'product_detail' });
+                      window.dispatchEvent(event);
+                    }}
+                  >
+                    <img src={`https://picsum.photos/seed/jdprod${i}/200/200`} alt="Product" className="w-full aspect-square object-cover" referrerPolicy="no-referrer" />
+                    <div className="p-3 flex-1 flex flex-col">
+                      <div className="text-[13px] text-text-main line-clamp-2 mb-2 leading-tight">
+                        <span className="inline-block bg-primary-start text-white text-[10px] px-1 rounded-[4px] mr-1 font-medium">自营</span>
+                        Sony/索尼 WH-1000XM5 头戴式无线降噪耳机 蓝牙耳机
+                      </div>
+                      <div className="flex flex-wrap gap-1 mb-auto pb-2">
+                        <span className="text-[10px] text-primary-start border border-primary-start/30 rounded-[4px] px-1">包邮</span>
+                        <span className="text-[10px] text-primary-start border border-primary-start/30 rounded-[4px] px-1">官方</span>
+                        <span className="text-[10px] text-primary-start border border-primary-start/30 rounded-[4px] px-1">热卖</span>
+                      </div>
+                      <div className="flex justify-between items-end mt-1">
+                        <div className="flex flex-col">
+                          <div className="text-[16px] font-bold text-primary-start leading-none mb-1">
+                            <span className="text-[12px]">¥</span>2499
+                          </div>
+                          <div className="text-[10px] text-text-aux">已售1万+</div>
+                        </div>
+                        <button className="w-7 h-7 rounded-full bg-bg-base border border-border-light flex items-center justify-center text-text-main active:bg-border-light transition-colors">
+                          <ShoppingCart size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
