@@ -4,7 +4,8 @@ import {
   Wallet, Award, CheckSquare, ChevronRight, 
   CreditCard, Package, Truck, HeadphonesIcon, 
   MapPin, Ticket, Headset, Lock, HelpCircle, 
-  Bell, Trash2, Info, WifiOff, RefreshCcw, LogOut, Heart, ShoppingCart, Users, Landmark
+  Bell, Trash2, Info, WifiOff, RefreshCcw, LogOut, Heart, ShoppingCart, Users, Landmark,
+  Coins, Banknote, ShoppingBag, Zap, Clock
 } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
 import { BottomTab } from '../../components/layout/BottomTab';
@@ -185,7 +186,7 @@ export const UserPage = () => {
           </div>
         </div>
 
-        <div className="flex justify-around bg-bg-card rounded-[16px] p-4 shadow-soft border border-border-light">
+        <div className="grid grid-cols-3 gap-y-5 gap-x-2 bg-bg-card rounded-[16px] p-5 shadow-soft border border-border-light">
           <div 
             className="flex flex-col items-center cursor-pointer active:opacity-70 transition-opacity"
             onClick={() => {
@@ -193,10 +194,9 @@ export const UserPage = () => {
               window.dispatchEvent(event);
             }}
           >
-            <span className="text-[18px] font-bold text-text-main mb-0.5">2,840.00</span>
-            <span className="text-[11px] text-text-sub flex items-center"><Wallet size={12} className="mr-1" /> 余额</span>
+            <span className="text-[16px] font-bold text-text-main mb-1">2,840.00</span>
+            <span className="text-[11px] text-text-sub flex items-center"><Coins size={12} className="mr-1" /> 专项金余额</span>
           </div>
-          <div className="w-px bg-border-light my-1"></div>
           <div 
             className="flex flex-col items-center cursor-pointer active:opacity-70 transition-opacity"
             onClick={() => {
@@ -204,19 +204,49 @@ export const UserPage = () => {
               window.dispatchEvent(event);
             }}
           >
-            <span className="text-[18px] font-bold text-text-main mb-0.5">1,500</span>
-            <span className="text-[11px] text-text-sub flex items-center"><Award size={12} className="mr-1" /> 积分</span>
+            <span className="text-[16px] font-bold text-text-main mb-1">1,500.00</span>
+            <span className="text-[11px] text-text-sub flex items-center"><Banknote size={12} className="mr-1" /> 可提现余额</span>
           </div>
-          <div className="w-px bg-border-light my-1"></div>
           <div 
             className="flex flex-col items-center cursor-pointer active:opacity-70 transition-opacity"
             onClick={() => {
-              const event = new CustomEvent('change-view', { detail: 'shield' });
+              const event = new CustomEvent('change-view', { detail: 'billing' });
               window.dispatchEvent(event);
             }}
           >
-            <span className="text-[18px] font-bold text-primary-start mb-0.5">3</span>
-            <span className="text-[11px] text-text-sub flex items-center"><CheckSquare size={12} className="mr-1" /> 确权中</span>
+            <span className="text-[16px] font-bold text-text-main mb-1">300.00</span>
+            <span className="text-[11px] text-text-sub flex items-center"><ShoppingBag size={12} className="mr-1" /> 消费金</span>
+          </div>
+          
+          <div 
+            className="flex flex-col items-center cursor-pointer active:opacity-70 transition-opacity"
+            onClick={() => {
+              const event = new CustomEvent('change-view', { detail: 'billing' });
+              window.dispatchEvent(event);
+            }}
+          >
+            <span className="text-[16px] font-bold text-text-main mb-1">128</span>
+            <span className="text-[11px] text-text-sub flex items-center"><Zap size={12} className="mr-1" /> 算力</span>
+          </div>
+          <div 
+            className="flex flex-col items-center cursor-pointer active:opacity-70 transition-opacity"
+            onClick={() => {
+              const event = new CustomEvent('change-view', { detail: 'billing' });
+              window.dispatchEvent(event);
+            }}
+          >
+            <span className="text-[16px] font-bold text-text-main mb-1">5,000.00</span>
+            <span className="text-[11px] text-text-sub flex items-center"><ShieldCheck size={12} className="mr-1" /> 确权金</span>
+          </div>
+          <div 
+            className="flex flex-col items-center cursor-pointer active:opacity-70 transition-opacity"
+            onClick={() => {
+              const event = new CustomEvent('change-view', { detail: 'billing' });
+              window.dispatchEvent(event);
+            }}
+          >
+            <span className="text-[16px] font-bold text-text-main mb-1">1,200.00</span>
+            <span className="text-[11px] text-text-sub flex items-center"><Clock size={12} className="mr-1" /> 待激活确权金</span>
           </div>
         </div>
       </div>
