@@ -1,88 +1,217 @@
-import React, { useState } from 'react';
-import { Headset, Eye, EyeOff } from 'lucide-react';
+import { useState } from 'react';
+import { Eye, EyeOff, Headset } from 'lucide-react';
+import { getErrorMessage } from '../../api/core/errors';
+import { authApi } from '../../api/modules/auth';
+import { PageHeader } from '../../components/layout/PageHeader';
 import { Button } from '../../components/ui/Button';
-import { Input } from '../../components/ui/Input';
 import { Checkbox } from '../../components/ui/Checkbox';
+import { useFeedback } from '../../components/ui/FeedbackProvider';
+import { Input } from '../../components/ui/Input';
+import { useSmsCode } from '../../hooks/useSmsCode';
+import {
+  MOBILE_PATTERN,
+  PASSWORD_PATTERN,
+  createAuthSession,
+  persistAuthSession,
+  resolveAuthRedirectPath,
+} from '../../lib/auth';
 import { useAppNavigate } from '../../lib/navigation';
 
 export const RegisterPage = () => {
-  const { goTo, goBack } = useAppNavigate();
+  const { goTo, goBack, navigate } = useAppNavigate();
+  const { showToast } = useFeedback();
 
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showPayPassword, setShowPayPassword] = useState(false);
   const [agree, setAgree] = useState(false);
+  const [inviteCode, setInviteCode] = useState('');
+  const [mobile, setMobile] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [payPassword, setPayPassword] = useState('');
+  const [verifyCode, setVerifyCode] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const { buttonText, canSend, message, sendCode } = useSmsCode({
+    event: 'user_register',
+  });
+
+  const handleSendCode = async () => {
+    await sendCode(mobile);
+  };
+
+  const handleSubmit = async () => {
+    const normalizedMobile = mobile.trim();
+    const normalizedPassword = loginPassword.trim();
+    const normalizedPayPassword = payPassword.trim();
+    const normalizedCode = verifyCode.trim();
+    const normalizedInviteCode = inviteCode.trim();
+
+    if (!MOBILE_PATTERN.test(normalizedMobile)) {
+      showToast({ message: '请输入正确的手机号', type: 'warning' });
+      return;
+    }
+
+    if (!PASSWORD_PATTERN.test(normalizedPassword)) {
+      showToast({ message: '登录密码需为 6-32 位字母或数字', type: 'warning' });
+      return;
+    }
+
+    if (!PASSWORD_PATTERN.test(normalizedPayPassword)) {
+      showToast({ message: '支付密码需为 6-32 位字母或数字', type: 'warning' });
+      return;
+    }
+
+    if (!normalizedCode) {
+      showToast({ message: '请输入短信验证码', type: 'warning' });
+      return;
+    }
+
+    if (!agree) {
+      showToast({ message: '请先勾选用户协议与隐私政策', type: 'warning' });
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
+      const response = await authApi.register({
+        mobile: normalizedMobile,
+        password: normalizedPassword,
+        pay_password: normalizedPayPassword,
+        captcha: normalizedCode,
+        invite_code: normalizedInviteCode || undefined,
+      });
+
+      const session = createAuthSession(response, {
+        mobile: normalizedMobile,
+        username: normalizedMobile,
+      });
+
+      persistAuthSession(session, {
+        persistent: true,
+      });
+
+      showToast({ message: '注册成功', type: 'success' });
+      navigate(resolveAuthRedirectPath(session.routePath), { replace: true });
+    } catch (error) {
+      showToast({ message: getErrorMessage(error), type: 'error' });
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
-    <div className="flex-1 flex flex-col px-4 pt-12 pb-8 overflow-y-auto no-scrollbar relative z-10">
-      {/* Top Buttons */}
-      <div className="absolute top-4 left-4 right-4 flex justify-between z-20">
-        <button 
-          className="p-2 -ml-2 text-text-main active:opacity-70"
-          onClick={() => goBack()}
-        >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-        </button>
-        <button className="flex items-center bg-bg-card/60 backdrop-blur-md px-3 py-1.5 rounded-full text-sm text-text-main shadow-sm border border-border-light">
-          <Headset size={14} className="mr-1" />
-          客服
-        </button>
-      </div>
+    <div className="flex flex-1 flex-col bg-bg-base">
+      <PageHeader
+        title="会员注册"
+        onBack={() => goBack()}
+        rightAction={
+          <button className="flex items-center rounded-full border border-border-light bg-bg-card/80 px-3 py-1.5 text-sm text-text-main shadow-sm backdrop-blur-md">
+            <Headset size={14} className="mr-1" />
+            客服
+          </button>
+        }
+        className="bg-transparent"
+        contentClassName="h-14 px-4 pt-safe"
+      />
 
-      {/* Header */}
-      <div className="mt-16 mb-10">
-        <h1 className="text-6xl font-bold text-text-main mb-2">Welcome!</h1>
-        <p className="text-3xl text-text-sub">欢迎注册树交所</p>
-      </div>
+      <div className="flex-1 overflow-y-auto px-4 pb-8">
+        <div className="mb-8 mt-6">
+          <h1 className="mb-2 text-5xl font-bold text-text-main">Welcome!</h1>
+          <p className="text-base text-text-sub">完成注册后即可进入会员中心</p>
+        </div>
 
-      {/* Form */}
-      <div className="space-y-4 mb-8">
-        <Input placeholder="请输入邀请码" type="text" />
-        <Input placeholder="请输入手机号" type="tel" />
-        <Input
-          placeholder="请设置登录密码"
-          type={showLoginPassword ? 'text' : 'password'}
-          rightIcon={
-            <button onClick={() => setShowLoginPassword(!showLoginPassword)} className="focus:outline-none">
-              {showLoginPassword ? <Eye size={18} /> : <EyeOff size={18} />}
-            </button>
-          }
-        />
-        <Input
-          placeholder="请设置支付密码"
-          type={showPayPassword ? 'text' : 'password'}
-          rightIcon={
-            <button onClick={() => setShowPayPassword(!showPayPassword)} className="focus:outline-none">
-              {showPayPassword ? <Eye size={18} /> : <EyeOff size={18} />}
-            </button>
-          }
-        />
-        <div className="flex space-x-3">
-          <Input placeholder="请输入验证码" type="number" className="flex-1" />
-          <button className="h-[48px] px-4 rounded-2xl bg-bg-card text-primary-start text-lg font-medium shadow-soft whitespace-nowrap border border-border-light">
-            获取验证码
+        <div className="space-y-4">
+          <Input
+            placeholder="请输入邀请码（按后台配置选填）"
+            value={inviteCode}
+            onChange={(event) => setInviteCode(event.target.value)}
+          />
+          <Input
+            placeholder="请输入手机号"
+            type="tel"
+            value={mobile}
+            onChange={(event) => setMobile(event.target.value)}
+          />
+          <Input
+            placeholder="请设置登录密码"
+            type={showLoginPassword ? 'text' : 'password'}
+            value={loginPassword}
+            onChange={(event) => setLoginPassword(event.target.value)}
+            rightIcon={
+              <button
+                type="button"
+                className="focus:outline-none"
+                onClick={() => setShowLoginPassword((current) => !current)}
+              >
+                {showLoginPassword ? <Eye size={18} /> : <EyeOff size={18} />}
+              </button>
+            }
+          />
+          <Input
+            placeholder="请设置支付密码"
+            type={showPayPassword ? 'text' : 'password'}
+            value={payPassword}
+            onChange={(event) => setPayPassword(event.target.value)}
+            rightIcon={
+              <button
+                type="button"
+                className="focus:outline-none"
+                onClick={() => setShowPayPassword((current) => !current)}
+              >
+                {showPayPassword ? <Eye size={18} /> : <EyeOff size={18} />}
+              </button>
+            }
+          />
+
+          <div className="space-y-2">
+            <div className="flex space-x-3">
+              <Input
+                placeholder="请输入短信验证码"
+                className="flex-1"
+                value={verifyCode}
+                onChange={(event) => setVerifyCode(event.target.value)}
+              />
+              <button
+                type="button"
+                disabled={!canSend}
+                onClick={handleSendCode}
+                className="h-[48px] whitespace-nowrap rounded-2xl border border-border-light bg-bg-card px-4 text-base font-medium text-primary-start shadow-soft disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {buttonText}
+              </button>
+            </div>
+            {message && <p className="px-1 text-sm text-primary-start">{message}</p>}
+          </div>
+        </div>
+
+        <div className="mt-4 flex items-start">
+          <Checkbox checked={agree} onChange={() => setAgree((current) => !current)} className="mt-0.5" />
+          <p className="ml-2 text-sm leading-6 text-text-sub">
+            注册即代表你已同意
+            <a href="#" className="mx-1 text-primary-start">
+              用户协议
+            </a>
+            和
+            <a href="#" className="mx-1 text-primary-start">
+              隐私政策
+            </a>
+          </p>
+        </div>
+
+        <div className="mt-4 rounded-2xl border border-border-light bg-bg-card/70 px-4 py-3 text-sm leading-6 text-text-sub shadow-soft">
+          邀请码仅在后台开启邀请码注册时必填。若当前环境接入真实后端，请使用收到的短信验证码完成注册。
+        </div>
+
+        <Button className="mt-6" disabled={submitting} onClick={handleSubmit}>
+          {submitting ? '注册中...' : '注册'}
+        </Button>
+
+        <div className="mt-8 text-center">
+          <button type="button" className="text-base font-medium text-text-main" onClick={() => goTo('login')}>
+            已有账号？去登录
           </button>
         </div>
-      </div>
-
-      {/* Register Button */}
-      <Button 
-        className="mb-4"
-        onClick={() => goTo('home')}
-      >
-        注册
-      </Button>
-
-      {/* Agreement */}
-      <div className="flex items-start justify-center mb-auto">
-        <Checkbox checked={agree} onChange={() => setAgree(!agree)} className="mt-0.5" />
-        <div className="ml-2 text-sm text-text-sub leading-tight">
-          注册即代表你已同意 <a href="#" className="text-primary-start">用户协议</a> 和 <a href="#" className="text-primary-start">隐私政策</a>
-        </div>
-      </div>
-
-      {/* Bottom */}
-      <div className="mt-12 text-center">
-        <button className="text-lg text-text-main font-medium" onClick={() => goTo('login')}>已有账户？点击登录</button>
       </div>
     </div>
   );

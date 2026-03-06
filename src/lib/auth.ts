@@ -1,0 +1,257 @@
+import { apiConfig } from '../api/config';
+import type { CheckInResponseData, UserInfo } from '../api/modules/auth';
+
+const AUTH_SESSION_STORAGE_KEY = 'member_auth_session';
+export const AUTH_SESSION_CHANGE_EVENT = 'member-auth-session-change';
+
+export const MOBILE_PATTERN = /^1\d{10}$/;
+export const PASSWORD_PATTERN = /^[A-Za-z0-9]{6,32}$/;
+
+type UnknownRecord = Record<string, unknown>;
+
+export interface AuthSession {
+  accessToken?: string;
+  baToken?: string;
+  baUserToken?: string;
+  isAuthenticated: boolean;
+  persistent: boolean;
+  routePath?: string;
+  userInfo?: UserInfo;
+}
+
+function isObject(value: unknown): value is UnknownRecord {
+  return Object.prototype.toString.call(value) === '[object Object]';
+}
+
+function readString(value: unknown): string | undefined {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const nextValue = value.trim();
+  return nextValue ? nextValue : undefined;
+}
+
+function pickString(source: UnknownRecord | undefined, keys: string[]): string | undefined {
+  if (!source) {
+    return undefined;
+  }
+
+  for (const key of keys) {
+    const nextValue = readString(source[key]);
+    if (nextValue) {
+      return nextValue;
+    }
+  }
+
+  return undefined;
+}
+
+function pickObject(source: UnknownRecord | undefined, keys: string[]): UnknownRecord | undefined {
+  if (!source) {
+    return undefined;
+  }
+
+  for (const key of keys) {
+    const nextValue = source[key];
+    if (isObject(nextValue)) {
+      return nextValue;
+    }
+  }
+
+  return undefined;
+}
+
+function safeParse(value: string | null): AuthSession | null {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(value) as AuthSession;
+    if (!parsed || typeof parsed !== 'object') {
+      return null;
+    }
+
+    return parsed.isAuthenticated ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function dispatchAuthSessionChange() {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.dispatchEvent(new CustomEvent(AUTH_SESSION_CHANGE_EVENT));
+}
+
+function removeSessionFromStorage(storage: Storage) {
+  storage.removeItem(AUTH_SESSION_STORAGE_KEY);
+  storage.removeItem(apiConfig.tokenStorageKey);
+}
+
+function writeSessionToStorage(storage: Storage, session: AuthSession) {
+  storage.setItem(AUTH_SESSION_STORAGE_KEY, JSON.stringify(session));
+
+  const token = session.baUserToken ?? session.accessToken;
+  if (token) {
+    storage.setItem(apiConfig.tokenStorageKey, token);
+  } else {
+    storage.removeItem(apiConfig.tokenStorageKey);
+  }
+}
+
+function getBrowserStorages() {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  return {
+    local: window.localStorage,
+    session: window.sessionStorage,
+  };
+}
+
+export function getAuthSessionSnapshot(): AuthSession | null {
+  const storages = getBrowserStorages();
+  if (!storages) {
+    return null;
+  }
+
+  return (
+    safeParse(storages.session.getItem(AUTH_SESSION_STORAGE_KEY)) ??
+    safeParse(storages.local.getItem(AUTH_SESSION_STORAGE_KEY))
+  );
+}
+
+export function createAuthSession(
+  data: CheckInResponseData | null | undefined,
+  fallbackUserInfo?: UserInfo,
+): Omit<AuthSession, 'persistent'> {
+  const source = isObject(data) ? data : undefined;
+  const nestedUserInfo = pickObject(source, ['userInfo', 'userinfo', 'user']);
+  const userInfo =
+    (nestedUserInfo as UserInfo | undefined) ?? (isObject(fallbackUserInfo) ? fallbackUserInfo : undefined);
+
+  const accessToken = pickString(source, [
+    'accessToken',
+    'access_token',
+    'token',
+    'userToken',
+    'user_token',
+    'baUserToken',
+    'ba_user_token',
+  ]);
+
+  const baUserToken =
+    pickString(source, ['baUserToken', 'ba_user_token', 'userToken', 'user_token']) ??
+    pickString(nestedUserInfo, ['baUserToken', 'ba_user_token', 'userToken', 'user_token', 'token']) ??
+    accessToken;
+
+  const baToken =
+    pickString(source, ['baToken', 'ba_token']) ??
+    pickString(nestedUserInfo, ['baToken', 'ba_token']);
+
+  const routePath =
+    pickString(source, ['routePath', 'route_path', 'redirect', 'redirectPath']) ??
+    pickString(nestedUserInfo, ['routePath', 'route_path']);
+
+  return {
+    accessToken,
+    baToken,
+    baUserToken,
+    isAuthenticated: true,
+    routePath,
+    userInfo,
+  };
+}
+
+export function persistAuthSession(
+  session: Omit<AuthSession, 'persistent'>,
+  options: { persistent: boolean },
+) {
+  const storages = getBrowserStorages();
+  if (!storages) {
+    return;
+  }
+
+  const nextSession: AuthSession = {
+    ...session,
+    isAuthenticated: true,
+    persistent: options.persistent,
+  };
+
+  removeSessionFromStorage(storages.local);
+  removeSessionFromStorage(storages.session);
+  writeSessionToStorage(options.persistent ? storages.local : storages.session, nextSession);
+  dispatchAuthSessionChange();
+}
+
+export function clearAuthSession() {
+  const storages = getBrowserStorages();
+  if (!storages) {
+    return;
+  }
+
+  removeSessionFromStorage(storages.local);
+  removeSessionFromStorage(storages.session);
+  dispatchAuthSessionChange();
+}
+
+export function getAuthHeaders(): Record<string, string> {
+  const session = getAuthSessionSnapshot();
+  if (!session) {
+    return {};
+  }
+
+  const headers: Record<string, string> = {};
+  if (session.baToken) {
+    headers['ba-token'] = session.baToken;
+  }
+
+  const userToken = session.baUserToken ?? session.accessToken;
+  if (userToken) {
+    headers['ba-user-token'] = userToken;
+  }
+
+  return headers;
+}
+
+export function subscribeAuthSessionChange(listener: () => void) {
+  if (typeof window === 'undefined') {
+    return () => undefined;
+  }
+
+  const handleStorage = () => listener();
+
+  window.addEventListener(AUTH_SESSION_CHANGE_EVENT, handleStorage);
+  window.addEventListener('storage', handleStorage);
+
+  return () => {
+    window.removeEventListener(AUTH_SESSION_CHANGE_EVENT, handleStorage);
+    window.removeEventListener('storage', handleStorage);
+  };
+}
+
+export function resolveAuthRedirectPath(routePath?: string) {
+  const nextPath = routePath?.trim();
+  if (!nextPath) {
+    return '/user';
+  }
+
+  if (/^https?:\/\//i.test(nextPath)) {
+    return '/user';
+  }
+
+  if (nextPath.startsWith('#/')) {
+    return nextPath.slice(1);
+  }
+
+  if (nextPath.startsWith('/')) {
+    return nextPath;
+  }
+
+  return `/${nextPath.replace(/^\/+/, '')}`;
+}

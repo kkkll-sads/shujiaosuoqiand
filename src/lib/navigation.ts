@@ -4,7 +4,7 @@
  *              简化页面组件中的导航迁移。所有页面只需使用 useAppNavigate() hook。
  */
 
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useCallback, useMemo } from 'react';
 
 /**

@@ -4,6 +4,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useAppNavigate } from '../../lib/navigation';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { ErrorState } from '../../components/ui/ErrorState';
+import { CURRENT_APP_VERSION, formatVersionLabel } from '../../lib/appVersion';
 
 export const SettingsPage = () => {
   const { goTo, goBack } = useAppNavigate();
@@ -153,7 +154,9 @@ export const SettingsPage = () => {
           >
             <span className="text-lg text-gray-900 dark:text-gray-100">关于我们</span>
             <div className="flex items-center">
-              <span className="text-base text-gray-500 dark:text-gray-400 mr-2">v1.0.0</span>
+              <span className="text-base text-gray-500 dark:text-gray-400 mr-2">
+                {formatVersionLabel(CURRENT_APP_VERSION)}
+              </span>
               <ChevronRight size={16} className="text-gray-400 dark:text-gray-500" />
             </div>
           </div>

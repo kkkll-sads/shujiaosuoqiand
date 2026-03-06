@@ -1,14 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
-  ChevronLeft, ShieldCheck, RefreshCcw, Truck, Headset, 
-  ChevronDown, ChevronUp, WifiOff, AlertCircle
+  ShieldCheck, RefreshCcw, Truck, Headset, 
+  ChevronDown, ChevronUp
 } from 'lucide-react';
-import { Card } from '../../components/ui/Card';
-import { Skeleton } from '../../components/ui/Skeleton';
-import { useAppNavigate } from '../../lib/navigation';
+import { OfflineBanner } from '../../components/layout/OfflineBanner';
 import { PageHeader } from '../../components/layout/PageHeader';
-import { ErrorState } from '../../components/ui/ErrorState';
+import { Card } from '../../components/ui/Card';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { ErrorState } from '../../components/ui/ErrorState';
+import { Skeleton } from '../../components/ui/Skeleton';
+import { useNetworkStatus } from '../../hooks/useNetworkStatus';
+import { useAppNavigate } from '../../lib/navigation';
 
 const SERVICES = [
   {
@@ -42,36 +44,27 @@ const SERVICES = [
 ];
 
 export const ServiceDescriptionPage = () => {
-  const { goTo, goBack } = useAppNavigate();
+  const { goBack } = useAppNavigate();
+  const { isOffline } = useNetworkStatus();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [empty, setEmpty] = useState(false);
-  const [offline, setOffline] = useState(!navigator.onLine);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  useEffect(() => {
-    const handleOnline = () => setOffline(false);
-    const handleOffline = () => setOffline(true);
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
+  const fetchData = () => {
+    setLoading(true);
+    setError(false);
+    setEmpty(false);
 
-  useEffect(() => {
-    // Simulate data loading
-    const timer = setTimeout(() => {
+    window.setTimeout(() => {
       setLoading(false);
     }, 300);
-    return () => clearTimeout(timer);
-  }, []);
-
-  const handleBack = () => {
-    goBack();
   };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   const toggleExpand = (id: string) => {
     setExpandedId(expandedId === id ? null : id);
@@ -104,25 +97,20 @@ export const ServiceDescriptionPage = () => {
 
   return (
     <div className="w-full h-full bg-bg-base flex flex-col relative overflow-hidden">
-      {/* Header */}
-      <div className="h-12 bg-white dark:bg-[#1A1A1A] flex items-center px-4 shrink-0 relative z-10">
-        <button 
-          onClick={handleBack}
-          className="p-1 -ml-1 active:bg-bg-base rounded-full transition-colors"
-        >
-          <ChevronLeft size={24} className="text-text-main" />
-        </button>
-        <h1 className="flex-1 text-center text-xl font-medium text-text-main pr-8">
-          服务说明
-        </h1>
-      </div>
+      <PageHeader
+        title="服务说明"
+        onBack={goBack}
+        className="bg-white dark:bg-[#1A1A1A]"
+        contentClassName="h-12 px-4"
+        titleClassName="text-xl font-medium text-text-main"
+        backButtonClassName="rounded-full text-text-main active:bg-bg-base"
+      />
 
-      {/* Offline Banner */}
-      {offline && (
-        <div className="bg-red-50 dark:bg-red-900/20 px-4 py-2 flex items-center shrink-0">
-          <WifiOff size={14} className="text-primary-start mr-2 shrink-0" />
-          <span className="text-sm text-primary-start">当前网络不可用，请检查网络设置</span>
-        </div>
+      {isOffline && (
+        <OfflineBanner
+          message="当前网络不可用，请检查网络设置"
+          className="shrink-0 dark:bg-red-900/20"
+        />
       )}
 
       {/* Dev Controls (Hidden in production) */}

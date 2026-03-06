@@ -1,252 +1,542 @@
-import React, { useState, useEffect } from 'react';
-import { ChevronLeft, WifiOff, AlertCircle, Filter, Copy, ChevronRight, FileText } from 'lucide-react';
-import { useAppNavigate } from '../../lib/navigation';
-import { PageHeader } from '../../components/layout/PageHeader';
-import { ErrorState } from '../../components/ui/ErrorState';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  Copy,
+  FileText,
+  Loader2,
+} from 'lucide-react';
+import { accountApi, type AccountLogItem, type AccountMoneyLogDetail } from '../../api';
+import { getErrorMessage } from '../../api/core/errors';
+import { OfflineBanner } from '../../components/layout/OfflineBanner';
+import { Card } from '../../components/ui/Card';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { ErrorState } from '../../components/ui/ErrorState';
+import { useFeedback } from '../../components/ui/FeedbackProvider';
+import { Skeleton } from '../../components/ui/Skeleton';
+import { useAuthSession } from '../../hooks/useAuthSession';
+import { useNetworkStatus } from '../../hooks/useNetworkStatus';
+import { useRequest } from '../../hooks/useRequest';
+import { useAppNavigate } from '../../lib/navigation';
+
+type BillingFilterKey = 'all' | 'income' | 'expense' | 'score';
+
+const FILTER_OPTIONS: Array<{ key: BillingFilterKey; label: string }> = [
+  { key: 'all', label: '全部' },
+  { key: 'income', label: '收入' },
+  { key: 'expense', label: '支出' },
+  { key: 'score', label: '消费金' },
+];
+
+const ACCOUNT_TYPE_LABELS: Record<string, string> = {
+  balance_available: '可用余额',
+  green_power: '绿色算力',
+  pending_activation_gold: '待激活确权金',
+  score: '消费金',
+  service_fee_balance: '服务费余额',
+  static_income: '静态收益',
+  withdrawable_money: '可提现收益',
+};
+
+const BIZ_TYPE_LABELS: Record<string, string> = {
+  consignment_income: '寄售收益',
+  matching_buy: '匹配购买',
+  recharge: '充值',
+  register_reward: '注册奖励',
+  score_exchange: '消费金兑换',
+  sign_in: '签到奖励',
+  transfer: '余额划转',
+  withdraw: '提现',
+};
+
+function formatMoney(value: number | string | undefined, fractionDigits = 2) {
+  const nextValue = typeof value === 'string' ? Number(value) : value;
+  if (typeof nextValue !== 'number' || !Number.isFinite(nextValue)) {
+    return '--';
+  }
+
+  return nextValue.toLocaleString('zh-CN', {
+    maximumFractionDigits: fractionDigits,
+    minimumFractionDigits: fractionDigits,
+  });
+}
+
+function formatSignedMoney(value: number) {
+  const prefix = value > 0 ? '+' : '';
+  return `${prefix}${formatMoney(value)}`;
+}
+
+function formatAccountTypeLabel(type: string | undefined) {
+  if (!type) {
+    return '账户资金';
+  }
+
+  return ACCOUNT_TYPE_LABELS[type] || type;
+}
+
+function formatBizTypeLabel(type: string | undefined) {
+  if (!type) {
+    return '资金明细';
+  }
+
+  return BIZ_TYPE_LABELS[type] || type;
+}
+
+function getAmountClassName(amount: number) {
+  if (amount > 0) {
+    return 'text-green-600';
+  }
+
+  if (amount < 0) {
+    return 'text-text-main';
+  }
+
+  return 'text-text-sub';
+}
+
+function getMonthLabel(item: AccountLogItem) {
+  const timestamp = item.createTime;
+  if (typeof timestamp === 'number' && Number.isFinite(timestamp) && timestamp > 0) {
+    const date = new Date(timestamp > 1_000_000_000_000 ? timestamp : timestamp * 1000);
+    if (!Number.isNaN(date.getTime())) {
+      return `${date.getFullYear()}年${String(date.getMonth() + 1).padStart(2, '0')}月`;
+    }
+  }
+
+  const text = item.createTimeText?.trim();
+  const matched = text?.match(/(\d{4})[-/.年](\d{1,2})/);
+  if (matched) {
+    return `${matched[1]}年${matched[2].padStart(2, '0')}月`;
+  }
+
+  return '最近';
+}
+
+function buildBreakdownEntries(detail: AccountMoneyLogDetail) {
+  if (!detail.breakdown) {
+    return [];
+  }
+
+  return Object.entries(detail.breakdown)
+    .filter(([, value]) => value !== null && value !== undefined && value !== '')
+    .map(([key, value]) => ({
+      key,
+      label: ACCOUNT_TYPE_LABELS[key] || key.replace(/_/g, ' '),
+      value:
+        typeof value === 'number'
+          ? formatMoney(value)
+          : typeof value === 'string'
+            ? value
+            : JSON.stringify(value),
+    }));
+}
+
+function buildFilterParams(filter: BillingFilterKey) {
+  switch (filter) {
+    case 'income':
+      return { flowDirection: 'in' as const };
+    case 'expense':
+      return { flowDirection: 'out' as const };
+    case 'score':
+      return { type: 'score' as const };
+    default:
+      return {};
+  }
+}
 
 export const BillingPage = () => {
-  const { goTo, goBack } = useAppNavigate();
+  const { goBack, goTo } = useAppNavigate();
+  const { isAuthenticated } = useAuthSession();
+  const { isOffline, refreshStatus } = useNetworkStatus();
+  const { showToast } = useFeedback();
+  const [activeFilter, setActiveFilter] = useState<BillingFilterKey>('all');
+  const [selectedLog, setSelectedLog] = useState<AccountLogItem | null>(null);
 
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-  const [offline, setOffline] = useState(false);
-  const [empty, setEmpty] = useState(false);
-  
-  const [filter, setFilter] = useState<'all' | 'income' | 'expense' | 'frozen'>('all');
-  const [selectedBill, setSelectedBill] = useState<any>(null);
-
-  const mockData = [
+  const {
+    data: logList,
+    error: logListError,
+    loading: logListLoading,
+    reload: reloadLogList,
+  } = useRequest(
+    (signal) => accountApi.getAllLog({ ...buildFilterParams(activeFilter), limit: 50, page: 1 }, { signal }),
     {
-      month: '2023年10月',
-      items: [
-        { id: 'b1', type: '购买商品', desc: 'Apple iPhone 15 Pro', time: '10-25 14:30', amount: '-7999.00', status: '交易成功', isIncome: false },
-        { id: 'b2', type: '充值', desc: '微信支付充值', time: '10-24 09:15', amount: '+10000.00', status: '充值成功', isIncome: true },
-        { id: 'b3', type: '退款', desc: '订单退款', time: '10-20 16:45', amount: '+199.00', status: '退款成功', isIncome: true },
-        { id: 'b4', type: '确权服务费', desc: '数字确权手续费', time: '10-18 10:00', amount: '-50.00', status: '已扣除', isIncome: false },
-      ]
+      deps: [activeFilter, isAuthenticated],
+      keepPreviousData: false,
+      manual: !isAuthenticated,
     },
+  );
+  const {
+    data: selectedDetail,
+    error: detailError,
+    loading: detailLoading,
+    reload: reloadDetail,
+    setData: setSelectedDetail,
+  } = useRequest<AccountMoneyLogDetail | undefined>(
+    (signal) =>
+      selectedLog
+        ? accountApi.getMoneyLogDetail(
+            {
+              flowNo: selectedLog.flowNo,
+              id: selectedLog.id,
+            },
+            { signal },
+          )
+        : Promise.resolve(undefined),
     {
-      month: '2023年9月',
-      items: [
-        { id: 'b5', type: '提现', desc: '提现至银行卡(尾号1234)', time: '09-15 11:20', amount: '-5000.00', status: '提现成功', isIncome: false },
-        { id: 'b6', type: '冻结', desc: '交易担保冻结', time: '09-10 15:00', amount: '-1000.00', status: '冻结中', isIncome: false, isFrozen: true },
-      ]
-    }
-  ];
+      deps: [isAuthenticated, selectedLog?.flowNo, selectedLog?.id],
+      keepPreviousData: false,
+      manual: !isAuthenticated || !selectedLog,
+    },
+  );
 
   useEffect(() => {
-    fetchData();
-  }, [filter]);
+    if (!selectedLog) {
+      setSelectedDetail(undefined);
+    }
+  }, [selectedLog, setSelectedDetail]);
 
-  const fetchData = () => {
-    setLoading(true);
-    setError(false);
-    setTimeout(() => {
-      setLoading(false);
-    }, 300);
+  const logs = logList?.list ?? [];
+  const groupedLogs = useMemo(() => {
+    const groups = new Map<string, AccountLogItem[]>();
+
+    logs.forEach((item) => {
+      const label = getMonthLabel(item);
+      const group = groups.get(label) ?? [];
+      group.push(item);
+      groups.set(label, group);
+    });
+
+    return Array.from(groups.entries()).map(([label, items]) => ({
+      label,
+      items,
+    }));
+  }, [logs]);
+  const detailBreakdownEntries = useMemo(
+    () => (selectedDetail ? buildBreakdownEntries(selectedDetail) : []),
+    [selectedDetail],
+  );
+
+  const handleReload = () => {
+    refreshStatus();
+    if (selectedLog) {
+      void reloadDetail().catch(() => undefined);
+      return;
+    }
+
+    void reloadLogList().catch(() => undefined);
   };
 
   const handleBack = () => {
-    if (selectedBill) {
-      setSelectedBill(null);
-    } else {
-      goBack();
+    if (selectedLog) {
+      setSelectedLog(null);
+      return;
+    }
+
+    goBack();
+  };
+
+  const handleCopy = async (text: string | undefined, successMessage = '已复制') => {
+    const nextValue = text?.trim();
+    if (!nextValue) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(nextValue);
+      showToast({ message: successMessage, type: 'success' });
+    } catch {
+      showToast({ message: '复制失败，请稍后重试', type: 'error' });
     }
   };
 
-  const handleCopy = (text: string) => {
-    alert(`已复制: ${text}`);
-  };
-
   const renderHeader = () => (
-    <div className="bg-white dark:bg-gray-900 z-40 relative shrink-0 border-b border-gray-100 dark:border-gray-800">
-      {offline && (
-        <div className="bg-red-50 dark:bg-red-900/30 text-brand-start dark:text-red-400 px-4 py-2 flex items-center justify-between text-sm">
-          <div className="flex items-center">
-            <WifiOff size={14} className="mr-2" />
-            <span>网络不稳定，请检查网络设置</span>
-          </div>
-          <button onClick={() => setOffline(false)} className="font-medium px-2 py-1 bg-white dark:bg-gray-800 rounded shadow-sm">刷新</button>
-        </div>
-      )}
-      <div className="h-12 flex items-center justify-between px-3 pt-safe">
-        <div className="flex items-center w-1/3">
-          <button onClick={handleBack} className="p-1 -ml-1 text-gray-900 dark:text-gray-100 active:opacity-70">
-            <ChevronLeft size={24} />
-          </button>
-        </div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 text-center w-1/3">
-          {selectedBill ? '账单详情' : '账单明细'}
-        </h1>
-        <div className="w-1/3 flex justify-end">
-          {!selectedBill && (
-            <button className="text-md text-gray-600 dark:text-gray-400 px-2 py-1 active:opacity-70 flex items-center">
-              <Filter size={14} className="mr-1" /> 筛选
-            </button>
-          )}
-        </div>
+    <div className="sticky top-0 z-40 bg-bg-base/90 backdrop-blur-md">
+      <div className="flex h-12 items-center justify-between px-4">
+        <button onClick={handleBack} className="p-1 -ml-1 text-text-main active:opacity-70">
+          <ChevronLeft size={24} />
+        </button>
+        <h1 className="text-2xl font-medium text-text-main">{selectedLog ? '账单详情' : '账单明细'}</h1>
+        <button
+          type="button"
+          className="flex items-center text-sm text-text-sub active:opacity-70"
+          onClick={() => goTo('recharge')}
+        >
+          <FileText size={16} className="mr-1" />
+          充值
+        </button>
       </div>
     </div>
   );
 
   const renderTabs = () => {
-    if (selectedBill) return null;
+    if (selectedLog) {
+      return null;
+    }
+
     return (
-      <div className="bg-white dark:bg-gray-900 flex border-b border-gray-100 dark:border-gray-800 shrink-0 px-2">
-        {[
-          { id: 'all', label: '全部' },
-          { id: 'income', label: '收入' },
-          { id: 'expense', label: '支出' },
-          { id: 'frozen', label: '冻结' }
-        ].map(tab => (
-          <button 
-            key={tab.id}
-            className={`flex-1 py-3 text-base font-medium relative transition-colors ${filter === tab.id ? 'text-brand-start' : 'text-gray-600 dark:text-gray-400'}`}
-            onClick={() => setFilter(tab.id as any)}
+      <div className="sticky top-12 z-30 flex border-b border-border-light bg-bg-card px-2">
+        {FILTER_OPTIONS.map((item) => (
+          <button
+            key={item.key}
+            type="button"
+            onClick={() => setActiveFilter(item.key)}
+            className={`relative flex-1 py-3 text-sm font-medium transition-colors ${
+              activeFilter === item.key ? 'text-primary-start' : 'text-text-sub'
+            }`}
           >
-            {tab.label}
-            {filter === tab.id && <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-[3px] bg-brand-start rounded-t-full"></div>}
+            {item.label}
+            {activeFilter === item.key ? (
+              <span className="absolute bottom-0 left-1/2 h-[3px] w-8 -translate-x-1/2 rounded-t-full bg-primary-start" />
+            ) : null}
           </button>
         ))}
       </div>
     );
   };
 
-  const renderSkeleton = () => (
-    <div className="p-4 space-y-6">
+  const renderListSkeleton = () => (
+    <div className="space-y-6 p-4">
       {[1, 2].map((group) => (
         <div key={group} className="space-y-3">
-          <div className="w-20 h-5 bg-gray-200 dark:bg-gray-800 rounded mb-2"></div>
-          <div className="bg-white dark:bg-gray-900 rounded-2xl p-4 shadow-sm space-y-4">
-            {[1, 2].map((item) => (
-              <div key={item} className="flex justify-between items-center animate-pulse">
+          <Skeleton className="h-5 w-24" />
+          <Card className="space-y-4 p-4">
+            {[1, 2, 3].map((item) => (
+              <div key={item} className="flex items-center justify-between">
                 <div className="space-y-2">
-                  <div className="w-24 h-4 bg-gray-200 dark:bg-gray-800 rounded"></div>
-                  <div className="w-32 h-3 bg-gray-200 dark:bg-gray-800 rounded"></div>
+                  <Skeleton className="h-4 w-28" />
+                  <Skeleton className="h-3 w-40" />
                 </div>
-                <div className="space-y-2 flex flex-col items-end">
-                  <div className="w-16 h-5 bg-gray-200 dark:bg-gray-800 rounded"></div>
-                  <div className="w-12 h-3 bg-gray-200 dark:bg-gray-800 rounded"></div>
+                <div className="space-y-2 text-right">
+                  <Skeleton className="ml-auto h-4 w-16" />
+                  <Skeleton className="ml-auto h-3 w-12" />
                 </div>
               </div>
             ))}
-          </div>
+          </Card>
         </div>
       ))}
     </div>
   );
 
-  const renderError = () => (
-    <ErrorState onRetry={fetchData} />
-  );
+  const renderLogList = () => {
+    if (logListLoading) {
+      return renderListSkeleton();
+    }
 
-  const renderEmpty = () => (
-    <EmptyState message="暂无账单记录" />
-  );
+    if (logListError && !logs.length) {
+      return <ErrorState message={getErrorMessage(logListError)} onRetry={reloadLogList} />;
+    }
 
-  const renderList = () => {
-    if (loading) return renderSkeleton();
-    if (error) return renderError();
-    if (empty) return renderEmpty();
+    if (!logs.length) {
+      return <EmptyState message="暂无账单记录" />;
+    }
 
     return (
-      <div className="p-4 space-y-6 pb-safe">
-        {mockData.map((group, gIdx) => (
-          <div key={gIdx}>
-            <h3 className="text-md font-bold text-gray-900 dark:text-gray-100 mb-3 ml-1">{group.month}</h3>
-            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm dark:shadow-none border border-transparent dark:border-gray-800 overflow-hidden">
-              {group.items.map((item, iIdx) => (
-                <div 
-                  key={item.id} 
-                  className={`px-4 py-3.5 flex justify-between items-center cursor-pointer active:bg-gray-50 dark:active:bg-gray-800 transition-colors ${iIdx < group.items.length - 1 ? 'border-b border-gray-100 dark:border-gray-800' : ''}`}
-                  onClick={() => setSelectedBill(item)}
+      <div className="space-y-6 p-4 pb-10">
+        {groupedLogs.map((group) => (
+          <div key={group.label}>
+            <div className="mb-3 ml-1 text-md font-bold text-text-main">{group.label}</div>
+            <Card className="overflow-hidden p-0">
+              {group.items.map((item, index) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setSelectedLog(item)}
+                  className={`flex w-full items-center justify-between px-4 py-3 text-left transition-colors active:bg-bg-base ${
+                    index < group.items.length - 1 ? 'border-b border-border-light' : ''
+                  }`}
                 >
-                  <div className="flex flex-col">
-                    <span className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">{item.type}</span>
-                    <span className="text-sm text-gray-400 dark:text-gray-500">{item.time} | {item.desc}</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-md font-medium text-text-main">
+                      {formatBizTypeLabel(item.bizType)}
+                    </div>
+                    <div className="mt-1 truncate text-sm text-text-sub">
+                      {item.remark || item.memo || formatAccountTypeLabel(item.accountType)}
+                    </div>
+                    <div className="mt-1 truncate text-xs text-text-aux">
+                      {item.createTimeText || item.flowNo || `记录 #${item.id}`}
+                    </div>
                   </div>
-                  <div className="flex flex-col items-end">
-                    <span className={`text-xl font-bold mb-1 ${item.isIncome ? 'text-success' : 'text-gray-900 dark:text-gray-100'}`}>
-                      {item.amount}
-                    </span>
-                    <span className="text-s text-gray-500 dark:text-gray-400">{item.status}</span>
+                  <div className="ml-3 flex shrink-0 items-center">
+                    <div className="mr-2 text-right">
+                      <div className={`text-md font-semibold ${getAmountClassName(item.amount)}`}>
+                        {formatSignedMoney(item.amount)}
+                      </div>
+                      <div className="mt-1 text-xs text-text-aux">
+                        {formatAccountTypeLabel(item.accountType)}
+                      </div>
+                    </div>
+                    <ChevronRight size={16} className="text-text-aux" />
                   </div>
-                </div>
+                </button>
               ))}
-            </div>
+            </Card>
           </div>
         ))}
       </div>
     );
   };
 
-  const renderDetail = () => {
-    if (!selectedBill) return null;
-    return (
-      <div className="flex-1 flex flex-col bg-[#FFF8F8] dark:bg-gray-950 p-4">
-        <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-sm dark:shadow-none border border-transparent dark:border-gray-800 flex flex-col items-center mb-4">
-          <span className="text-md text-gray-500 dark:text-gray-400 mb-2">{selectedBill.type}</span>
-          <span className={`text-7xl font-bold mb-6 ${selectedBill.isIncome ? 'text-success' : 'text-gray-900 dark:text-gray-100'}`}>
-            {selectedBill.amount}
-          </span>
-          
-          <div className="w-full space-y-4">
-            <div className="flex justify-between items-center">
-              <span className="text-base text-gray-500 dark:text-gray-400">当前状态</span>
-              <span className="text-base text-gray-900 dark:text-gray-100 font-medium">{selectedBill.status}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-base text-gray-500 dark:text-gray-400">交易时间</span>
-              <span className="text-base text-gray-900 dark:text-gray-100">{selectedBill.time}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-base text-gray-500 dark:text-gray-400">交易说明</span>
-              <span className="text-base text-gray-900 dark:text-gray-100">{selectedBill.desc}</span>
-            </div>
-            <div className="w-full h-px bg-gray-100 dark:bg-gray-800 my-2"></div>
-            <div className="flex justify-between items-center">
-              <span className="text-base text-gray-500 dark:text-gray-400">流水单号</span>
-              <div className="flex items-center">
-                <span className="text-base text-gray-900 dark:text-gray-100 mr-2">2023102514300001</span>
-                <button onClick={() => handleCopy('2023102514300001')} className="text-gray-400 dark:text-gray-500 active:text-gray-600 dark:text-gray-400">
-                  <Copy size={14} />
-                </button>
-              </div>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-base text-gray-500 dark:text-gray-400">关联订单</span>
-              <div className="flex items-center">
-                <span className="text-base text-gray-900 dark:text-gray-100 mr-2">1234567890</span>
-                <button onClick={() => handleCopy('1234567890')} className="text-gray-400 dark:text-gray-500 active:text-gray-600 dark:text-gray-400">
-                  <Copy size={14} />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+  const renderDetailRow = (
+    label: string,
+    value: string | undefined,
+    options: { copyable?: boolean; successMessage?: string } = {},
+  ) => {
+    const content = value?.trim() || '--';
 
-        <div className="bg-white dark:bg-gray-900 rounded-2xl p-4 shadow-sm dark:shadow-none border border-transparent dark:border-gray-800">
-          <div className="flex items-center justify-between cursor-pointer active:opacity-70">
-            <span className="text-md text-gray-900 dark:text-gray-100">对此订单有疑问？</span>
-            <div className="flex items-center text-gray-400 dark:text-gray-500">
-              <span className="text-sm mr-1">联系客服</span>
-              <ChevronRight size={16} />
-            </div>
-          </div>
+    return (
+      <div className="flex items-start justify-between gap-4">
+        <span className="shrink-0 text-sm text-text-sub">{label}</span>
+        <div className="flex min-w-0 items-center text-right">
+          <span className="break-all text-sm text-text-main">{content}</span>
+          {options.copyable && content !== '--' ? (
+            <button
+              type="button"
+              onClick={() => void handleCopy(content, options.successMessage)}
+              className="ml-2 shrink-0 text-text-aux active:opacity-70"
+            >
+              <Copy size={14} />
+            </button>
+          ) : null}
         </div>
       </div>
     );
   };
 
+  const renderDetail = () => {
+    if (detailLoading && !selectedDetail) {
+      return (
+        <div className="space-y-4 p-4">
+          <Card className="space-y-4 p-6">
+            <div className="flex flex-col items-center">
+              <Skeleton className="mb-2 h-4 w-20" />
+              <Skeleton className="h-10 w-36" />
+            </div>
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-full" />
+          </Card>
+        </div>
+      );
+    }
+
+    if (detailError && !selectedDetail) {
+      return <ErrorState message={getErrorMessage(detailError)} onRetry={reloadDetail} />;
+    }
+
+    if (!selectedDetail) {
+      return null;
+    }
+
+    return (
+      <div className="space-y-4 p-4 pb-10">
+        <Card className="p-6">
+          <div className="mb-6 flex flex-col items-center">
+            <div className="mb-2 text-sm text-text-sub">{formatBizTypeLabel(selectedDetail.bizType)}</div>
+            <div className={`text-6xl font-bold ${getAmountClassName(selectedDetail.amount)}`}>
+              {formatSignedMoney(selectedDetail.amount)}
+            </div>
+            <div className="mt-2 text-sm text-text-aux">
+              {formatAccountTypeLabel(selectedDetail.accountType)}
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            {renderDetailRow('账户类型', formatAccountTypeLabel(selectedDetail.accountType))}
+            {renderDetailRow('业务类型', formatBizTypeLabel(selectedDetail.bizType))}
+            {renderDetailRow('创建时间', selectedDetail.createTimeText)}
+            {renderDetailRow('变动前金额', formatMoney(selectedDetail.beforeValue))}
+            {renderDetailRow('变动后金额', formatMoney(selectedDetail.afterValue))}
+            {renderDetailRow('备注说明', selectedDetail.memo)}
+            {renderDetailRow('流水号', selectedDetail.flowNo, {
+              copyable: true,
+              successMessage: '流水号已复制',
+            })}
+            {renderDetailRow('批次号', selectedDetail.batchNo, {
+              copyable: true,
+              successMessage: '批次号已复制',
+            })}
+            {renderDetailRow('业务ID', selectedDetail.bizId)}
+          </div>
+        </Card>
+
+        {selectedDetail.titleSnapshot || selectedDetail.imageSnapshot ? (
+          <Card className="overflow-hidden p-0">
+            <div className="border-b border-border-light px-4 py-3 text-md font-medium text-text-main">
+              关联资产
+            </div>
+            <div className="flex items-center p-4">
+              {selectedDetail.imageSnapshot ? (
+                <img
+                  src={selectedDetail.imageSnapshot}
+                  alt={selectedDetail.titleSnapshot || '关联资产'}
+                  className="mr-3 h-14 w-14 rounded-2xl object-cover"
+                  referrerPolicy="no-referrer"
+                />
+              ) : null}
+              <div className="min-w-0">
+                <div className="truncate text-md font-medium text-text-main">
+                  {selectedDetail.titleSnapshot || '未命名资产'}
+                </div>
+                <div className="mt-1 text-sm text-text-sub">
+                  藏品 ID：{selectedDetail.userCollectionId ?? '--'} / 商品 ID：{selectedDetail.itemId ?? '--'}
+                </div>
+              </div>
+            </div>
+          </Card>
+        ) : null}
+
+        {detailBreakdownEntries.length ? (
+          <Card className="p-4">
+            <div className="mb-3 text-md font-medium text-text-main">资金结构</div>
+            <div className="space-y-3">
+              {detailBreakdownEntries.map((entry) => (
+                <div key={entry.key} className="flex items-center justify-between gap-4">
+                  <span className="text-sm text-text-sub">{entry.label}</span>
+                  <span className="break-all text-right text-sm text-text-main">{entry.value}</span>
+                </div>
+              ))}
+            </div>
+          </Card>
+        ) : null}
+      </div>
+    );
+  };
+
+  if (!isAuthenticated) {
+    return (
+      <div className="flex h-full flex-1 flex-col bg-red-50/30">
+        {renderHeader()}
+        <div className="flex-1 overflow-y-auto no-scrollbar px-4">
+          <EmptyState
+            message="登录后查看账单明细"
+            actionText="去登录"
+            actionVariant="primary"
+            onAction={() => goTo('login')}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex-1 flex flex-col bg-[#FFF8F8] dark:bg-gray-950 relative h-full overflow-hidden">
+    <div className="relative flex h-full flex-1 flex-col bg-red-50/30">
+      {isOffline && <OfflineBanner onAction={handleReload} className="absolute top-12 right-0 left-0 z-50" />}
+
       {renderHeader()}
       {renderTabs()}
-      
-      <div className="flex-1 overflow-y-auto no-scrollbar relative">
-        {selectedBill ? renderDetail() : renderList()}
+
+      <div className="flex-1 overflow-y-auto no-scrollbar">
+        {selectedLog ? renderDetail() : renderLogList()}
       </div>
+
+      {detailLoading && selectedDetail ? (
+        <div className="pointer-events-none absolute right-4 bottom-4 flex items-center rounded-full bg-gray-900/85 px-3 py-2 text-sm text-white shadow-sm">
+          <Loader2 size={14} className="mr-2 animate-spin" />
+          加载详情中
+        </div>
+      ) : null}
     </div>
   );
 };

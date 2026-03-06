@@ -1,301 +1,393 @@
-import React, { useState, useEffect } from 'react';
-import { useAppNavigate } from '../../lib/navigation';
-import { Search, MessageSquare, Grid, Zap, Ticket, Gift, Flame, Award, FileText, MapPin, ChevronRight, ShoppingCart, ShieldCheck, Clock, CheckCircle2, WifiOff, RefreshCcw, FileX } from 'lucide-react';
+import { useMemo } from 'react';
+import {
+  Award,
+  CheckCircle2,
+  ChevronRight,
+  FileText,
+  Flame,
+  Gift,
+  Grid,
+  MapPin,
+  MessageSquare,
+  Search,
+  ShoppingCart,
+  Ticket,
+  Zap,
+} from 'lucide-react';
+import { shopProductApi } from '../../api';
+import { OfflineBanner } from '../../components/layout/OfflineBanner';
 import { Card } from '../../components/ui/Card';
-import { BottomTab } from '../../components/layout/BottomTab';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { ErrorState } from '../../components/ui/ErrorState';
 import { Skeleton } from '../../components/ui/Skeleton';
+import {
+  buildShopProductPath,
+  formatShopProductSales,
+  getShopProductBadges,
+  getShopProductPriceCaption,
+  getShopProductPrimaryPrice,
+  resolveShopProductImageUrl,
+} from '../../features/shop-product/utils';
+import { useNetworkStatus } from '../../hooks/useNetworkStatus';
+import { useRequest } from '../../hooks/useRequest';
+import { useAppNavigate } from '../../lib/navigation';
 
-const Button = ({ children, variant = 'primary', className = '', ...props }: any) => {
-  const baseStyle = "h-[48px] rounded-2xl font-medium text-lg flex items-center justify-center transition-opacity active:opacity-80 w-full";
-  const variants: any = {
-    primary: "bg-gradient-to-r from-primary-start to-primary-end text-white shadow-soft",
-    secondary: "bg-bg-card text-text-main border border-border-light shadow-soft",
-    outline: "bg-transparent border border-primary-start text-primary-start",
-    ghost: "bg-transparent text-text-sub",
-  };
-  return (
-    <button className={`${baseStyle} ${variants[variant]} ${className}`} {...props}>
-      {children}
-    </button>
-  );
+const KING_KONG_ITEMS = [
+  { icon: Grid, label: '全部分类', target: 'category' },
+  { icon: Zap, label: '限时秒杀', target: 'store' },
+  { icon: Ticket, label: '领券中心', target: 'coupon' },
+  { icon: Gift, label: '新人专享', target: 'store' },
+  { icon: Flame, label: '热卖排行', target: 'store' },
+  { icon: Award, label: '品牌闪购', target: 'store' },
+  { icon: FileText, label: '我的订单', target: 'order' },
+  { icon: MapPin, label: '地址/客服', target: 'help_center' },
+];
+
+const PRODUCT_LIST_INITIAL_DATA = {
+  limit: 6,
+  list: [],
+  page: 1,
+  total: 0,
 };
+
+function HorizontalProductSkeleton() {
+  return (
+    <div className="flex space-x-3 overflow-x-auto pb-2">
+      {Array.from({ length: 4 }).map((_, index) => (
+        <div key={index} className="w-[100px] shrink-0 space-y-2">
+          <Skeleton className="aspect-square w-full rounded-xl" />
+          <Skeleton className="h-3 w-3/4" />
+          <Skeleton className="h-4 w-1/2" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function GridProductSkeleton() {
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      {Array.from({ length: 6 }).map((_, index) => (
+        <div
+          key={index}
+          className="overflow-hidden rounded-2xl border border-border-light bg-bg-card shadow-soft"
+        >
+          <Skeleton className="aspect-square w-full rounded-none" />
+          <div className="space-y-2 p-3">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="mt-3 h-5 w-1/2" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export const StorePage = () => {
   const { goTo } = useAppNavigate();
-  const [loading, setLoading] = useState(true);
-  const [offline, setOffline] = useState(false);
-  const [moduleError, setModuleError] = useState(false);
-  const [emptyFeed, setEmptyFeed] = useState(false);
+  const { isOffline, refreshStatus } = useNetworkStatus();
 
-  useEffect(() => {
+  const salesRequest = useRequest(
+    (signal) => shopProductApi.sales({ limit: 6, page: 1 }, signal),
+    {
+      initialData: PRODUCT_LIST_INITIAL_DATA,
+    },
+  );
 
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, []);
+  const latestRequest = useRequest(
+    (signal) => shopProductApi.latest({ limit: 6, page: 1 }, signal),
+    {
+      initialData: PRODUCT_LIST_INITIAL_DATA,
+    },
+  );
 
-  const kingKongItems = [
-    { icon: Grid, label: '全部分类' },
-    { icon: Zap, label: '限时秒杀' },
-    { icon: Ticket, label: '领券中心' },
-    { icon: Gift, label: '新人专享' },
-    { icon: Flame, label: '热卖排行' },
-    { icon: Award, label: '品牌闪购' },
-    { icon: FileText, label: '我的订单' },
-    { icon: MapPin, label: '地址/客服' },
-  ];
+  const hotProducts = salesRequest.data?.list ?? [];
+  const latestProducts = latestRequest.data?.list ?? [];
+  const isLoading = salesRequest.loading || latestRequest.loading;
+  const hasBlockingError =
+    !isLoading &&
+    hotProducts.length === 0 &&
+    latestProducts.length === 0 &&
+    Boolean(salesRequest.error || latestRequest.error);
+  const isEmpty =
+    !isLoading &&
+    !hasBlockingError &&
+    hotProducts.length === 0 &&
+    latestProducts.length === 0;
+
+  const reloadAll = () => {
+    void Promise.allSettled([salesRequest.reload(), latestRequest.reload()]);
+  };
+
+  const serviceHighlights = useMemo(
+    () => ['自营保障', '极速发货', '售后无忧'],
+    [],
+  );
 
   return (
-    <div className="flex-1 flex flex-col bg-bg-base relative overflow-hidden">
-      {/* Offline Banner */}
-      {offline && (
-        <div className="bg-red-50 text-primary-start px-4 py-2 flex items-center justify-between text-sm z-50">
-          <div className="flex items-center">
-            <WifiOff size={14} className="mr-2" />
-            <span>网络不稳定，请检查网络设置</span>
-          </div>
-          <button onClick={() => setOffline(false)} className="font-medium px-2 py-1 bg-white dark:bg-gray-900 rounded shadow-sm">刷新</button>
-        </div>
-      )}
+    <div className="relative flex flex-1 flex-col overflow-hidden bg-bg-base">
+      {isOffline && <OfflineBanner onAction={refreshStatus} />}
 
-      {/* Header */}
-      <div className="sticky top-0 z-40 bg-bg-base/95 px-4 py-2 flex items-center space-x-3 border-b border-border-light">
-        <div className="flex flex-col items-center justify-center shrink-0">
-          <div className="bg-primary-start text-white text-xs font-bold px-1.5 py-0.5 rounded leading-none">
+      <div className="sticky top-0 z-40 flex items-center space-x-3 border-b border-border-light bg-bg-base/95 px-4 py-2 backdrop-blur">
+        <div className="shrink-0">
+          <div className="rounded bg-primary-start px-1.5 py-0.5 text-center text-xs font-bold leading-none text-white">
             树交所
-            <br/>
+            <br />
             自营
           </div>
         </div>
-        <div 
-          className="flex-1 h-8 bg-bg-card rounded-full flex items-center px-3 shadow-sm border border-border-light cursor-text"
+        <button
+          type="button"
+          className="flex h-8 flex-1 items-center rounded-full border border-border-light bg-bg-card px-3 text-left shadow-sm"
           onClick={() => goTo('search')}
         >
-          <Search size={14} className="text-text-aux mr-2 shrink-0" />
-          <span className="text-sm text-text-aux truncate">搜索商品 / SKU / 关键词</span>
-        </div>
-        <div className="flex items-center space-x-1 shrink-0">
-          <button 
-            className="flex items-center justify-center w-8 h-8 text-text-main relative active:opacity-70"
+          <Search size={14} className="mr-2 shrink-0 text-text-aux" />
+          <span className="truncate text-sm text-text-aux">搜索商品 / SKU / 关键词</span>
+        </button>
+        <div className="flex shrink-0 items-center space-x-1">
+          <button
+            type="button"
+            className="flex h-8 w-8 items-center justify-center text-text-main active:opacity-70"
             onClick={() => goTo('cart')}
           >
             <ShoppingCart size={20} />
           </button>
-          <button 
-            className="flex items-center justify-center w-8 h-8 text-text-main relative active:opacity-70"
+          <button
+            type="button"
+            className="relative flex h-8 w-8 items-center justify-center text-text-main active:opacity-70"
             onClick={() => goTo('message_center')}
           >
             <MessageSquare size={20} />
-            <span className="absolute top-1 right-1 w-2 h-2 bg-primary-start rounded-full border border-bg-base"></span>
+            <span className="absolute right-1 top-1 h-2 w-2 rounded-full border border-bg-base bg-primary-start" />
           </button>
         </div>
       </div>
 
-      
-
-      {/* Scrollable Content */}
-      <div className="flex-1 overflow-y-auto no-scrollbar pb-4">
-        
-        {/* King Kong Area (8 Grid) */}
-        <div className="grid grid-cols-4 gap-y-4 px-4 mt-4 mb-4">
-          {kingKongItems.map((item, index) => {
+      <div className="flex-1 overflow-y-auto pb-4">
+        <div className="grid grid-cols-4 gap-y-4 px-4 pb-1 pt-4">
+          {KING_KONG_ITEMS.map((item) => {
             const Icon = item.icon;
             return (
-              <div 
-                key={index} 
-                className="flex flex-col items-center cursor-pointer active:opacity-70 transition-opacity"
-                onClick={() => {
-                  if (item.label === '全部分类') {
-                    goTo('category');
-                  } else if (item.label === '领券中心') {
-                    goTo('coupon');
-                  } else if (item.label === '我的订单') {
-                    goTo('order');
-                  } else if (item.label === '地址/客服') {
-                    goTo('help_center');
-                  }
-                }}
+              <button
+                key={item.label}
+                type="button"
+                className="flex flex-col items-center active:opacity-70"
+                onClick={() => goTo(item.target)}
               >
-                <div className="w-10 h-10 rounded-xl bg-bg-card shadow-sm flex items-center justify-center mb-1.5 text-text-main">
+                <div className="mb-1.5 flex h-10 w-10 items-center justify-center rounded-xl bg-bg-card text-text-main shadow-sm">
                   <Icon size={20} strokeWidth={1.5} />
                 </div>
                 <span className="text-sm text-text-main">{item.label}</span>
-              </div>
+              </button>
             );
           })}
         </div>
 
-        {/* Main Banner */}
-        <div className="px-4 mb-4">
-          {loading ? (
-            <Skeleton className="w-full h-[100px] rounded-2xl" />
+        <div className="px-4 pb-4">
+          {isLoading ? (
+            <Skeleton className="h-[100px] w-full rounded-2xl" />
           ) : (
-            <div className="rounded-2xl bg-gradient-to-r from-primary-start to-primary-end p-4 relative overflow-hidden shadow-soft flex items-center justify-between h-[100px]">
+            <div className="relative flex h-[100px] items-center justify-between overflow-hidden rounded-2xl bg-gradient-to-r from-primary-start to-primary-end p-4 shadow-soft">
+              <div className="absolute -right-6 -top-8 h-24 w-24 rounded-full bg-white/10" />
+              <div className="absolute right-10 top-8 h-12 w-12 rounded-full bg-white/10" />
               <div className="relative z-10">
-                <h2 className="text-white font-bold text-4xl mb-1">自营精选</h2>
-                <p className="text-white/90 text-sm">官方保障 · 极速发货</p>
+                <h2 className="mb-1 text-4xl font-bold text-white">自营精选</h2>
+                <p className="text-sm text-white/90">官方保障 · 极速发货</p>
               </div>
-              <button className="bg-white dark:bg-gray-900 text-primary-start text-sm font-bold px-3 py-1.5 rounded-full shadow-sm relative z-10">
+              <button
+                type="button"
+                className="relative z-10 rounded-full bg-white px-3 py-1.5 text-sm font-bold text-primary-start shadow-sm"
+                onClick={() => goTo('category')}
+              >
                 去逛逛
               </button>
             </div>
           )}
         </div>
 
-        {/* Service Guarantees */}
-        <div className="px-4 mb-3 flex justify-between items-center text-s text-text-sub">
-          <span className="flex items-center"><CheckCircle2 size={12} className="text-primary-start mr-1" /> 自营保障</span>
-          <span className="flex items-center"><CheckCircle2 size={12} className="text-primary-start mr-1" /> 极速发货</span>
-          <span className="flex items-center"><CheckCircle2 size={12} className="text-primary-start mr-1" /> 售后无忧</span>
+        <div className="mb-3 flex items-center justify-between px-4 text-s text-text-sub">
+          {serviceHighlights.map((item) => (
+            <span key={item} className="flex items-center">
+              <CheckCircle2 size={12} className="mr-1 text-primary-start" />
+              {item}
+            </span>
+          ))}
         </div>
 
-        {/* Coupons Module */}
-        <div className="px-4 mb-4">
-          {loading ? (
-            <Skeleton className="w-full h-[70px] rounded-xl" />
+        <div className="mb-4 px-4">
+          {isLoading ? (
+            <Skeleton className="h-[70px] w-full rounded-xl" />
           ) : (
-            <div className="bg-bg-card rounded-xl p-3 shadow-soft border border-border-light flex items-center">
-              <div className="flex-1 flex items-center border-r border-border-light border-dashed pr-3">
-                <div className="text-primary-start font-bold mr-2">
-                  <span className="text-md">¥</span><span className="text-5xl leading-none">100</span>
+            <div className="flex items-center rounded-xl border border-border-light bg-bg-card p-3 shadow-soft">
+              <div className="flex flex-1 items-center border-r border-dashed border-border-light pr-3">
+                <div className="mr-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-red-50 text-primary-start">
+                  <Ticket size={22} />
                 </div>
                 <div>
-                  <div className="text-base font-bold text-text-main">满199可用</div>
-                  <div className="text-xs text-text-aux">自营全品类通用</div>
+                  <div className="text-base font-bold text-text-main">领券中心</div>
+                  <div className="text-xs text-text-aux">下单前先看看当前可用优惠和活动权益</div>
                 </div>
               </div>
-              <div className="pl-3 shrink-0">
-                <button className="bg-primary-start text-white text-sm font-medium px-3 py-1.5 rounded-full">
-                  立即领取
+              <div className="pl-3">
+                <button
+                  type="button"
+                  className="rounded-full bg-primary-start px-3 py-1.5 text-sm font-medium text-white"
+                  onClick={() => goTo('coupon')}
+                >
+                  立即查看
                 </button>
               </div>
             </div>
           )}
         </div>
 
-        {/* Flash Sale */}
-        <div className="px-4 mb-4">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center">
-              <h3 className="text-xl font-bold text-text-main mr-2">限时秒杀</h3>
-              <div className="flex items-center space-x-1 text-xs font-mono">
-                <span className="bg-primary-start text-white px-1.5 py-0.5 rounded">10点场</span>
-                <span className="text-primary-start font-bold">01:45:22</span>
+        {hasBlockingError ? (
+          <ErrorState message="商城商品加载失败" onRetry={reloadAll} />
+        ) : isEmpty ? (
+          <EmptyState message="暂无商品数据" actionText="刷新" onAction={reloadAll} />
+        ) : (
+          <>
+            <div className="mb-4 px-4">
+              <div className="mb-3 flex items-center justify-between">
+                <div className="flex items-center">
+                  <h3 className="mr-2 text-xl font-bold text-text-main">热卖排行</h3>
+                  <div className="flex items-center space-x-1 text-xs font-mono">
+                    <span className="rounded bg-primary-start px-1.5 py-0.5 text-white">
+                      实时榜
+                    </span>
+                    <span className="font-bold text-primary-start">销量优先</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="flex items-center text-sm text-text-aux"
+                  onClick={() => goTo('search')}
+                >
+                  更多
+                  <ChevronRight size={12} />
+                </button>
               </div>
-            </div>
-            <span className="text-sm text-text-aux flex items-center">更多 <ChevronRight size={12} /></span>
-          </div>
-          
-          {moduleError ? (
-            <Card className="flex flex-col items-center justify-center py-6 border border-border-light">
-              <RefreshCcw size={24} className="text-text-aux mb-2" />
-              <p className="text-base text-text-sub mb-3">模块加载失败</p>
-              <button onClick={() => setModuleError(false)} className="px-4 py-1.5 border border-border-light rounded-full text-sm text-text-main">重试</button>
-            </Card>
-          ) : (
-            <div className="flex space-x-3 overflow-x-auto no-scrollbar pb-2">
-              {loading ? (
-                [1, 2, 3, 4].map(i => (
-                  <div key={i} className="w-[100px] shrink-0 space-y-2">
-                    <Skeleton className="w-full aspect-square rounded-xl" />
-                    <Skeleton className="w-3/4 h-3" />
-                    <Skeleton className="w-1/2 h-4" />
-                  </div>
-                ))
-              ) : (
-                [1, 2, 3, 4].map((i) => (
-                  <div 
-                    key={i} 
-                    className="w-[100px] shrink-0 flex flex-col cursor-pointer active:opacity-70 transition-opacity"
-                    onClick={() => goTo('product_detail')}
-                  >
-                    <div className="w-full aspect-square bg-bg-card rounded-xl mb-2 overflow-hidden shadow-sm border border-border-light">
-                      <img src={`https://picsum.photos/seed/jdflash${i}/150/150`} alt="Product" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                    </div>
-                    <div className="text-sm text-text-main line-clamp-1 mb-1">Apple iPhone 15</div>
-                    <div className="text-lg font-bold text-primary-start leading-none mb-1">
-                      <span className="text-s">¥</span>5999
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <div className="text-xs text-text-aux line-through">¥6999</div>
-                      <div className="text-xs text-text-aux">已抢80%</div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          )}
-        </div>
 
-        {/* Today's Picks / Feed */}
-        <div className="px-4 mb-4">
-          <h3 className="text-xl font-bold text-text-main mb-3 flex items-center justify-center">
-            <span className="w-4 h-px bg-border-light mr-2"></span>
-            今日精选
-            <span className="w-4 h-px bg-border-light ml-2"></span>
-          </h3>
-          
-          {emptyFeed ? (
-            <Card className="flex flex-col items-center justify-center py-10 border border-border-light">
-              <FileX size={40} className="text-text-aux mb-3 opacity-50" strokeWidth={1.5} />
-              <p className="text-md text-text-sub mb-4">暂无商品推荐，去分类看看</p>
-              <button 
-                className="px-5 py-2 border border-primary-start text-primary-start rounded-full text-base font-medium active:bg-red-50 transition-colors"
-                onClick={() => goTo('category')}
-              >
-                去分类
-              </button>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-2 gap-3">
-              {loading ? (
-                [1, 2, 3, 4].map(i => (
-                  <div key={i} className="bg-bg-card rounded-2xl overflow-hidden shadow-soft border border-border-light flex flex-col">
-                    <Skeleton className="w-full aspect-square rounded-none" />
-                    <div className="p-3 space-y-2">
-                      <Skeleton className="w-full h-3" />
-                      <Skeleton className="w-2/3 h-3" />
-                      <Skeleton className="w-1/2 h-4 mt-2" />
-                    </div>
-                  </div>
-                ))
+              {salesRequest.loading ? (
+                <HorizontalProductSkeleton />
+              ) : hotProducts.length === 0 ? (
+                <Card className="rounded-xl border border-border-light p-6">
+                  <EmptyState message="当前没有热卖商品" />
+                </Card>
               ) : (
-                [1, 2, 3, 4, 5, 6].map((i) => (
-                  <div 
-                    key={i} 
-                    className="bg-bg-card rounded-2xl overflow-hidden shadow-soft border border-border-light flex flex-col cursor-pointer active:opacity-70 transition-opacity"
-                    onClick={() => goTo('product_detail')}
-                  >
-                    <img src={`https://picsum.photos/seed/jdprod${i}/200/200`} alt="Product" className="w-full aspect-square object-cover" referrerPolicy="no-referrer" />
-                    <div className="p-3 flex-1 flex flex-col">
-                      <div className="text-base text-text-main line-clamp-2 mb-2 leading-tight">
-                        <span className="inline-block bg-primary-start text-white text-xs px-1 rounded mr-1 font-medium">自营</span>
-                        Sony/索尼 WH-1000XM5 头戴式无线降噪耳机 蓝牙耳机
+                <div className="flex space-x-3 overflow-x-auto pb-2">
+                  {hotProducts.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className="flex w-[100px] shrink-0 flex-col text-left active:opacity-70"
+                      onClick={() => goTo(buildShopProductPath(item.id))}
+                    >
+                      <div className="mb-2 aspect-square overflow-hidden rounded-xl border border-border-light bg-bg-card shadow-sm">
+                        <img
+                          src={resolveShopProductImageUrl(item.thumbnail)}
+                          alt={item.name}
+                          className="h-full w-full object-cover"
+                          referrerPolicy="no-referrer"
+                        />
                       </div>
-                      <div className="flex flex-wrap gap-1 mb-auto pb-2">
-                        <span className="text-xs text-primary-start border border-primary-start/30 rounded px-1">包邮</span>
-                        <span className="text-xs text-primary-start border border-primary-start/30 rounded px-1">官方</span>
-                        <span className="text-xs text-primary-start border border-primary-start/30 rounded px-1">热卖</span>
+                      <div className="mb-1 line-clamp-1 text-sm text-text-main">{item.name}</div>
+                      <div className="mb-1 text-lg font-bold leading-none text-primary-start">
+                        {getShopProductPrimaryPrice(item)}
                       </div>
-                      <div className="flex justify-between items-end mt-1">
-                        <div className="flex flex-col">
-                          <div className="text-xl font-bold text-primary-start leading-none mb-1">
-                            <span className="text-sm">¥</span>2499
-                          </div>
-                          <div className="text-xs text-text-aux">已售1万+</div>
-                        </div>
-                        <button className="w-7 h-7 rounded-full bg-bg-base border border-border-light flex items-center justify-center text-text-main active:bg-border-light transition-colors">
-                          <ShoppingCart size={14} />
-                        </button>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="line-clamp-1 text-xs text-text-aux">
+                          {getShopProductPriceCaption(item) || item.category}
+                        </span>
+                        <span className="shrink-0 text-xs text-text-aux">
+                          已售{formatShopProductSales(item.sales)}
+                        </span>
                       </div>
-                    </div>
-                  </div>
-                ))
+                    </button>
+                  ))}
+                </div>
               )}
             </div>
-          )}
-        </div>
+
+            <div className="px-4">
+              <h3 className="mb-3 flex items-center justify-center text-xl font-bold text-text-main">
+                <span className="mr-2 h-px w-4 bg-border-light" />
+                今日精选
+                <span className="ml-2 h-px w-4 bg-border-light" />
+              </h3>
+
+              {latestRequest.loading ? (
+                <GridProductSkeleton />
+              ) : latestProducts.length === 0 ? (
+                <Card className="rounded-xl border border-border-light p-6">
+                  <EmptyState
+                    message="暂无精选商品"
+                    actionText="刷新"
+                    onAction={() => void latestRequest.reload().catch(() => undefined)}
+                  />
+                </Card>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  {latestProducts.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className="flex flex-col overflow-hidden rounded-2xl border border-border-light bg-bg-card text-left shadow-soft active:opacity-70"
+                      onClick={() => goTo(buildShopProductPath(item.id))}
+                    >
+                      <img
+                        src={resolveShopProductImageUrl(item.thumbnail)}
+                        alt={item.name}
+                        className="aspect-square w-full object-cover"
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="flex flex-1 flex-col p-3">
+                        <div className="mb-2 line-clamp-2 text-base leading-tight text-text-main">
+                          <span className="mr-1 inline-block rounded bg-primary-start px-1 py-0.5 text-xs font-medium text-white">
+                            自营
+                          </span>
+                          {item.name}
+                        </div>
+                        <div className="mb-auto flex flex-wrap gap-1 pb-2">
+                          {getShopProductBadges(item).map((badge) => (
+                            <span
+                              key={`${item.id}-${badge}`}
+                              className="rounded border border-primary-start/30 px-1 py-0.5 text-xs text-primary-start"
+                            >
+                              {badge}
+                            </span>
+                          ))}
+                        </div>
+                        <div className="mt-1 flex items-end justify-between">
+                          <div className="flex flex-col">
+                            <div className="mb-1 text-xl font-bold leading-none text-primary-start">
+                              {getShopProductPrimaryPrice(item)}
+                            </div>
+                            <div className="line-clamp-1 text-xs text-text-aux">
+                              {getShopProductPriceCaption(item) || `已售${formatShopProductSales(item.sales)}`}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            aria-label={`查看 ${item.name} 购物车入口`}
+                            className="flex h-7 w-7 items-center justify-center rounded-full border border-border-light bg-bg-base text-text-main active:bg-border-light"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              goTo('cart');
+                            }}
+                          >
+                            <ShoppingCart size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

@@ -1,139 +1,300 @@
-import React, { useState, useEffect } from 'react';
-import { ChevronLeft, Search as SearchIcon, LayoutGrid, List as ListIcon, Filter, ShoppingCart, X, WifiOff, RefreshCcw, FileX, ChevronDown, ChevronUp } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  ChevronDown,
+  ChevronLeft,
+  ChevronUp,
+  Filter,
+  LayoutGrid,
+  List as ListIcon,
+  RefreshCcw,
+  Search as SearchIcon,
+  ShoppingCart,
+  X,
+} from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { shopProductApi, type ShopProductItem } from '../../api';
+import { OfflineBanner } from '../../components/layout/OfflineBanner';
+import { Card } from '../../components/ui/Card';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { ErrorState } from '../../components/ui/ErrorState';
 import { Skeleton } from '../../components/ui/Skeleton';
+import {
+  buildShopProductPath,
+  formatShopProductSales,
+  getShopProductBadges,
+  getShopProductPrimaryPrice,
+  normalizeShopProductCategories,
+  resolveShopProductImageUrl,
+} from '../../features/shop-product/utils';
+import { useInfiniteScroll } from '../../hooks/useInfiniteScroll';
+import { useNetworkStatus } from '../../hooks/useNetworkStatus';
+import { useRequest } from '../../hooks/useRequest';
 import { useAppNavigate } from '../../lib/navigation';
-import { PageHeader } from '../../components/layout/PageHeader';
+
+const EMPTY_CATEGORY_LIST = {
+  list: [] as string[],
+};
+
+const EMPTY_PRODUCT_LIST = {
+  limit: 30,
+  list: [] as ShopProductItem[],
+  page: 1,
+  total: 0,
+};
+
+type SearchSortMode = 'default' | 'latest' | 'price' | 'sales';
+
+function getComparablePrice(product: ShopProductItem) {
+  return Number(
+    product.price ??
+      product.green_power_amount ??
+      product.balance_available_amount ??
+      product.score_price ??
+      0,
+  );
+}
+
+function mergeProducts(previous: ShopProductItem[], next: ShopProductItem[]) {
+  const productMap = new Map<number, ShopProductItem>();
+
+  for (const item of previous) {
+    productMap.set(item.id, item);
+  }
+
+  for (const item of next) {
+    productMap.set(item.id, item);
+  }
+
+  return Array.from(productMap.values());
+}
 
 export const SearchResultPage = () => {
-  const { goTo, goBack } = useAppNavigate();
+  const [searchParams] = useSearchParams();
+  const { goBack, goTo } = useAppNavigate();
+  const { isOffline, refreshStatus } = useNetworkStatus();
+
+  const keyword = searchParams.get('keyword')?.trim() ?? '';
 
   const [isGrid, setIsGrid] = useState(true);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [offline, setOffline] = useState(false);
-  const [moduleError, setModuleError] = useState(false);
-  const [emptyResult, setEmptyResult] = useState(false);
-  const [activeTab, setActiveTab] = useState('综合');
+  const [sortMode, setSortMode] = useState<SearchSortMode>('default');
+  const [priceOrder, setPriceOrder] = useState<'asc' | 'desc'>('asc');
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [minPrice, setMinPrice] = useState('');
+  const [maxPrice, setMaxPrice] = useState('');
+  const [products, setProducts] = useState<ShopProductItem[]>([]);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [loadMoreError, setLoadMoreError] = useState<Error | null>(null);
 
-  const mockProducts = [
-    { id: 1, title: 'Apple iPhone 15 Pro (A3104) 256GB 蓝色钛金属 支持移动联通电信5G 双卡双待手机', price: '7999.00', sold: '10万+', image: 'https://picsum.photos/seed/iphone/400/400', isSelf: true, freeShipping: true },
-    { id: 2, title: '华为 HUAWEI Mate 60 Pro 12GB+512GB 雅川青 卫星通话 鸿蒙智能手机', price: '6999.00', sold: '5万+', image: 'https://picsum.photos/seed/mate60/400/400', isSelf: true, freeShipping: true },
-    { id: 3, title: '小米14 徕卡光学镜头 光影猎人900 澎湃OS 12GB+256GB 黑色 5G手机', price: '3999.00', sold: '2万+', image: 'https://picsum.photos/seed/mi14/400/400', isSelf: true, freeShipping: true },
-    { id: 4, title: '大疆 DJI Mini 4 Pro 迷你航拍机 航拍无人机 智能跟随 避障', price: '4788.00', sold: '1万+', image: 'https://picsum.photos/seed/dji/400/400', isSelf: false, freeShipping: true },
-    { id: 5, title: '索尼（SONY）Alpha 7 IV 全画幅微单数码相机 单机身（A7M4/a74）', price: '16999.00', sold: '5000+', image: 'https://picsum.photos/seed/sony/400/400', isSelf: true, freeShipping: false },
-    { id: 6, title: '任天堂（Nintendo）Switch NS掌上游戏机 续航增强版 红蓝主机', price: '1899.00', sold: '20万+', image: 'https://picsum.photos/seed/switch/400/400', isSelf: true, freeShipping: true },
-  ];
+  const listContainerRef = useRef<HTMLDivElement | null>(null);
+  const loadMoreTriggerRef = useRef<HTMLDivElement | null>(null);
+  const loadingMoreRef = useRef(false);
+  const pageRef = useRef(1);
+  const productsRef = useRef<ShopProductItem[]>([]);
+  const queryVersionRef = useRef(0);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, []);
+    setSortMode('default');
+    setPriceOrder('asc');
+    setSelectedCategory('');
+    setMinPrice('');
+    setMaxPrice('');
+  }, [keyword]);
 
-  const handleBack = () => {
-    goBack();
-  };
-
-  const goToSearch = () => {
-    goTo('search');
-  };
-
-  const goToCategory = () => {
-    goTo('category');
-  };
-
-  const goToProductDetail = () => {
-    goTo('product_detail');
-  };
-
-  const renderHeader = () => (
-    <div className="bg-white dark:bg-gray-900 z-40 relative shrink-0">
-      {offline && (
-        <div className="bg-red-50 text-primary-start px-4 py-2 flex items-center justify-between text-sm">
-          <div className="flex items-center">
-            <WifiOff size={14} className="mr-2" />
-            <span>网络不稳定，请检查网络设置</span>
-          </div>
-          <button onClick={() => setOffline(false)} className="font-medium px-2 py-1 bg-white dark:bg-gray-900 rounded shadow-sm">刷新</button>
-        </div>
-      )}
-      
-      {/* Search Bar Row */}
-      <div className="h-12 flex items-center px-3 pt-safe">
-        <button onClick={handleBack} className="p-1 mr-1 text-text-main active:opacity-70">
-          <ChevronLeft size={24} />
-        </button>
-        <div 
-          className="flex-1 flex items-center bg-bg-base h-8 rounded-full px-3 border border-border-light cursor-text"
-          onClick={goToSearch}
-        >
-          <SearchIcon size={16} className="text-text-aux mr-2 shrink-0" />
-          <span className="text-base text-text-main flex-1 truncate">手机</span>
-          <button className="p-1 -mr-1 text-text-aux active:opacity-70">
-            <X size={14} />
-          </button>
-        </div>
-      </div>
-
-      {/* Filter Bar Row */}
-      <div className="h-10 flex items-center px-3 border-b border-border-light text-base text-text-main">
-        <div className="flex-1 flex items-center">
-          {['综合', '销量'].map((tab) => (
-            <div 
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`mr-6 cursor-pointer ${activeTab === tab ? 'font-bold text-primary-start' : ''}`}
-            >
-              {tab}
-            </div>
-          ))}
-          <div 
-            onClick={() => setActiveTab('价格')}
-            className={`mr-6 flex items-center cursor-pointer ${activeTab === '价格' ? 'font-bold text-primary-start' : ''}`}
-          >
-            价格
-            <div className="flex flex-col ml-0.5">
-              <ChevronUp size={8} className={`${activeTab === '价格' ? 'text-primary-start' : 'text-text-aux'} -mb-0.5`} />
-              <ChevronDown size={8} className="text-text-aux" />
-            </div>
-          </div>
-          <div 
-            onClick={() => setActiveTab('新品')}
-            className={`cursor-pointer ${activeTab === '新品' ? 'font-bold text-primary-start' : ''}`}
-          >
-            新品
-          </div>
-        </div>
-        <div className="flex items-center pl-3 border-l border-border-light shrink-0">
-          <button className="p-1 mr-2 active:opacity-70 text-text-main" onClick={() => setIsGrid(!isGrid)}>
-            {isGrid ? <ListIcon size={16} /> : <LayoutGrid size={16} />}
-          </button>
-          <button className="flex items-center active:opacity-70 text-text-main" onClick={() => setIsDrawerOpen(true)}>
-            <span className="mr-1">筛选</span>
-            <Filter size={14} />
-          </button>
-        </div>
-      </div>
-    </div>
+  const categoriesRequest = useRequest(
+    (signal) => shopProductApi.categories(signal),
+    {
+      initialData: EMPTY_CATEGORY_LIST,
+    },
   );
+
+  const fetchProductPage = useCallback(
+    (nextPage: number, signal?: AbortSignal) => {
+      if (!keyword) {
+        return Promise.resolve(EMPTY_PRODUCT_LIST);
+      }
+
+      const query = {
+        category: selectedCategory || undefined,
+        keyword,
+        limit: 30,
+        page: nextPage,
+        price_order: sortMode === 'price' ? priceOrder : undefined,
+      };
+
+      if (sortMode === 'sales') {
+        return shopProductApi.sales(query, signal);
+      }
+
+      if (sortMode === 'latest') {
+        return shopProductApi.latest(query, signal);
+      }
+
+      return shopProductApi.list(query, signal);
+    },
+    [keyword, priceOrder, selectedCategory, sortMode],
+  );
+
+  const resultRequest = useRequest(
+    (signal) => fetchProductPage(1, signal),
+    {
+      deps: [fetchProductPage],
+      initialData: EMPTY_PRODUCT_LIST,
+      keepPreviousData: true,
+    },
+  );
+
+  const queryKey = `${keyword}::${selectedCategory}::${sortMode}::${priceOrder}`;
+
+  useEffect(() => {
+    queryVersionRef.current += 1;
+    productsRef.current = [];
+    pageRef.current = 1;
+    loadingMoreRef.current = false;
+    setProducts([]);
+    setPage(1);
+    setHasMore(false);
+    setLoadingMore(false);
+    setLoadMoreError(null);
+  }, [queryKey]);
+
+  useEffect(() => {
+    const nextProducts = resultRequest.data?.list ?? [];
+    productsRef.current = nextProducts;
+    pageRef.current = 1;
+    setProducts(nextProducts);
+    setPage(1);
+    setHasMore(nextProducts.length < (resultRequest.data?.total ?? 0));
+    setLoadMoreError(null);
+  }, [resultRequest.data]);
+
+  const categories = useMemo(
+    () => normalizeShopProductCategories(categoriesRequest.data?.list),
+    [categoriesRequest.data],
+  );
+
+  const visibleProducts = useMemo(() => {
+    const minValue = minPrice ? Number(minPrice) : undefined;
+    const maxValue = maxPrice ? Number(maxPrice) : undefined;
+
+    return products.filter((item) => {
+      const price = getComparablePrice(item);
+
+      if (Number.isFinite(minValue) && typeof minValue === 'number' && price < minValue) {
+        return false;
+      }
+
+      if (Number.isFinite(maxValue) && typeof maxValue === 'number' && price > maxValue) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [maxPrice, minPrice, products]);
+
+  const loadMore = useCallback(async () => {
+    if (!keyword || loadingMoreRef.current || !hasMore) {
+      return;
+    }
+
+    const version = queryVersionRef.current;
+    const nextPage = pageRef.current + 1;
+
+    loadingMoreRef.current = true;
+    setLoadingMore(true);
+    setLoadMoreError(null);
+
+    try {
+      const response = await fetchProductPage(nextPage);
+      if (version !== queryVersionRef.current) {
+        return;
+      }
+
+      const mergedProducts = mergeProducts(productsRef.current, response.list);
+      productsRef.current = mergedProducts;
+      pageRef.current = nextPage;
+      setProducts(mergedProducts);
+      setPage(nextPage);
+      setHasMore(mergedProducts.length < response.total);
+    } catch (error) {
+      if (version === queryVersionRef.current) {
+        setLoadMoreError(error instanceof Error ? error : new Error('加载更多失败'));
+      }
+    } finally {
+      if (version === queryVersionRef.current) {
+        loadingMoreRef.current = false;
+        setLoadingMore(false);
+      }
+    }
+  }, [fetchProductPage, hasMore, keyword]);
+
+  useInfiniteScroll({
+    disabled:
+      !keyword ||
+      resultRequest.loading ||
+      Boolean(loadMoreError) ||
+      visibleProducts.length === 0,
+    hasMore,
+    loading: loadingMore,
+    onLoadMore: loadMore,
+    rootRef: listContainerRef,
+    targetRef: loadMoreTriggerRef,
+  });
+
+  useEffect(() => {
+    if (
+      !keyword ||
+      resultRequest.loading ||
+      loadingMore ||
+      !hasMore ||
+      loadMoreError ||
+      products.length === 0 ||
+      visibleProducts.length > 0
+    ) {
+      return;
+    }
+
+    void loadMore();
+  }, [
+    hasMore,
+    keyword,
+    loadMore,
+    loadMoreError,
+    loadingMore,
+    products.length,
+    resultRequest.loading,
+    visibleProducts.length,
+  ]);
+
+  const handlePriceSortClick = () => {
+    setSortMode('price');
+    setPriceOrder((previous) => (sortMode === 'price' && previous === 'asc' ? 'desc' : 'asc'));
+  };
+
+  const resetFilters = () => {
+    setSelectedCategory('');
+    setMinPrice('');
+    setMaxPrice('');
+  };
 
   const renderSkeleton = () => {
     if (isGrid) {
       return (
         <div className="flex flex-wrap px-2 pt-2">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="w-[calc(50%-4px)] mb-2" style={{ marginRight: i % 2 === 0 ? '8px' : '0' }}>
-              <div className="bg-white dark:bg-gray-900 rounded-2xl overflow-hidden shadow-sm pb-2">
-                <Skeleton className="w-full aspect-square" />
-                <div className="px-2 mt-2">
-                  <Skeleton className="w-full h-4 mb-1" />
-                  <Skeleton className="w-2/3 h-4 mb-2" />
-                  <Skeleton className="w-1/3 h-3 mb-2" />
-                  <div className="flex justify-between items-end">
-                    <Skeleton className="w-1/2 h-5" />
-                    <Skeleton className="w-6 h-6 rounded-full" />
-                  </div>
+          {Array.from({ length: 6 }).map((_, index) => (
+            <div
+              key={index}
+              className="mb-2 w-[calc(50%-4px)]"
+              style={{ marginRight: index % 2 === 0 ? '8px' : '0' }}
+            >
+              <div className="overflow-hidden rounded-2xl bg-white pb-2 shadow-sm dark:bg-gray-900">
+                <Skeleton className="aspect-square w-full" />
+                <div className="mt-2 px-2">
+                  <Skeleton className="mb-2 h-4 w-full" />
+                  <Skeleton className="mb-3 h-4 w-2/3" />
+                  <Skeleton className="h-5 w-1/2" />
                 </div>
               </div>
             </div>
@@ -144,19 +305,19 @@ export const SearchResultPage = () => {
 
     return (
       <div className="px-2 pt-2">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="bg-white dark:bg-gray-900 rounded-2xl overflow-hidden shadow-sm mb-2 flex p-2">
-            <Skeleton className="w-[120px] h-[120px] rounded-lg shrink-0 mr-3" />
-            <div className="flex-1 flex flex-col justify-between py-1">
+        {Array.from({ length: 6 }).map((_, index) => (
+          <div
+            key={index}
+            className="mb-2 flex overflow-hidden rounded-2xl bg-white p-2 shadow-sm dark:bg-gray-900"
+          >
+            <Skeleton className="mr-3 h-[120px] w-[120px] shrink-0 rounded-lg" />
+            <div className="flex flex-1 flex-col justify-between py-1">
               <div>
-                <Skeleton className="w-full h-4 mb-1" />
-                <Skeleton className="w-3/4 h-4 mb-2" />
-                <Skeleton className="w-1/4 h-3" />
+                <Skeleton className="mb-2 h-4 w-full" />
+                <Skeleton className="mb-2 h-4 w-3/4" />
+                <Skeleton className="h-3 w-1/3" />
               </div>
-              <div className="flex justify-between items-end">
-                <Skeleton className="w-1/3 h-5" />
-                <Skeleton className="w-7 h-7 rounded-full" />
-              </div>
+              <Skeleton className="h-5 w-1/3" />
             </div>
           </div>
         ))}
@@ -164,219 +325,350 @@ export const SearchResultPage = () => {
     );
   };
 
-  const renderContent = () => {
-    if (moduleError) {
-      return (
-        <div className="flex-1 flex flex-col items-center justify-center p-4">
-          <RefreshCcw size={32} className="text-text-aux mb-3" />
-          <p className="text-md text-text-sub mb-4">加载失败，请检查网络</p>
-          <button 
-            onClick={() => { setLoading(true); setModuleError(false); }} 
-            className="px-6 py-2 border border-border-light rounded-full text-base text-text-main bg-white dark:bg-gray-900 shadow-sm active:bg-bg-base"
+  const renderLoadMoreFooter = () => {
+    if (visibleProducts.length === 0) {
+      return null;
+    }
+
+    return (
+      <div ref={loadMoreTriggerRef} className="py-6 text-center text-sm text-text-sub">
+        {loadingMore ? (
+          <span className="inline-flex items-center">
+            <RefreshCcw size={14} className="mr-2 animate-spin" />
+            加载中...
+          </span>
+        ) : loadMoreError ? (
+          <button
+            type="button"
+            className="rounded-full border border-border-light px-4 py-2 text-text-main"
+            onClick={() => void loadMore()}
           >
-            重试
+            加载失败，点击重试
           </button>
-        </div>
+        ) : hasMore ? (
+          <span>继续下拉加载更多</span>
+        ) : (
+          <span>没有更多商品了</span>
+        )}
+      </div>
+    );
+  };
+
+  const renderProducts = () => {
+    if (!keyword) {
+      return (
+        <EmptyState message="请输入关键词后再搜索" actionText="去搜索" onAction={() => goTo('search')} />
       );
     }
 
-    if (emptyResult) {
-      return (
-        <div className="flex-1 flex flex-col items-center justify-center p-4">
-          <FileX size={48} className="text-text-aux mb-4 opacity-50" strokeWidth={1.5} />
-          <p className="text-lg font-medium text-text-main mb-1">没找到相关商品</p>
-          <p className="text-base text-text-sub mb-6">换个词搜搜，或者去分类看看</p>
-          <button 
-            onClick={goToCategory}
-            className="px-6 py-2 bg-white dark:bg-gray-900 border border-border-light rounded-full text-base text-text-main shadow-sm active:bg-bg-base"
-          >
-            去分类逛逛
-          </button>
-        </div>
-      );
-    }
-
-    if (loading) {
+    if (resultRequest.loading && products.length === 0) {
       return renderSkeleton();
+    }
+
+    if (resultRequest.error && products.length === 0) {
+      return (
+        <ErrorState
+          message="商品搜索失败"
+          onRetry={() => void resultRequest.reload().catch(() => undefined)}
+        />
+      );
+    }
+
+    if (visibleProducts.length === 0) {
+      return (
+        <EmptyState
+          message="没有找到匹配的商品"
+          actionText="去分类看看"
+          onAction={() => goTo('category')}
+        />
+      );
     }
 
     if (isGrid) {
       return (
         <div className="flex flex-wrap px-2 pt-2 pb-safe">
-          {mockProducts.map((item, i) => (
-            <div 
-              key={item.id} 
-              className="w-[calc(50%-4px)] mb-2 cursor-pointer active:opacity-90 transition-opacity" 
-              style={{ marginRight: i % 2 === 0 ? '8px' : '0' }}
-              onClick={goToProductDetail}
+          {visibleProducts.map((item, index) => (
+            <button
+              key={item.id}
+              type="button"
+              className="mb-2 w-[calc(50%-4px)] text-left active:opacity-90"
+              style={{ marginRight: index % 2 === 0 ? '8px' : '0' }}
+              onClick={() => goTo(buildShopProductPath(item.id))}
             >
-              <div className="bg-white dark:bg-gray-900 rounded-2xl overflow-hidden shadow-sm pb-2 h-full flex flex-col">
-                <img src={item.image} className="w-full aspect-square object-cover" referrerPolicy="no-referrer" alt={item.title} />
-                <div className="px-2 mt-2 flex-1 flex flex-col">
-                  <h3 className="text-base text-text-main font-medium line-clamp-2 leading-snug mb-1.5">
-                    {item.isSelf && <span className="inline-block bg-primary-start text-white text-xs px-1 rounded-sm mr-1 leading-tight align-middle">自营</span>}
-                    <span className="align-middle">{item.title}</span>
+              <div className="flex h-full flex-col overflow-hidden rounded-2xl bg-white pb-2 shadow-sm dark:bg-gray-900">
+                <img
+                  src={resolveShopProductImageUrl(item.thumbnail)}
+                  alt={item.name}
+                  className="aspect-square w-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
+                <div className="mt-2 flex flex-1 flex-col px-2">
+                  <h3 className="mb-1.5 line-clamp-2 text-base font-medium leading-snug text-text-main">
+                    {item.name}
                   </h3>
-                  <div className="mt-auto">
-                    {item.freeShipping && <span className="inline-block border border-primary-start text-primary-start text-2xs px-1 rounded-sm mb-1.5">包邮</span>}
-                    <div className="flex items-center justify-between mt-1">
-                      <div>
-                        <div className="text-primary-start font-bold leading-none mb-1">
-                          <span className="text-xs">¥</span>
-                          <span className="text-xl">{item.price.split('.')[0]}</span>
-                          <span className="text-xs">.{item.price.split('.')[1]}</span>
-                        </div>
-                        <div className="text-xs text-text-aux leading-none">已售 {item.sold}</div>
-                      </div>
-                      <button 
-                        className="w-6 h-6 bg-primary-start rounded-full flex items-center justify-center shrink-0 active:scale-95 transition-transform"
-                        onClick={(e) => { e.stopPropagation(); /* Add to cart logic */ }}
+                  <div className="mb-2 flex flex-wrap gap-1">
+                    {getShopProductBadges(item).map((badge) => (
+                      <span
+                        key={`${item.id}-${badge}`}
+                        className="rounded-sm border border-primary-start/25 px-1 py-0.5 text-2xs text-primary-start"
                       >
-                        <ShoppingCart size={12} className="text-white" />
-                      </button>
+                        {badge}
+                      </span>
+                    ))}
+                  </div>
+                  <div className="mt-auto">
+                    <div className="text-primary-start">
+                      <span className="text-lg font-bold">{getShopProductPrimaryPrice(item)}</span>
                     </div>
+                    <div className="mt-1 text-xs text-text-aux">销量 {formatShopProductSales(item.sales)}</div>
                   </div>
                 </div>
               </div>
-            </div>
+            </button>
           ))}
+          <div className="w-full">{renderLoadMoreFooter()}</div>
         </div>
       );
     }
 
     return (
       <div className="px-2 pt-2 pb-safe">
-        {mockProducts.map((item) => (
-          <div 
-            key={item.id} 
-            className="bg-white dark:bg-gray-900 rounded-2xl overflow-hidden shadow-sm mb-2 flex p-2 cursor-pointer active:opacity-90 transition-opacity"
-            onClick={goToProductDetail}
+        {visibleProducts.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            className="mb-2 flex w-full overflow-hidden rounded-2xl bg-white p-2 text-left shadow-sm active:opacity-90 dark:bg-gray-900"
+            onClick={() => goTo(buildShopProductPath(item.id))}
           >
-            <img src={item.image} className="w-[120px] h-[120px] rounded-lg object-cover shrink-0 mr-3" referrerPolicy="no-referrer" alt={item.title} />
-            <div className="flex-1 flex flex-col justify-between py-1">
+            <img
+              src={resolveShopProductImageUrl(item.thumbnail)}
+              alt={item.name}
+              className="mr-3 h-[120px] w-[120px] shrink-0 rounded-lg object-cover"
+              referrerPolicy="no-referrer"
+            />
+            <div className="flex flex-1 flex-col justify-between py-1">
               <div>
-                <h3 className="text-md text-text-main font-medium line-clamp-2 leading-snug mb-1.5">
-                  {item.isSelf && <span className="inline-block bg-primary-start text-white text-xs px-1 rounded-sm mr-1 leading-tight align-middle">自营</span>}
-                  <span className="align-middle">{item.title}</span>
+                <h3 className="mb-1.5 line-clamp-2 text-md font-medium leading-snug text-text-main">
+                  {item.name}
                 </h3>
-                {item.freeShipping && <span className="inline-block border border-primary-start text-primary-start text-2xs px-1 rounded-sm mb-1.5">包邮</span>}
+                <div className="flex flex-wrap gap-1">
+                  {getShopProductBadges(item).map((badge) => (
+                    <span
+                      key={`${item.id}-${badge}`}
+                      className="rounded-sm border border-primary-start/25 px-1 py-0.5 text-2xs text-primary-start"
+                    >
+                      {badge}
+                    </span>
+                  ))}
+                </div>
               </div>
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-primary-start font-bold leading-none mb-1">
-                    <span className="text-s">¥</span>
-                    <span className="text-3xl">{item.price.split('.')[0]}</span>
-                    <span className="text-s">.{item.price.split('.')[1]}</span>
+                  <div className="text-xl font-bold leading-none text-primary-start">
+                    {getShopProductPrimaryPrice(item)}
                   </div>
-                  <div className="text-s text-text-aux leading-none">已售 {item.sold}</div>
+                  <div className="mt-1 text-xs text-text-aux">
+                    销量 {formatShopProductSales(item.sales)} · {item.category}
+                  </div>
                 </div>
-                <button 
-                  className="w-7 h-7 bg-primary-start rounded-full flex items-center justify-center shrink-0 active:scale-95 transition-transform"
-                  onClick={(e) => { e.stopPropagation(); /* Add to cart logic */ }}
-                >
-                  <ShoppingCart size={14} className="text-white" />
-                </button>
+                <span className="rounded-full bg-red-50 px-2 py-1 text-xs text-primary-start">
+                  查看详情
+                </span>
               </div>
             </div>
-          </div>
+          </button>
         ))}
+        {renderLoadMoreFooter()}
       </div>
     );
   };
 
-  const renderDrawer = () => (
-    <div className={`fixed inset-0 z-50 flex justify-end transition-opacity duration-300 ${isDrawerOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
-      <div className="absolute inset-0 bg-black/40" onClick={() => setIsDrawerOpen(false)} />
-      <div 
-        className={`relative w-[85%] max-w-[320px] bg-bg-base h-full flex flex-col transition-transform duration-300 ${isDrawerOpen ? 'translate-x-0' : 'translate-x-full'}`}
-      >
-        <div className="flex-1 overflow-y-auto p-4 pt-safe">
-          {/* Price Range */}
-          <div className="mb-6">
-            <h4 className="text-md font-bold text-text-main mb-3">价格区间</h4>
-            <div className="flex items-center justify-between">
-              <input type="number" placeholder="最低价" className="w-[45%] h-8 bg-bg-card rounded-full text-center text-sm text-text-main outline-none border border-transparent focus:border-primary-start/30" />
-              <span className="text-text-aux">-</span>
-              <input type="number" placeholder="最高价" className="w-[45%] h-8 bg-bg-card rounded-full text-center text-sm text-text-main outline-none border border-transparent focus:border-primary-start/30" />
-            </div>
-          </div>
-          
-          {/* Category */}
-          <div className="mb-6">
-            <h4 className="text-md font-bold text-text-main mb-3">分类</h4>
-            <div className="flex flex-wrap mx-[-4px]">
-              {['手机', '手机配件', '数码相机', '无人机'].map((cat, i) => (
-                <button 
-                  key={i} 
-                  className={`w-[calc(33.33%-8px)] mx-[4px] mb-[8px] h-8 rounded-full text-sm truncate px-2 border transition-colors
-                    ${i === 0 ? 'bg-primary-start/10 text-primary-start border-primary-start/30' : 'bg-bg-card text-text-main border-transparent active:bg-bg-base'}
-                  `}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Brand */}
-          <div className="mb-6">
-            <h4 className="text-md font-bold text-text-main mb-3">品牌</h4>
-            <div className="flex flex-wrap mx-[-4px]">
-              {['Apple', '华为', '小米', '大疆', '索尼', '三星'].map((brand, i) => (
-                <button 
-                  key={i} 
-                  className="w-[calc(33.33%-8px)] mx-[4px] mb-[8px] h-8 bg-bg-card rounded-full text-sm text-text-main truncate px-2 border border-transparent active:bg-primary-start/10 active:text-primary-start active:border-primary-start/30 transition-colors"
-                >
-                  {brand}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Options */}
-          <div className="mb-6">
-            <h4 className="text-md font-bold text-text-main mb-3">选项</h4>
-            <div className="flex flex-wrap mx-[-4px]">
-              <button className="w-[calc(33.33%-8px)] mx-[4px] mb-[8px] h-8 bg-primary-start/10 border border-primary-start/30 text-primary-start rounded-full text-sm truncate px-2">
-                仅看有货
-              </button>
-              <button className="w-[calc(33.33%-8px)] mx-[4px] mb-[8px] h-8 bg-bg-card rounded-full text-sm text-text-main truncate px-2 border border-transparent active:bg-bg-base">
-                树交所发货
-              </button>
-            </div>
-          </div>
-        </div>
-        
-        {/* Bottom Buttons */}
-        <div className="h-14 bg-white dark:bg-gray-900 border-t border-border-light flex items-center px-4 pb-safe shrink-0">
-          <button 
-            className="flex-1 h-10 rounded-full border border-border-light text-md text-text-main font-medium mr-3 active:bg-bg-base transition-colors" 
-            onClick={() => setIsDrawerOpen(false)}
-          >
-            重置
-          </button>
-          <button 
-            className="flex-1 h-10 rounded-full bg-gradient-to-r from-primary-start to-primary-end text-white text-md font-medium active:opacity-80 transition-opacity" 
-            onClick={() => setIsDrawerOpen(false)}
-          >
-            确定
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-
   return (
-    <div className="flex-1 flex flex-col bg-bg-base relative h-full overflow-hidden">
-      
+    <div className="relative flex flex-1 flex-col overflow-hidden bg-bg-base">
+      {isOffline && <OfflineBanner onAction={refreshStatus} />}
 
-      {renderHeader()}
-      
-      <div className="flex-1 overflow-y-auto no-scrollbar relative">
-        {renderContent()}
+      <div className="relative z-40 shrink-0 bg-white dark:bg-gray-900">
+        <div className="flex h-12 items-center px-3 pt-safe">
+          <button onClick={goBack} className="mr-1 p-1 text-text-main active:opacity-70">
+            <ChevronLeft size={24} />
+          </button>
+          <button
+            type="button"
+            className="flex h-8 flex-1 items-center rounded-full border border-border-light bg-bg-base px-3 text-left"
+            onClick={() => goTo('search')}
+          >
+            <SearchIcon size={16} className="mr-2 shrink-0 text-text-aux" />
+            <span className="flex-1 truncate text-base text-text-main">{keyword || '搜索商品'}</span>
+            {keyword && (
+              <span className="p-1 text-text-aux">
+                <X size={14} />
+              </span>
+            )}
+          </button>
+        </div>
+
+        <div className="flex h-10 items-center border-b border-border-light px-3 text-base text-text-main">
+          <div className="flex flex-1 items-center">
+            <button
+              type="button"
+              onClick={() => setSortMode('default')}
+              className={`mr-6 ${sortMode === 'default' ? 'font-bold text-primary-start' : ''}`}
+            >
+              综合
+            </button>
+            <button
+              type="button"
+              onClick={() => setSortMode('sales')}
+              className={`mr-6 ${sortMode === 'sales' ? 'font-bold text-primary-start' : ''}`}
+            >
+              销量
+            </button>
+            <button
+              type="button"
+              onClick={handlePriceSortClick}
+              className={`mr-6 flex items-center ${
+                sortMode === 'price' ? 'font-bold text-primary-start' : ''
+              }`}
+            >
+              价格
+              <div className="ml-0.5 flex flex-col">
+                <ChevronUp
+                  size={8}
+                  className={`-mb-0.5 ${
+                    sortMode === 'price' && priceOrder === 'asc'
+                      ? 'text-primary-start'
+                      : 'text-text-aux'
+                  }`}
+                />
+                <ChevronDown
+                  size={8}
+                  className={
+                    sortMode === 'price' && priceOrder === 'desc'
+                      ? 'text-primary-start'
+                      : 'text-text-aux'
+                  }
+                />
+              </div>
+            </button>
+            <button
+              type="button"
+              onClick={() => setSortMode('latest')}
+              className={sortMode === 'latest' ? 'font-bold text-primary-start' : ''}
+            >
+              新品
+            </button>
+          </div>
+          <div className="flex shrink-0 items-center border-l border-border-light pl-3">
+            <button
+              type="button"
+              className="mr-2 p-1 text-text-main active:opacity-70"
+              onClick={() => setIsGrid((previous) => !previous)}
+            >
+              {isGrid ? <ListIcon size={16} /> : <LayoutGrid size={16} />}
+            </button>
+            <button
+              type="button"
+              className="flex items-center text-text-main active:opacity-70"
+              onClick={() => setIsDrawerOpen(true)}
+            >
+              <span className="mr-1">筛选</span>
+              <Filter size={14} />
+            </button>
+          </div>
+        </div>
       </div>
 
-      {renderDrawer()}
+      <div ref={listContainerRef} className="flex-1 overflow-y-auto">
+        {renderProducts()}
+      </div>
+
+      <div
+        className={`fixed inset-0 z-50 flex justify-end transition-opacity duration-300 ${
+          isDrawerOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
+        }`}
+      >
+        <div className="absolute inset-0 bg-black/40" onClick={() => setIsDrawerOpen(false)} />
+        <div
+          className={`relative flex h-full w-[85%] max-w-[320px] flex-col bg-bg-base transition-transform duration-300 ${
+            isDrawerOpen ? 'translate-x-0' : 'translate-x-full'
+          }`}
+        >
+          <div className="flex-1 overflow-y-auto p-4 pt-safe">
+            <div className="mb-6">
+              <h4 className="mb-3 text-md font-bold text-text-main">价格区间</h4>
+              <div className="flex items-center justify-between">
+                <input
+                  type="number"
+                  value={minPrice}
+                  onChange={(event) => setMinPrice(event.target.value)}
+                  placeholder="最低价"
+                  className="h-8 w-[45%] rounded-full border border-transparent bg-bg-card px-4 text-sm text-text-main outline-none focus:border-primary-start/30"
+                />
+                <span className="text-text-aux">-</span>
+                <input
+                  type="number"
+                  value={maxPrice}
+                  onChange={(event) => setMaxPrice(event.target.value)}
+                  placeholder="最高价"
+                  className="h-8 w-[45%] rounded-full border border-transparent bg-bg-card px-4 text-sm text-text-main outline-none focus:border-primary-start/30"
+                />
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <h4 className="mb-3 text-md font-bold text-text-main">分类</h4>
+              {categoriesRequest.loading ? (
+                <div className="flex flex-wrap gap-2">
+                  {Array.from({ length: 6 }).map((_, index) => (
+                    <Skeleton key={index} className="h-8 w-20 rounded-full" />
+                  ))}
+                </div>
+              ) : (
+                <div className="mx-[-4px] flex flex-wrap">
+                  {categories.map((category) => {
+                    const isActive = selectedCategory === category.name;
+                    return (
+                      <button
+                        key={category.id}
+                        type="button"
+                        onClick={() =>
+                          setSelectedCategory((previous) =>
+                            previous === category.name ? '' : category.name,
+                          )
+                        }
+                        className={`mx-[4px] mb-[8px] h-8 w-[calc(33.33%-8px)] truncate rounded-full border px-2 text-sm ${
+                          isActive
+                            ? 'border-primary-start/30 bg-primary-start/10 text-primary-start'
+                            : 'border-transparent bg-bg-card text-text-main'
+                        }`}
+                      >
+                        {category.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 border-t border-border-light p-4">
+            <button
+              type="button"
+              className="rounded-full border border-border-light bg-white px-4 py-2 text-base text-text-main dark:bg-gray-900"
+              onClick={resetFilters}
+            >
+              重置
+            </button>
+            <button
+              type="button"
+              className="rounded-full bg-primary-start px-4 py-2 text-base text-white"
+              onClick={() => setIsDrawerOpen(false)}
+            >
+              完成
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

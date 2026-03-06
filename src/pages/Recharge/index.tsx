@@ -1,309 +1,754 @@
-import React, { useState, useEffect } from 'react';
-import { ChevronLeft, Eye, EyeOff, XCircle, ShieldCheck, AlertCircle, CheckCircle2, Wallet, CreditCard, Smartphone, Info } from 'lucide-react';
+import type { ChangeEvent } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { LucideIcon } from 'lucide-react';
+import {
+  CheckCircle2,
+  ChevronLeft,
+  Copy,
+  CreditCard,
+  Eye,
+  EyeOff,
+  FileText,
+  ImagePlus,
+  Info,
+  Landmark,
+  Loader2,
+  ShieldCheck,
+  Smartphone,
+  Wallet,
+  X,
+  XCircle,
+} from 'lucide-react';
+import {
+  accountApi,
+  rechargeApi,
+  uploadApi,
+  type CompanyAccount,
+  type RechargeOrderRecord,
+  type UploadedFile,
+} from '../../api';
+import { getErrorMessage } from '../../api/core/errors';
+import { OfflineBanner } from '../../components/layout/OfflineBanner';
 import { Card } from '../../components/ui/Card';
-import { Button } from '../../components/ui/Button';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { ErrorState } from '../../components/ui/ErrorState';
+import { useFeedback } from '../../components/ui/FeedbackProvider';
+import { Skeleton } from '../../components/ui/Skeleton';
+import { useAuthSession } from '../../hooks/useAuthSession';
+import { useNetworkStatus } from '../../hooks/useNetworkStatus';
+import { useRequest } from '../../hooks/useRequest';
 import { useAppNavigate } from '../../lib/navigation';
-import { PageHeader } from '../../components/layout/PageHeader';
-
-// Mock Data
-const MOCK_DATA = {
-  balance: {
-    total: 12500.00,
-    available: 10000.00,
-    frozen: 2500.00,
-  },
-  paymentMethods: [
-    { id: 'bank_card', name: '工商银行储蓄卡 (8888)', icon: CreditCard, desc: '单笔限额50,000元', color: 'text-blue-500', bg: 'bg-blue-50' },
-    { id: 'alipay', name: '支付宝', icon: Smartphone, desc: '推荐使用', color: 'text-blue-400', bg: 'bg-blue-50' },
-    { id: 'wechat', name: '微信支付', icon: Smartphone, desc: '亿万用户的选择', color: 'text-green-500', bg: 'bg-green-50' },
-  ],
-  rules: {
-    minAmount: 100,
-    maxAmount: 50000,
-    arrivalText: '预计2小时内到账'
-  }
-};
 
 const QUICK_AMOUNTS = [500, 1000, 2000, 5000, 10000];
 
+function formatMoney(value: number | string | undefined, fractionDigits = 2) {
+  const nextValue = typeof value === 'string' ? Number(value) : value;
+  if (typeof nextValue !== 'number' || !Number.isFinite(nextValue)) {
+    return '--';
+  }
+
+  return nextValue.toLocaleString('zh-CN', {
+    maximumFractionDigits: fractionDigits,
+    minimumFractionDigits: fractionDigits,
+  });
+}
+
+function maskAccountNumber(value: string | undefined) {
+  const nextValue = value?.trim();
+  if (!nextValue) {
+    return '--';
+  }
+
+  if (nextValue.length <= 8) {
+    return nextValue;
+  }
+
+  return `${nextValue.slice(0, 4)} **** ${nextValue.slice(-4)}`;
+}
+
+function getCompanyAccountIcon(type: string): LucideIcon {
+  switch (type) {
+    case 'bank_card':
+    case 'unionpay':
+      return Landmark;
+    case 'alipay':
+    case 'wechat':
+      return Smartphone;
+    default:
+      return Wallet;
+  }
+}
+
+function getCompanyAccountColor(type: string) {
+  switch (type) {
+    case 'bank_card':
+    case 'unionpay':
+      return 'text-blue-600';
+    case 'alipay':
+      return 'text-blue-500';
+    case 'wechat':
+      return 'text-green-600';
+    case 'usdt':
+      return 'text-emerald-600';
+    default:
+      return 'text-text-main';
+  }
+}
+
+function buildCompanyAccountSubtitle(account: CompanyAccount) {
+  if (account.type === 'bank_card' || account.type === 'unionpay') {
+    const bankName = account.bankName || account.typeText || '银行卡';
+    return `${bankName} ${maskAccountNumber(account.accountNumber)}`;
+  }
+
+  return maskAccountNumber(account.accountNumber);
+}
+
+function getOrderStatusClassName(status: number) {
+  if (status === 1) {
+    return 'bg-green-50 text-green-600';
+  }
+
+  if (status === 2) {
+    return 'bg-red-50 text-red-600';
+  }
+
+  return 'bg-orange-50 text-orange-600';
+}
+
+function getOrderTitle(record: RechargeOrderRecord) {
+  if (record.recordType === 'transfer') {
+    return '余额划转';
+  }
+
+  return record.paymentTypeText || '充值申请';
+}
+
 export function RechargePage() {
-  const { goBack } = useAppNavigate();
-  const [isLoading, setIsLoading] = useState(true);
-  const [isOffline, setIsOffline] = useState(!navigator.onLine);
-  const [error, setError] = useState<string | null>(null);
-  
+  const { goBack, goTo } = useAppNavigate();
+  const { isAuthenticated } = useAuthSession();
+  const { isOffline, refreshStatus } = useNetworkStatus();
+  const { showToast } = useFeedback();
+  const screenshotInputRef = useRef<HTMLInputElement | null>(null);
+
   const [showBalance, setShowBalance] = useState(true);
   const [amount, setAmount] = useState('');
-  const [selectedPayment, setSelectedPayment] = useState('bank_card');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedAccountId, setSelectedAccountId] = useState<number | null>(null);
+  const [remark, setRemark] = useState('');
+  const [paymentScreenshot, setPaymentScreenshot] = useState<UploadedFile | null>(null);
+  const [uploadingScreenshot, setUploadingScreenshot] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  const {
+    data: profile,
+    error: profileError,
+    loading: profileLoading,
+    reload: reloadProfile,
+  } = useRequest((signal) => accountApi.getProfile({ signal }), {
+    deps: [isAuthenticated],
+    manual: !isAuthenticated,
+  });
+  const {
+    data: companyAccounts,
+    error: companyAccountsError,
+    loading: companyAccountsLoading,
+    reload: reloadCompanyAccounts,
+  } = useRequest((signal) => rechargeApi.getCompanyAccountList({ usage: 'recharge' }, { signal }), {
+    deps: [isAuthenticated],
+    manual: !isAuthenticated,
+  });
+  const {
+    data: recentOrders,
+    error: recentOrdersError,
+    loading: recentOrdersLoading,
+    reload: reloadRecentOrders,
+  } = useRequest((signal) => rechargeApi.getMyOrderList({ limit: 3, page: 1 }, { signal }), {
+    deps: [isAuthenticated],
+    manual: !isAuthenticated,
+  });
+
+  const paymentAccounts = useMemo(
+    () =>
+      (companyAccounts ?? []).map((account) => ({
+        ...account,
+        color: getCompanyAccountColor(account.type),
+        iconComponent: getCompanyAccountIcon(account.type),
+        subtitle: buildCompanyAccountSubtitle(account),
+        title: account.accountName || account.typeText || '收款账户',
+      })),
+    [companyAccounts],
+  );
 
   useEffect(() => {
-    const handleOnline = () => setIsOffline(false);
-    const handleOffline = () => setIsOffline(true);
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
+    if (!paymentAccounts.length) {
+      setSelectedAccountId(null);
+      return;
+    }
 
-    // Simulate loading
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 300);
+    setSelectedAccountId((current) => {
+      if (current && paymentAccounts.some((item) => item.id === current)) {
+        return current;
+      }
 
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-      clearTimeout(timer);
-    };
-  }, []);
+      return paymentAccounts[0].id;
+    });
+  }, [paymentAccounts]);
 
-  const handleGoBack = () => {
-    goBack();
+  const selectedAccount =
+    paymentAccounts.find((item) => item.id === selectedAccountId) ?? paymentAccounts[0] ?? null;
+  const totalBalance = profile?.userInfo?.money;
+  const availableBalance = profile?.userInfo?.balanceAvailable;
+  const frozenBalance = profile?.userInfo?.frozenAmount;
+  const numAmount = parseFloat(amount) || 0;
+  const mainLoading = isAuthenticated && (profileLoading || companyAccountsLoading);
+  const hasBlockingError =
+    isAuthenticated &&
+    !profile &&
+    !companyAccounts &&
+    (Boolean(profileError) || Boolean(companyAccountsError));
+  const canSubmit =
+    isAuthenticated &&
+    !isOffline &&
+    !submitting &&
+    !uploadingScreenshot &&
+    Boolean(selectedAccount) &&
+    numAmount > 0 &&
+    Boolean(paymentScreenshot);
+
+  const handleReload = () => {
+    refreshStatus();
+    void Promise.allSettled([reloadProfile(), reloadCompanyAccounts(), reloadRecentOrders()]);
   };
 
-  const handleGoHistory = () => {
-    // Navigate to recharge history (placeholder)
-    alert('跳转到充值记录');
-  };
-
-  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    // Only allow numbers and one decimal point
-    if (val === '' || /^\d*\.?\d{0,2}$/.test(val)) {
-      setAmount(val);
+  const handleAmountChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const nextValue = event.target.value;
+    if (nextValue === '' || /^\d*\.?\d{0,2}$/.test(nextValue)) {
+      setAmount(nextValue);
     }
   };
 
-  const handleSubmit = () => {
-    if (!amount || Number(amount) <= 0) return;
-    setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
-      alert(`成功充值 ¥${amount}`);
-      setAmount('');
-      handleGoBack();
-    }, 300);
+  const handleCopy = async (text: string | undefined, successMessage = '已复制') => {
+    const nextValue = text?.trim();
+    if (!nextValue) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(nextValue);
+      showToast({ message: successMessage, type: 'success' });
+    } catch {
+      showToast({ message: '复制失败，请稍后重试', type: 'error' });
+    }
   };
 
-  const numAmount = Number(amount);
-  const isSubmitDisabled = !amount || numAmount <= 0 || numAmount < MOCK_DATA.rules.minAmount || numAmount > MOCK_DATA.rules.maxAmount || isSubmitting;
+  const handlePickScreenshot = () => {
+    if (uploadingScreenshot || submitting) {
+      return;
+    }
 
-  if (isLoading) {
+    screenshotInputRef.current?.click();
+  };
+
+  const handleScreenshotChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+
+    if (!file) {
+      return;
+    }
+
+    setUploadingScreenshot(true);
+
+    try {
+      const uploadedFile = await uploadApi.upload({
+        file,
+        topic: 'recharge',
+      });
+
+      setPaymentScreenshot(uploadedFile);
+      showToast({ message: '付款截图上传成功', type: 'success' });
+    } catch (error) {
+      showToast({
+        message: getErrorMessage(error),
+        type: 'error',
+        duration: 3000,
+      });
+    } finally {
+      setUploadingScreenshot(false);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!selectedAccount || !paymentScreenshot || !canSubmit) {
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
+      const result = await rechargeApi.submitOrder({
+        amount: numAmount,
+        companyAccountId: selectedAccount.id,
+        paymentMethod: 'offline',
+        paymentScreenshotId: paymentScreenshot.id,
+        paymentScreenshotUrl: paymentScreenshot.url,
+        paymentType: selectedAccount.type,
+        userRemark: remark.trim() || undefined,
+      });
+
+      showToast({
+        message: result.orderNo
+          ? `充值申请已提交，订单号 ${result.orderNo}`
+          : '充值申请已提交，请等待审核',
+        type: 'success',
+        duration: 3200,
+      });
+
+      setAmount('');
+      setRemark('');
+      setPaymentScreenshot(null);
+      void Promise.allSettled([reloadProfile(), reloadRecentOrders()]);
+
+      if (result.payUrl) {
+        window.open(result.payUrl, '_blank', 'noopener,noreferrer');
+      }
+    } catch (error) {
+      showToast({
+        message: getErrorMessage(error),
+        type: 'error',
+        duration: 3000,
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const renderHeader = () => (
+    <div className="sticky top-0 z-40 bg-bg-base/90 backdrop-blur-md">
+      <div className="flex h-12 items-center justify-between px-4">
+        <button onClick={goBack} className="p-1 -ml-1 text-text-main active:opacity-70">
+          <ChevronLeft size={24} />
+        </button>
+        <h1 className="text-2xl font-medium text-text-main">专项金充值</h1>
+        <button
+          type="button"
+          className="flex items-center text-sm text-text-sub active:opacity-70"
+          onClick={() => goTo('billing')}
+        >
+          <FileText size={16} className="mr-1" />
+          记录
+        </button>
+      </div>
+    </div>
+  );
+
+  if (!isAuthenticated) {
     return (
-      <div className="h-full flex flex-col bg-bg-hover dark:bg-gray-900">
-        <div className="h-12 flex items-center px-4 bg-white dark:bg-gray-800">
-          <div className="w-6 h-6 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-          <div className="flex-1 flex justify-center">
-            <div className="w-24 h-5 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-          </div>
-          <div className="w-6 h-6" />
-        </div>
-        <div className="p-4 space-y-4">
-          <div className="h-32 bg-white dark:bg-gray-800 rounded-2xl animate-pulse" />
-          <div className="h-48 bg-white dark:bg-gray-800 rounded-2xl animate-pulse" />
-          <div className="h-64 bg-white dark:bg-gray-800 rounded-2xl animate-pulse" />
+      <div className="flex h-full flex-1 flex-col bg-red-50/30">
+        {renderHeader()}
+        <div className="flex-1 overflow-y-auto no-scrollbar px-4">
+          <EmptyState
+            message="登录后才能发起充值申请"
+            actionText="去登录"
+            actionVariant="primary"
+            onAction={() => goTo('login')}
+          />
         </div>
       </div>
     );
   }
 
-  if (error) {
+  if (hasBlockingError) {
     return (
-      <div className="h-full flex flex-col bg-bg-hover dark:bg-gray-900">
-        <div className="h-12 flex items-center px-4 bg-white dark:bg-gray-800">
-          <button onClick={handleGoBack} className="p-1 -ml-1 text-text-main">
-            <ChevronLeft size={24} />
-          </button>
-          <div className="flex-1 text-center font-medium text-2xl text-text-main">专项金充值</div>
-          <div className="w-6" />
-        </div>
-        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-          <AlertCircle size={48} className="text-red-500 mb-4" />
-          <h3 className="text-lg font-medium text-text-main mb-2">加载失败</h3>
-          <p className="text-text-sub mb-6">{error}</p>
-          <Button onClick={() => window.location.reload()} className="w-32">重试</Button>
+      <div className="flex h-full flex-1 flex-col bg-red-50/30">
+        {renderHeader()}
+        <div className="flex-1 overflow-y-auto no-scrollbar">
+          <ErrorState
+            message={getErrorMessage(profileError || companyAccountsError)}
+            onRetry={handleReload}
+          />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="h-full flex flex-col bg-bg-hover dark:bg-gray-900 relative">
-      {/* Header */}
-      <div className="h-12 flex items-center px-4 bg-white dark:bg-gray-800 sticky top-0 z-10">
-        <button onClick={handleGoBack} className="p-1 -ml-1 text-text-main active:opacity-70 transition-opacity">
-          <ChevronLeft size={24} />
-        </button>
-        <div className="flex-1 text-center font-medium text-2xl text-text-main">专项金充值</div>
-        <button onClick={handleGoHistory} className="text-md text-text-sub active:opacity-70 transition-opacity">
-          充值记录
-        </button>
-      </div>
+    <div className="relative flex h-full flex-1 flex-col bg-red-50/30">
+      {isOffline && <OfflineBanner onAction={handleReload} className="absolute top-12 right-0 left-0 z-50" />}
 
-      {isOffline && (
-        <div className="bg-orange-50 dark:bg-orange-500/10 text-orange-500 text-base px-4 py-2 flex items-center">
-          <AlertCircle size={14} className="mr-1.5 flex-shrink-0" />
-          <span>当前网络不可用，请检查网络设置</span>
-        </div>
-      )}
+      {renderHeader()}
 
-      {/* Main Content */}
-      <div className="flex-1 overflow-y-auto pb-[100px]">
-        <div className="p-4 space-y-3">
-          
-          {/* Balance Overview Card */}
-          <Card className="p-4 bg-gradient-to-br from-red-50 to-white dark:from-bg-box dark:to-bg-box border-none">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-base text-text-sub flex items-center">
-                当前专项金余额 (元)
-                <button 
-                  onClick={() => setShowBalance(!showBalance)}
-                  className="ml-1.5 p-1 text-text-sub hover:text-text-main transition-colors"
-                >
-                  {showBalance ? <Eye size={14} /> : <EyeOff size={14} />}
-                </button>
-              </span>
-            </div>
-            <div className="text-7xl font-bold text-text-main mb-4 font-mono tracking-tight">
-              {showBalance ? MOCK_DATA.balance.total.toFixed(2) : '****'}
-            </div>
-            <div className="flex items-center space-x-6 text-base">
-              <div>
-                <span className="text-text-sub mr-1.5">可用</span>
-                <span className="text-text-main font-medium font-mono">
-                  {showBalance ? MOCK_DATA.balance.available.toFixed(2) : '****'}
-                </span>
+      <div className="flex-1 overflow-y-auto no-scrollbar pb-[112px]">
+        <div className="space-y-3 px-4 py-4">
+          <Card className="relative overflow-hidden p-4">
+            <div className="pointer-events-none absolute top-0 right-0 h-24 w-24 rounded-bl-full bg-gradient-to-bl from-primary-start/5 to-transparent" />
+            {mainLoading ? (
+              <div className="space-y-3">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-9 w-44" />
+                <div className="flex items-center space-x-5">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-4 w-24" />
+                </div>
               </div>
-              <div>
-                <span className="text-text-sub mr-1.5">冻结</span>
-                <span className="text-text-main font-medium font-mono">
-                  {showBalance ? MOCK_DATA.balance.frozen.toFixed(2) : '****'}
-                </span>
-              </div>
-            </div>
+            ) : (
+              <>
+                <div className="mb-1 flex items-center justify-between">
+                  <span className="text-base text-text-sub">账户资金</span>
+                  <button
+                    type="button"
+                    onClick={() => setShowBalance((current) => !current)}
+                    className="flex items-center text-sm text-text-aux active:opacity-70"
+                  >
+                    {showBalance ? <Eye size={14} className="mr-1" /> : <EyeOff size={14} className="mr-1" />}
+                    {showBalance ? '隐藏' : '显示'}
+                  </button>
+                </div>
+                <div className="mb-3 text-7xl font-bold tracking-tight text-text-main">
+                  {showBalance ? formatMoney(totalBalance) : '****'}
+                </div>
+                <div className="flex items-center space-x-6 text-sm">
+                  <div>
+                    <span className="mr-1 text-text-sub">可用</span>
+                    <span className="font-medium text-text-main">
+                      {showBalance ? formatMoney(availableBalance) : '****'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="mr-1 text-text-sub">冻结</span>
+                    <span className="font-medium text-text-main">
+                      {showBalance ? formatMoney(frozenBalance) : '****'}
+                    </span>
+                  </div>
+                </div>
+              </>
+            )}
           </Card>
 
-          {/* Recharge Amount Card */}
           <Card className="p-4">
-            <h3 className="text-lg font-medium text-text-main mb-4">充值金额</h3>
-            
-            <div className="flex items-center border-b border-border-light pb-2 mb-4">
-              <span className="text-5xl font-medium text-text-main mr-2">¥</span>
+            <div className="mb-4 text-lg font-medium text-text-main">充值金额</div>
+            <div className="mb-4 flex items-center border-b border-border-light pb-2">
+              <span className="mr-2 shrink-0 text-5xl font-medium text-text-main">¥</span>
               <input
                 type="text"
                 inputMode="decimal"
                 value={amount}
                 onChange={handleAmountChange}
                 placeholder="请输入充值金额"
-                className="flex-1 text-6xl font-bold text-text-main bg-transparent outline-none placeholder:text-gray-300 dark:placeholder:text-gray-600 font-mono"
+                className="min-w-0 flex-1 bg-transparent text-6xl font-bold text-text-main outline-none placeholder:text-2xl placeholder:font-normal placeholder:text-text-aux"
               />
-              {amount && (
-                <button 
+              {amount ? (
+                <button
+                  type="button"
                   onClick={() => setAmount('')}
-                  className="p-1 text-gray-300 hover:text-gray-400 dark:text-gray-600 dark:hover:text-gray-500"
+                  className="shrink-0 p-1 text-text-aux active:text-text-sub"
                 >
-                  <XCircle size={20} />
+                  <XCircle size={18} />
                 </button>
-              )}
+              ) : null}
             </div>
 
-            {/* Quick Amounts */}
-            <div className="flex overflow-x-auto no-scrollbar -mx-4 px-4 mb-4 space-x-2">
-              {QUICK_AMOUNTS.map((val) => (
+            <div className="mb-4 flex overflow-x-auto no-scrollbar gap-2">
+              {QUICK_AMOUNTS.map((value) => (
                 <button
-                  key={val}
-                  onClick={() => setAmount(val.toString())}
-                  className={`flex-shrink-0 px-4 py-1.5 rounded-full text-base font-medium transition-colors border ${
-                    amount === val.toString()
-                      ? 'bg-red-50 dark:bg-red-500/10 text-brand-red border-brand-red'
-                      : 'bg-gray-50 dark:bg-gray-800 text-text-main border-transparent hover:bg-gray-100 dark:hover:bg-gray-700'
+                  key={value}
+                  type="button"
+                  onClick={() => setAmount(String(value))}
+                  className={`shrink-0 rounded-full border px-4 py-1.5 text-sm font-medium transition-colors ${
+                    amount === String(value)
+                      ? 'border-primary-start bg-red-50 text-primary-start'
+                      : 'border-transparent bg-bg-base text-text-main'
                   }`}
                 >
-                  {val}
+                  {value}
                 </button>
               ))}
             </div>
 
-            {/* Hints */}
-            <div className="text-sm text-text-sub flex items-start">
-              <Info size={14} className="mr-1 mt-0.5 flex-shrink-0" />
-              <span>
-                最低充值 ¥{MOCK_DATA.rules.minAmount}，单笔限额 ¥{MOCK_DATA.rules.maxAmount.toLocaleString()}。{MOCK_DATA.rules.arrivalText}。
-              </span>
+            <div className="flex items-start text-sm text-text-sub">
+              <Info size={14} className="mt-0.5 mr-1.5 shrink-0 text-text-aux" />
+              <span>完成转账后请上传付款截图，审核通过后充值金额会进入账户余额。</span>
             </div>
           </Card>
 
-          {/* Payment Methods Card */}
-          <Card className="p-4">
-            <h3 className="text-lg font-medium text-text-main mb-3">支付方式</h3>
-            {MOCK_DATA.paymentMethods.length === 0 ? (
-              <div className="py-6 text-center text-text-sub text-base">
-                暂无可用支付方式
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {MOCK_DATA.paymentMethods.map((method) => {
-                  const Icon = method.icon;
-                  const isSelected = selectedPayment === method.id;
-                  return (
-                    <div 
-                      key={method.id}
-                      onClick={() => setSelectedPayment(method.id)}
-                      className="flex items-center justify-between cursor-pointer group"
-                    >
-                      <div className="flex items-center">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${method.bg} ${method.color}`}>
-                          <Icon size={18} />
-                        </div>
-                        <div>
-                          <div className="text-md font-medium text-text-main">{method.name}</div>
-                          <div className="text-sm text-text-sub mt-0.5">{method.desc}</div>
-                        </div>
-                      </div>
-                      <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${
-                        isSelected 
-                          ? 'border-brand-red bg-brand-red' 
-                          : 'border-gray-300 dark:border-gray-600 group-hover:border-brand-red/50'
-                      }`}>
-                        {isSelected && <CheckCircle2 size={14} className="text-white" />}
+          <Card className="overflow-hidden p-0">
+            <div className="border-b border-border-light px-4 py-3">
+              <div className="text-lg font-medium text-text-main">收款账户</div>
+            </div>
+            {mainLoading ? (
+              <div className="space-y-3 p-4">
+                {[1, 2].map((item) => (
+                  <div key={item} className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <Skeleton className="mr-3 h-9 w-9 rounded-full" />
+                      <div className="space-y-1.5">
+                        <Skeleton className="h-4 w-24" />
+                        <Skeleton className="h-3 w-36" />
                       </div>
                     </div>
+                    <Skeleton className="h-5 w-5 rounded-full" />
+                  </div>
+                ))}
+              </div>
+            ) : paymentAccounts.length ? (
+              <div className="divide-y divide-border-light">
+                {paymentAccounts.map((account) => {
+                  const isSelected = account.id === selectedAccount?.id;
+                  const Icon = account.iconComponent;
+
+                  return (
+                    <button
+                      key={account.id}
+                      type="button"
+                      onClick={() => setSelectedAccountId(account.id)}
+                      className="flex w-full items-center justify-between px-4 py-3 text-left transition-colors active:bg-bg-base"
+                    >
+                      <div className="flex min-w-0 items-center">
+                        <div
+                          className={`mr-3 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-bg-base ${account.color}`}
+                        >
+                          {account.icon ? (
+                            <img
+                              src={account.icon}
+                              alt={account.title}
+                              className="h-5 w-5 rounded-full object-cover"
+                              referrerPolicy="no-referrer"
+                            />
+                          ) : (
+                            <Icon size={18} />
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="truncate text-md font-medium text-text-main">
+                            {account.title}
+                          </div>
+                          <div className="truncate text-sm text-text-sub">{account.subtitle}</div>
+                          {account.remark ? (
+                            <div className="mt-0.5 truncate text-xs text-text-aux">{account.remark}</div>
+                          ) : null}
+                        </div>
+                      </div>
+                      <div className="ml-3 flex shrink-0 items-center">
+                        {account.accountNumber ? (
+                          <button
+                            type="button"
+                            className="mr-2 flex items-center rounded-full bg-bg-base px-2 py-1 text-xs text-text-sub"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              void handleCopy(account.accountNumber, '账号已复制');
+                            }}
+                          >
+                            <Copy size={12} className="mr-1" />
+                            复制
+                          </button>
+                        ) : null}
+                        <span
+                          className={`flex h-5 w-5 items-center justify-center rounded-full border ${
+                            isSelected
+                              ? 'border-primary-start bg-primary-start text-white'
+                              : 'border-border-main text-transparent'
+                          }`}
+                        >
+                          <CheckCircle2 size={12} />
+                        </span>
+                      </div>
+                    </button>
                   );
                 })}
+              </div>
+            ) : (
+              <div className="p-4">
+                <EmptyState
+                  message="暂无可用收款账户"
+                  actionText="重新加载"
+                  onAction={handleReload}
+                />
               </div>
             )}
           </Card>
 
-          {/* Security Hint */}
-          <div className="flex items-start px-2 py-1">
-            <ShieldCheck size={14} className="text-green-500 mr-1.5 mt-0.5 flex-shrink-0" />
-            <span className="text-sm text-text-sub leading-relaxed">
-              为保障您的资金安全，请确认是本人操作。谨防各类诈骗，平台不会以任何理由要求您私下转账。
-            </span>
-          </div>
+          <Card className="p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <div className="text-lg font-medium text-text-main">付款截图</div>
+              {paymentScreenshot ? (
+                <button
+                  type="button"
+                  onClick={() => setPaymentScreenshot(null)}
+                  className="text-sm text-text-sub active:opacity-70"
+                >
+                  重新上传
+                </button>
+              ) : null}
+            </div>
 
+            <input
+              ref={screenshotInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/gif,image/webp,image/bmp"
+              className="hidden"
+              onChange={handleScreenshotChange}
+            />
+
+            {uploadingScreenshot ? (
+              <div className="flex h-40 items-center justify-center rounded-2xl border border-dashed border-primary-start/30 bg-red-50/50">
+                <div className="flex items-center text-sm text-primary-start">
+                  <Loader2 size={16} className="mr-2 animate-spin" />
+                  正在上传付款截图
+                </div>
+              </div>
+            ) : paymentScreenshot ? (
+              <div className="relative overflow-hidden rounded-2xl border border-border-light">
+                <img
+                  src={paymentScreenshot.url}
+                  alt={paymentScreenshot.name}
+                  className="h-48 w-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
+                <button
+                  type="button"
+                  onClick={() => setPaymentScreenshot(null)}
+                  className="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-black/55 text-white active:scale-95"
+                >
+                  <X size={16} />
+                </button>
+                <div className="flex items-center justify-between px-3 py-2 text-sm">
+                  <span className="truncate text-text-main">{paymentScreenshot.name}</span>
+                  <button
+                    type="button"
+                    className="ml-2 shrink-0 text-text-sub active:opacity-70"
+                    onClick={handlePickScreenshot}
+                  >
+                    更换
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={handlePickScreenshot}
+                className="flex h-40 w-full flex-col items-center justify-center rounded-2xl border border-dashed border-border-main bg-bg-base text-text-sub transition-colors active:bg-red-50/50"
+              >
+                <ImagePlus size={28} className="mb-2 text-text-aux" />
+                <span className="text-base font-medium">上传付款截图</span>
+                <span className="mt-1 text-sm text-text-aux">支持 JPG、PNG、GIF、WEBP、BMP</span>
+              </button>
+            )}
+
+            <textarea
+              value={remark}
+              onChange={(event) => setRemark(event.target.value.slice(0, 500))}
+              rows={3}
+              placeholder="备注转账时间、付款账户等信息（选填）"
+              className="mt-4 w-full resize-none rounded-2xl border border-border-light bg-bg-base px-4 py-3 text-sm text-text-main outline-none placeholder:text-text-aux focus:border-primary-start"
+            />
+          </Card>
+
+          <Card className="overflow-hidden p-0">
+            <div className="flex items-center justify-between border-b border-border-light px-4 py-3">
+              <div className="text-lg font-medium text-text-main">最近记录</div>
+              <button
+                type="button"
+                className="flex items-center text-sm text-text-sub active:opacity-70"
+                onClick={() => goTo('billing')}
+              >
+                查看更多
+                <FileText size={14} className="ml-1" />
+              </button>
+            </div>
+            {recentOrdersLoading && !recentOrders ? (
+              <div className="space-y-3 p-4">
+                {[1, 2, 3].map((item) => (
+                  <div key={item} className="flex items-center justify-between">
+                    <div className="space-y-1.5">
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-3 w-32" />
+                    </div>
+                    <div className="space-y-1.5 text-right">
+                      <Skeleton className="h-4 w-16" />
+                      <Skeleton className="h-3 w-14" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : recentOrdersError && !recentOrders?.list.length ? (
+              <div className="flex items-center justify-between px-4 py-4">
+                <span className="mr-4 text-sm text-text-sub">{getErrorMessage(recentOrdersError)}</span>
+                <button
+                  type="button"
+                  className="shrink-0 rounded-full border border-border-main px-3 py-1 text-sm text-text-main active:bg-bg-base"
+                  onClick={() => void reloadRecentOrders().catch(() => undefined)}
+                >
+                  重试
+                </button>
+              </div>
+            ) : recentOrders?.list.length ? (
+              <div className="divide-y divide-border-light">
+                {recentOrders.list.map((record) => (
+                  <div key={record.id} className="flex items-center justify-between px-4 py-3">
+                    <div className="min-w-0">
+                      <div className="mb-1 truncate text-md font-medium text-text-main">
+                        {getOrderTitle(record)}
+                      </div>
+                      <div className="truncate text-sm text-text-sub">
+                        {record.createTimeText || `记录 #${record.id}`}
+                      </div>
+                      {record.orderNo ? (
+                        <div className="mt-1 truncate text-xs text-text-aux">订单号：{record.orderNo}</div>
+                      ) : null}
+                    </div>
+                    <div className="ml-3 text-right">
+                      <div className="mb-1 text-md font-semibold text-text-main">
+                        ¥ {formatMoney(record.amount)}
+                      </div>
+                      <span
+                        className={`inline-flex rounded-full px-2 py-0.5 text-xs ${getOrderStatusClassName(record.status)}`}
+                      >
+                        {record.statusText || '处理中'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="px-4 py-10 text-center text-sm text-text-sub">暂无充值记录</div>
+            )}
+          </Card>
+
+          <div className="flex items-start px-2 py-1 text-sm text-text-sub">
+            <ShieldCheck size={14} className="mt-0.5 mr-1.5 shrink-0 text-green-600" />
+            <span>为保障资金安全，请确认转账信息与收款账户一致，平台不会以任何理由要求您私下转账到个人账户。</span>
+          </div>
         </div>
       </div>
 
-      {/* Bottom Fixed Bar */}
-      <div className="absolute bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-border-light px-4 py-3 pb-safe shadow-[0_-4px_16px_rgba(0,0,0,0.05)] dark:shadow-[0_-4px_16px_rgba(0,0,0,0.2)]">
+      <div className="absolute right-0 bottom-0 left-0 border-t border-border-light bg-bg-card px-4 py-3 shadow-[0_-4px_16px_rgba(0,0,0,0.05)]">
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-sm text-text-sub mb-0.5">应付金额</div>
-            <div className="text-4xl font-bold text-brand-red font-mono">
-              <span className="text-md mr-0.5">¥</span>
-              {numAmount > 0 ? numAmount.toFixed(2) : '0.00'}
+            <div className="mb-0.5 text-sm text-text-sub">充值金额</div>
+            <div className="text-4xl font-bold text-primary-start">
+              <span className="mr-1 text-base">¥</span>
+              {numAmount > 0 ? formatMoney(numAmount) : '0.00'}
             </div>
           </div>
-          <Button 
-            className={`w-[140px] h-12 rounded-full font-medium text-lg ${
-              isSubmitDisabled 
-                ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500' 
-                : 'bg-gradient-to-r from-brand-start to-brand-end text-white shadow-md shadow-red-500/20 active:scale-[0.98]'
-            }`}
-            disabled={isSubmitDisabled}
+          <button
+            type="button"
+            disabled={!canSubmit}
             onClick={handleSubmit}
+            className={`flex h-12 min-w-[148px] items-center justify-center rounded-full px-6 text-lg font-medium transition ${
+              canSubmit
+                ? 'bg-gradient-to-r from-primary-start to-primary-end text-white shadow-md shadow-red-500/20 active:scale-[0.98]'
+                : 'bg-gray-200 text-gray-400'
+            }`}
           >
-            {isSubmitting ? '处理中...' : '确认充值'}
-          </Button>
+            {submitting ? (
+              <>
+                <Loader2 size={18} className="mr-2 animate-spin" />
+                提交中
+              </>
+            ) : (
+              '确认充值'
+            )}
+          </button>
         </div>
       </div>
     </div>

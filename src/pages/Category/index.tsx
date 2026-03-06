@@ -1,241 +1,377 @@
-import React, { useState, useEffect } from 'react';
-import { ChevronLeft, Search, MessageCircle, ShoppingCart, WifiOff, RefreshCcw, FileX } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  ChevronLeft,
+  MessageCircle,
+  RefreshCcw,
+  Search,
+  ShoppingCart,
+} from 'lucide-react';
+import { shopProductApi, type ShopProductItem } from '../../api';
+import { OfflineBanner } from '../../components/layout/OfflineBanner';
+import { Card } from '../../components/ui/Card';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { ErrorState } from '../../components/ui/ErrorState';
 import { Skeleton } from '../../components/ui/Skeleton';
+import {
+  buildShopProductPath,
+  formatShopProductSales,
+  getShopProductBadges,
+  getShopProductPrimaryPrice,
+  normalizeShopProductCategories,
+  resolveShopProductImageUrl,
+} from '../../features/shop-product/utils';
+import { useInfiniteScroll } from '../../hooks/useInfiniteScroll';
+import { useNetworkStatus } from '../../hooks/useNetworkStatus';
+import { useRequest } from '../../hooks/useRequest';
 import { useAppNavigate } from '../../lib/navigation';
-import { PageHeader } from '../../components/layout/PageHeader';
+
+const EMPTY_CATEGORY_LIST = {
+  list: [] as string[],
+};
+
+const EMPTY_PRODUCT_LIST = {
+  limit: 20,
+  list: [] as ShopProductItem[],
+  page: 1,
+  total: 0,
+};
+
+function mergeProducts(previous: ShopProductItem[], next: ShopProductItem[]) {
+  const productMap = new Map<number, ShopProductItem>();
+
+  for (const item of previous) {
+    productMap.set(item.id, item);
+  }
+
+  for (const item of next) {
+    productMap.set(item.id, item);
+  }
+
+  return Array.from(productMap.values());
+}
 
 export const CategoryPage = () => {
-  const { goTo, goBack } = useAppNavigate();
+  const { goBack, goTo } = useAppNavigate();
+  const { isOffline, refreshStatus } = useNetworkStatus();
+  const [activeCategory, setActiveCategory] = useState('');
+  const [products, setProducts] = useState<ShopProductItem[]>([]);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [loadMoreError, setLoadMoreError] = useState<Error | null>(null);
 
-  const [loading, setLoading] = useState(true);
-  const [offline, setOffline] = useState(false);
-  const [moduleError, setModuleError] = useState(false);
-  const [emptyData, setEmptyData] = useState(false);
-  const [activeCategory, setActiveCategory] = useState(1);
+  const productListRef = useRef<HTMLDivElement | null>(null);
+  const loadMoreTriggerRef = useRef<HTMLDivElement | null>(null);
+  const loadingMoreRef = useRef(false);
+  const pageRef = useRef(1);
+  const productsRef = useRef<ShopProductItem[]>([]);
+  const queryVersionRef = useRef(0);
 
-  const categories = [
-    { id: 1, name: '推荐分类' },
-    { id: 2, name: '手机数码' },
-    { id: 3, name: '家用电器' },
-    { id: 4, name: '电脑办公' },
-    { id: 5, name: '美妆护肤' },
-    { id: 6, name: '个人护理' },
-    { id: 7, name: '食品生鲜' },
-    { id: 8, name: '母婴童装' },
-    { id: 9, name: '运动户外' },
-    { id: 10, name: '家居家装' },
-    { id: 11, name: '男装女装' },
-    { id: 12, name: '鞋靴箱包' },
-  ];
+  const categoriesRequest = useRequest(
+    (signal) => shopProductApi.categories(signal),
+    {
+      initialData: EMPTY_CATEGORY_LIST,
+    },
+  );
+
+  const categoryItems = useMemo(
+    () => normalizeShopProductCategories(categoriesRequest.data?.list),
+    [categoriesRequest.data],
+  );
 
   useEffect(() => {
-    setLoading(true);
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 300);
-    return () => clearTimeout(timer);
+    if (!activeCategory && categoryItems.length > 0) {
+      setActiveCategory(categoryItems[0].name);
+    }
+  }, [activeCategory, categoryItems]);
+
+  const fetchCategoryPage = useCallback(
+    (nextPage: number, signal?: AbortSignal) => {
+      if (!activeCategory) {
+        return Promise.resolve(EMPTY_PRODUCT_LIST);
+      }
+
+      return shopProductApi.list(
+        {
+          category: activeCategory,
+          limit: 20,
+          page: nextPage,
+        },
+        signal,
+      );
+    },
+    [activeCategory],
+  );
+
+  const productsRequest = useRequest(
+    (signal) => fetchCategoryPage(1, signal),
+    {
+      deps: [fetchCategoryPage],
+      initialData: EMPTY_PRODUCT_LIST,
+      keepPreviousData: true,
+    },
+  );
+
+  useEffect(() => {
+    queryVersionRef.current += 1;
+    productsRef.current = [];
+    pageRef.current = 1;
+    loadingMoreRef.current = false;
+    setProducts([]);
+    setPage(1);
+    setHasMore(false);
+    setLoadingMore(false);
+    setLoadMoreError(null);
   }, [activeCategory]);
 
-  const handleBack = () => {
-    goBack();
-  };
+  useEffect(() => {
+    const nextProducts = productsRequest.data?.list ?? [];
+    productsRef.current = nextProducts;
+    pageRef.current = 1;
+    setProducts(nextProducts);
+    setPage(1);
+    setHasMore(nextProducts.length < (productsRequest.data?.total ?? 0));
+    setLoadMoreError(null);
+  }, [productsRequest.data]);
 
-  const handleProductClick = () => {
-    goTo('product_detail');
-  };
-
-  const renderHeader = () => (
-    <div className="bg-white dark:bg-gray-900 z-40 relative border-b border-border-light">
-      {offline && (
-        <div className="bg-red-50 text-primary-start px-4 py-2 flex items-center justify-between text-sm">
-          <div className="flex items-center">
-            <WifiOff size={14} className="mr-2" />
-            <span>网络不稳定，请检查网络设置</span>
-          </div>
-          <button onClick={() => setOffline(false)} className="font-medium px-2 py-1 bg-white dark:bg-gray-900 rounded shadow-sm">刷新</button>
-        </div>
-      )}
-      <div className="h-12 flex items-center px-3 pt-safe">
-        <button onClick={handleBack} className="p-1 mr-1 text-text-main active:opacity-70">
-          <ChevronLeft size={24} />
-        </button>
-        <div className="flex-1 flex items-center bg-bg-base h-8 rounded-full px-3 mr-3">
-          <Search size={16} className="text-text-aux mr-2" />
-          <input 
-            type="text" 
-            placeholder="搜索商品/SKU" 
-            className="bg-transparent border-none outline-none text-base text-text-main w-full placeholder:text-text-aux"
-            readOnly
-          />
-        </div>
-        <button className="p-1 text-text-main active:opacity-70">
-          <MessageCircle size={22} />
-        </button>
-      </div>
-    </div>
-  );
-
-  const renderLeftSidebar = () => (
-    <div className="w-[86px] bg-bg-base h-full overflow-y-auto no-scrollbar pb-safe">
-      {categories.map((cat) => {
-        const isActive = activeCategory === cat.id;
-        return (
-          <div
-            key={cat.id}
-            onClick={() => setActiveCategory(cat.id)}
-            className={`h-[50px] flex items-center justify-center text-base relative cursor-pointer transition-colors ${
-              isActive ? 'bg-white dark:bg-gray-900 text-primary-start font-bold' : 'text-text-main hover:bg-white dark:bg-gray-900/50'
-            }`}
-          >
-            {isActive && (
-              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[4px] h-[16px] bg-gradient-to-b from-primary-start to-primary-end rounded-r-full"></div>
-            )}
-            {cat.name}
-          </div>
-        );
-      })}
-    </div>
-  );
-
-  const renderRightContent = () => {
-    if (moduleError) {
-      return (
-        <div className="flex-1 bg-white dark:bg-gray-900 h-full flex flex-col items-center justify-center p-4">
-          <RefreshCcw size={32} className="text-text-aux mb-3" />
-          <p className="text-md text-text-sub mb-4">分类数据加载失败</p>
-          <button 
-            onClick={() => { setLoading(true); setModuleError(false); }} 
-            className="px-6 py-2 border border-border-light rounded-full text-base text-text-main active:bg-bg-base"
-          >
-            重新加载
-          </button>
-        </div>
-      );
+  const loadMore = useCallback(async () => {
+    if (!activeCategory || loadingMoreRef.current || !hasMore) {
+      return;
     }
 
-    if (emptyData) {
-      return (
-        <div className="flex-1 bg-white dark:bg-gray-900 h-full flex flex-col items-center justify-center p-4">
-          <FileX size={40} className="text-text-aux mb-3 opacity-50" strokeWidth={1.5} />
-          <p className="text-md text-text-sub">该分类下暂无内容</p>
-        </div>
-      );
+    const version = queryVersionRef.current;
+    const nextPage = pageRef.current + 1;
+
+    loadingMoreRef.current = true;
+    setLoadingMore(true);
+    setLoadMoreError(null);
+
+    try {
+      const response = await fetchCategoryPage(nextPage);
+      if (version !== queryVersionRef.current) {
+        return;
+      }
+
+      const mergedProducts = mergeProducts(productsRef.current, response.list);
+      productsRef.current = mergedProducts;
+      pageRef.current = nextPage;
+      setProducts(mergedProducts);
+      setPage(nextPage);
+      setHasMore(mergedProducts.length < response.total);
+    } catch (error) {
+      if (version === queryVersionRef.current) {
+        setLoadMoreError(error instanceof Error ? error : new Error('加载更多失败'));
+      }
+    } finally {
+      if (version === queryVersionRef.current) {
+        loadingMoreRef.current = false;
+        setLoadingMore(false);
+      }
+    }
+  }, [activeCategory, fetchCategoryPage, hasMore]);
+
+  useInfiniteScroll({
+    disabled: !activeCategory || productsRequest.loading || Boolean(loadMoreError) || products.length === 0,
+    hasMore,
+    loading: loadingMore,
+    onLoadMore: loadMore,
+    rootRef: productListRef,
+    targetRef: loadMoreTriggerRef,
+  });
+
+  const loadingCategories = categoriesRequest.loading && categoryItems.length === 0;
+  const loadingProducts = Boolean(activeCategory) && productsRequest.loading && products.length === 0;
+  const hasError =
+    (!loadingCategories && categoriesRequest.error && categoryItems.length === 0) ||
+    (!loadingProducts && productsRequest.error && products.length === 0);
+
+  const renderLoadMoreFooter = () => {
+    if (products.length === 0) {
+      return null;
     }
 
     return (
-      <div className="flex-1 bg-white dark:bg-gray-900 h-full overflow-y-auto no-scrollbar p-3 pb-safe">
-        {/* Subcategories */}
-        <div className="mb-6">
-          <h3 className="text-md font-bold text-text-main mb-3">常用分类</h3>
-          <div className="bg-bg-card rounded-2xl p-3 shadow-sm border border-border-light">
-            <div className="grid grid-cols-3 gap-y-4">
-              {loading ? (
-                Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="flex flex-col items-center">
-                    <Skeleton className="w-12 h-12 rounded-full mb-2" />
-                    <Skeleton className="w-10 h-3" />
-                  </div>
-                ))
-              ) : (
-                Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="flex flex-col items-center cursor-pointer active:opacity-70">
-                    <img 
-                      src={`https://picsum.photos/seed/subcat${activeCategory}${i}/100/100`} 
-                      alt="Category" 
-                      className="w-12 h-12 rounded-full object-cover mb-2 border border-border-light"
-                      referrerPolicy="no-referrer"
-                    />
-                    <span className="text-s text-text-main">子分类 {i + 1}</span>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Popular Products */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-md font-bold text-text-main">热门商品</h3>
-            <div className="flex space-x-2">
-              <span className="text-s text-text-sub bg-bg-base px-2 py-1 rounded-full">综合</span>
-              <span className="text-s text-text-sub bg-bg-base px-2 py-1 rounded-full">销量</span>
-              <span className="text-s text-text-sub bg-bg-base px-2 py-1 rounded-full">价格</span>
-            </div>
-          </div>
-          
-          <div className="space-y-3">
-            {loading ? (
-              Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="flex bg-bg-card rounded-xl p-2 shadow-sm border border-border-light">
-                  <Skeleton className="w-[88px] h-[88px] rounded-lg mr-3 shrink-0" />
-                  <div className="flex-1 py-1 flex flex-col">
-                    <Skeleton className="w-full h-4 mb-2" />
-                    <Skeleton className="w-2/3 h-4 mb-auto" />
-                    <div className="flex justify-between items-end mt-2">
-                      <Skeleton className="w-16 h-5" />
-                      <Skeleton className="w-6 h-6 rounded-full" />
-                    </div>
-                  </div>
-                </div>
-              ))
-            ) : (
-              Array.from({ length: 6 }).map((_, i) => (
-                <div 
-                  key={i} 
-                  className="flex bg-bg-card rounded-xl p-2 shadow-sm border border-border-light cursor-pointer active:opacity-70 transition-opacity"
-                  onClick={handleProductClick}
-                >
-                  <img 
-                    src={`https://picsum.photos/seed/catprod${activeCategory}${i}/200/200`} 
-                    alt="Product" 
-                    className="w-[88px] h-[88px] rounded-lg object-cover mr-3 shrink-0 border border-border-light"
-                    referrerPolicy="no-referrer"
-                  />
-                  <div className="flex-1 flex flex-col justify-between py-0.5">
-                    <div>
-                      <div className="text-base text-text-main line-clamp-2 leading-tight mb-1">
-                        <span className="inline-block bg-primary-start text-white text-2xs px-1 rounded-sm mr-1 font-medium align-middle">自营</span>
-                        <span className="align-middle">Apple iPhone 15 Pro 256GB 原色钛金属 移动联通电信5G双卡双待手机</span>
-                      </div>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        <span className="text-2xs text-primary-start border border-primary-start/30 rounded-sm px-1">包邮</span>
-                        <span className="text-2xs text-text-sub border border-border-light rounded-sm px-1">98%好评</span>
-                      </div>
-                    </div>
-                    <div className="flex justify-between items-end mt-2">
-                      <div className="text-xl font-bold text-primary-start leading-none">
-                        <span className="text-s">¥</span>4999
-                      </div>
-                      <button 
-                        className="w-6 h-6 rounded-full bg-red-50 flex items-center justify-center text-primary-start"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // Add to cart logic
-                        }}
-                      >
-                        <ShoppingCart size={12} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
+      <div ref={loadMoreTriggerRef} className="py-6 text-center text-sm text-text-sub">
+        {loadingMore ? (
+          <span className="inline-flex items-center">
+            <RefreshCcw size={14} className="mr-2 animate-spin" />
+            加载中...
+          </span>
+        ) : loadMoreError ? (
+          <button
+            type="button"
+            className="rounded-full border border-border-light px-4 py-2 text-text-main"
+            onClick={() => void loadMore()}
+          >
+            加载失败，点击重试
+          </button>
+        ) : hasMore ? (
+          <span>继续下拉加载更多</span>
+        ) : (
+          <span>没有更多商品了</span>
+        )}
       </div>
     );
   };
 
   return (
-    <div className="flex-1 flex flex-col bg-bg-base relative overflow-hidden">
-      
+    <div className="relative flex flex-1 flex-col overflow-hidden bg-bg-base">
+      {isOffline && <OfflineBanner onAction={refreshStatus} />}
 
-      {renderHeader()}
-      
-      <div className="flex-1 flex overflow-hidden">
-        {renderLeftSidebar()}
-        {renderRightContent()}
+      <div className="relative z-40 border-b border-border-light bg-white dark:bg-gray-900">
+        <div className="flex h-12 items-center px-3 pt-safe">
+          <button onClick={goBack} className="mr-1 p-1 text-text-main active:opacity-70">
+            <ChevronLeft size={24} />
+          </button>
+          <button
+            type="button"
+            className="mr-3 flex h-8 flex-1 items-center rounded-full bg-bg-base px-3 text-left"
+            onClick={() => goTo('search')}
+          >
+            <Search size={16} className="mr-2 text-text-aux" />
+            <span className="text-base text-text-aux">搜索商品 / 分类</span>
+          </button>
+          <button
+            type="button"
+            className="mr-2 p-1 text-text-main active:opacity-70"
+            onClick={() => goTo('message_center')}
+          >
+            <MessageCircle size={22} />
+          </button>
+          <button
+            type="button"
+            className="p-1 text-text-main active:opacity-70"
+            onClick={() => goTo('cart')}
+          >
+            <ShoppingCart size={22} />
+          </button>
+        </div>
+      </div>
+
+      <div className="flex flex-1 overflow-hidden">
+        <div className="h-full w-[92px] overflow-y-auto bg-bg-base pb-safe">
+          {loadingCategories
+            ? Array.from({ length: 10 }).map((_, index) => (
+                <div key={index} className="flex h-[52px] items-center justify-center px-3">
+                  <Skeleton className="h-4 w-full" />
+                </div>
+              ))
+            : categoryItems.map((category) => {
+                const isActive = activeCategory === category.name;
+                return (
+                  <button
+                    key={category.id}
+                    type="button"
+                    onClick={() => setActiveCategory(category.name)}
+                    className={`relative flex h-[52px] w-full items-center justify-center px-3 text-center text-sm ${
+                      isActive
+                        ? 'bg-white font-bold text-primary-start dark:bg-gray-900'
+                        : 'text-text-main'
+                    }`}
+                  >
+                    {isActive && (
+                      <span className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-primary-start" />
+                    )}
+                    <span className="line-clamp-2">{category.name}</span>
+                  </button>
+                );
+              })}
+        </div>
+
+        <div ref={productListRef} className="flex-1 overflow-y-auto bg-white p-3 pb-safe dark:bg-gray-900">
+          {hasError ? (
+            <ErrorState
+              message="商品分类加载失败"
+              onRetry={() => {
+                void Promise.allSettled([categoriesRequest.reload(), productsRequest.reload()]);
+              }}
+            />
+          ) : loadingProducts ? (
+            <div className="space-y-3">
+              <Card className="rounded-2xl border border-border-light p-4 shadow-sm">
+                <Skeleton className="mb-3 h-5 w-28" />
+                <Skeleton className="h-4 w-3/4" />
+              </Card>
+              {Array.from({ length: 5 }).map((_, index) => (
+                <div
+                  key={index}
+                  className="flex rounded-xl border border-border-light bg-bg-card p-2 shadow-sm"
+                >
+                  <Skeleton className="mr-3 h-[88px] w-[88px] shrink-0 rounded-lg" />
+                  <div className="flex flex-1 flex-col justify-between">
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-2/3" />
+                    </div>
+                    <Skeleton className="h-5 w-1/3" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : !activeCategory ? (
+            <EmptyState message="暂无可用分类" />
+          ) : (
+            <>
+              <Card className="mb-4 rounded-2xl border border-border-light p-4 shadow-sm">
+                <div className="mb-2 text-lg font-bold text-text-main">{activeCategory}</div>
+                <div className="text-sm text-text-sub">
+                  当前分类共 {productsRequest.data?.total ?? 0} 件商品。
+                </div>
+              </Card>
+
+              {products.length === 0 ? (
+                <EmptyState message="该分类下暂无商品" />
+              ) : (
+                <div className="space-y-3">
+                  {products.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className="flex w-full rounded-xl border border-border-light bg-bg-card p-2 text-left shadow-sm active:opacity-70"
+                      onClick={() => goTo(buildShopProductPath(item.id))}
+                    >
+                      <img
+                        src={resolveShopProductImageUrl(item.thumbnail)}
+                        alt={item.name}
+                        className="mr-3 h-[88px] w-[88px] shrink-0 rounded-lg border border-border-light object-cover"
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="flex flex-1 flex-col justify-between">
+                        <div>
+                          <div className="mb-1 line-clamp-2 text-base leading-tight text-text-main">
+                            {item.name}
+                          </div>
+                          <div className="flex flex-wrap gap-1">
+                            {getShopProductBadges(item).map((badge) => (
+                              <span
+                                key={`${item.id}-${badge}`}
+                                className="rounded-sm border border-primary-start/25 px-1 py-0.5 text-2xs text-primary-start"
+                              >
+                                {badge}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="mt-2 flex items-end justify-between">
+                          <div>
+                            <div className="text-xl font-bold leading-none text-primary-start">
+                              {getShopProductPrimaryPrice(item)}
+                            </div>
+                            <div className="mt-1 text-xs text-text-aux">
+                              销量 {formatShopProductSales(item.sales)} · 库存 {item.stock}
+                            </div>
+                          </div>
+                          <div className="text-xs text-text-sub">{item.category}</div>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                  {renderLoadMoreFooter()}
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

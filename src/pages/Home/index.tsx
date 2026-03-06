@@ -134,7 +134,7 @@ export const HomePage = () => {
           </div>
           
           <div className="relative z-10 w-10 h-10 rounded-full bg-white dark:bg-gray-900/20 backdrop-blur-sm flex items-center justify-center border border-white/30 shrink-0">
-            <ArrowRight size={20} className="text-white" />
+            <ArrowRight size={20} className="text-[#FF4142] dark:text-white" />
           </div>
         </div>
 
