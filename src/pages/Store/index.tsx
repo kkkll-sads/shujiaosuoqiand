@@ -24,11 +24,11 @@ export const StorePage = () => {
   const { goTo } = useAppNavigate();
   const [loading, setLoading] = useState(true);
   const [offline, setOffline] = useState(false);
-  const [moduleError, setModuleError] = useState(true);
+  const [moduleError, setModuleError] = useState(false);
   const [emptyFeed, setEmptyFeed] = useState(false);
 
   useEffect(() => {
-    // Simulate initial loading
+
     const timer = setTimeout(() => {
       setLoading(false);
     }, 300);
