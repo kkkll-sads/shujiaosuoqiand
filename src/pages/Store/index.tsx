@@ -22,7 +22,6 @@ const Button = ({ children, variant = 'primary', className = '', ...props }: any
 
 export const StorePage = () => {
   const { goTo } = useAppNavigate();
-  // States for demonstration
   const [loading, setLoading] = useState(true);
   const [offline, setOffline] = useState(false);
   const [moduleError, setModuleError] = useState(true);
@@ -32,7 +31,7 @@ export const StorePage = () => {
     // Simulate initial loading
     const timer = setTimeout(() => {
       setLoading(false);
-    }, 1500);
+    }, 300);
     return () => clearTimeout(timer);
   }, []);
 

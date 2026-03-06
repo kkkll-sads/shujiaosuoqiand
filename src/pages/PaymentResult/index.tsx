@@ -7,7 +7,6 @@ export const PaymentResultPage = () => {
   const { goTo, goBack } = useAppNavigate();
 
   const [offline, setOffline] = useState(false);
-  // For demo purposes, we can toggle between success and failure
   const [status, setStatus] = useState<'success' | 'failure'>('success');
 
   const orderInfo = {

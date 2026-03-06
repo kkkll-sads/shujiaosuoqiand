@@ -46,7 +46,7 @@ export const CashierPage = () => {
     if (timeLeft <= 0 || loading || moduleError) return;
     const timer = setInterval(() => {
       setTimeLeft(prev => prev - 1);
-    }, 1000);
+    }, 300);
     return () => clearInterval(timer);
   }, [timeLeft, loading, moduleError]);
 

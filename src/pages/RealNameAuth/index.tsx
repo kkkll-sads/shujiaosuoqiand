@@ -31,7 +31,7 @@ export const RealNameAuthPage = () => {
     setError(false);
     setTimeout(() => {
       setLoading(false);
-    }, 800);
+    }, 300);
   };
 
   const handleBack = () => {
@@ -54,7 +54,6 @@ export const RealNameAuthPage = () => {
   const steps = ['填写信息', '上传证件', '人脸核验', '审核结果'];
 
   const handleUploadFront = () => {
-    // Simulate camera permission failure randomly for demo
     if (Math.random() > 0.8) {
       setShowCameraFailModal(true);
       return;
@@ -67,7 +66,6 @@ export const RealNameAuthPage = () => {
   };
 
   const handleFaceAuth = () => {
-    // Simulate face auth failure randomly for demo
     if (Math.random() > 0.5) {
       setShowFaceFailModal(true);
       return;
@@ -81,7 +79,7 @@ export const RealNameAuthPage = () => {
     setTimeout(() => {
       setLoading(false);
       setAuditStatus('auditing');
-    }, 1000);
+    }, 300);
   };
 
   const renderHeader = () => (
@@ -341,7 +339,7 @@ export const RealNameAuthPage = () => {
                 className="w-full h-[44px] rounded-full bg-gradient-to-r from-brand-start to-brand-end text-white text-lg font-medium shadow-sm active:opacity-80 transition-opacity"
                 onClick={() => {
                   setShowFaceFailModal(false);
-                  setFaceVerified(true); // Auto success on retry for demo
+                  setFaceVerified(true);
                 }}
               >
                 重试核验

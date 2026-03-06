@@ -59,9 +59,7 @@ export const AddressPage = () => {
     
     // Simulate network request
     setTimeout(() => {
-      if (Math.random() < 0.1) {
-        setError(true);
-      } else {
+      {
         setAddresses(MOCK_ADDRESSES);
       }
       setLoading(false);
@@ -331,17 +329,6 @@ export const AddressPage = () => {
 
   return (
     <div className="flex-1 flex flex-col bg-bg-base relative h-full overflow-hidden">
-      {/* Demo Controls */}
-      {view === 'list' && (
-        <div className="px-4 py-2 flex space-x-2 overflow-x-auto no-scrollbar bg-bg-card border-b border-border-light text-xs absolute top-12 left-0 right-0 z-50 opacity-50 hover:opacity-100 transition-opacity">
-          <span className="text-text-aux flex items-center shrink-0">Demo:</span>
-          <button onClick={() => setOffline(!offline)} className={`px-2 py-1 rounded border ${offline ? 'bg-primary-start text-white border-primary-start' : 'border-border-light'}`}>Offline</button>
-          <button onClick={() => setError(!error)} className={`px-2 py-1 rounded border ${error ? 'bg-primary-start text-white border-primary-start' : 'border-border-light'}`}>Error</button>
-          <button onClick={() => setAddresses([])} className={`px-2 py-1 rounded border ${addresses.length === 0 ? 'bg-primary-start text-white border-primary-start' : 'border-border-light'}`}>Empty</button>
-          <button onClick={() => setAddresses(MOCK_ADDRESSES)} className="px-2 py-1 rounded border border-border-light">Reset</button>
-        </div>
-      )}
-
       {renderHeader(view === 'list' ? '地址管理' : (editingAddress ? '编辑收货地址' : '新增收货地址'))}
       
       {view === 'list' ? renderList() : renderEdit()}

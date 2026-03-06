@@ -66,7 +66,7 @@ export const ProductQAPage = () => {
     setError(false);
     setTimeout(() => {
       setLoading(false);
-    }, 800);
+    }, 300);
   };
 
   const handleBack = () => {

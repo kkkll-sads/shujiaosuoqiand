@@ -46,8 +46,7 @@ export const FavoritesPage = () => {
     setSelectedIds([]);
     setTimeout(() => {
       setLoading(false);
-      // Randomly simulate error for demo purposes if needed, but we'll keep it simple here
-    }, 1000);
+    }, 300);
   };
 
   const handleBack = () => {

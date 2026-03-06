@@ -361,7 +361,7 @@ export const AfterSalesPage = () => {
               setTimeout(() => {
                 setLoading(false);
                 setView('list');
-              }, 800);
+              }, 300);
             }}
             className="w-full h-11 rounded-full bg-gradient-to-r from-primary-start to-primary-end text-white text-lg font-medium shadow-sm active:opacity-80"
           >

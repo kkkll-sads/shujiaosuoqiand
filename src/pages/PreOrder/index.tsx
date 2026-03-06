@@ -6,10 +6,7 @@ import { useAppNavigate } from '../../lib/navigation';
 import { PageHeader } from '../../components/layout/PageHeader';
 
 export const PreOrderPage = () => {
-  const { goTo, goBack } = useAppNavigate();
-
-  // Demo States
-  const [loading, setLoading] = useState(true);
+  const { goTo, goBack } = useAppNavigate();const [loading, setLoading] = useState(true);
   const [offline, setOffline] = useState(false);
   const [poolStatus, setPoolStatus] = useState<'not_started' | 'in_progress' | 'ended'>('in_progress');
   const [imageError, setImageError] = useState(false);
@@ -39,7 +36,7 @@ export const PreOrderPage = () => {
   useEffect(() => {
     const timer = setTimeout(() => {
       setLoading(false);
-    }, 800);
+    }, 300);
     return () => clearTimeout(timer);
   }, []);
 

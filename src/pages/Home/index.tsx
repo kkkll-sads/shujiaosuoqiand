@@ -26,7 +26,7 @@ export const HomePage = () => {
       setLoading(false);
       // Show announcement shortly after loading
       setTimeout(() => setShowForceAnnouncement(true), 500);
-    }, 1000);
+    }, 300);
     return () => clearTimeout(timer);
   }, []);
 
@@ -297,7 +297,7 @@ export const HomePage = () => {
         isOpen={showImagePicker}
         onClose={() => setShowImagePicker(false)}
         hasUploadedImage={true}
-        hasCameraPermission={false} // Set to false to demo the disabled state
+        hasCameraPermission={false}
         hasAlbumPermission={true}
         onTakePhoto={() => alert('打开相机')}
         onChooseAlbum={() => alert('打开相册')}

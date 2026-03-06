@@ -29,14 +29,13 @@ export const HelpCenterPage = () => {
     
     // Simulate API call
     setTimeout(() => {
-      // 10% chance of error for demonstration
       if (Math.random() > 0.9) {
         setError(true);
       } else {
         setError(false);
       }
       setLoading(false);
-    }, 1000);
+    }, 300);
   };
 
   useEffect(() => {
@@ -49,7 +48,6 @@ export const HelpCenterPage = () => {
 
   const handleOpenCS = () => {
     // In a real app, this would open a specific CS WebView
-    // Here we reuse the live_webview for demonstration purposes
     goTo('live_webview');
   };
 

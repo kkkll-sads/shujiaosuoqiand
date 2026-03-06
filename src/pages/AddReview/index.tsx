@@ -50,7 +50,7 @@ export default function AddReviewPage() {
     // Simulate initial loading
     const timer = setTimeout(() => {
       setPageState('normal');
-    }, 1000);
+    }, 300);
 
     return () => {
       window.removeEventListener('online', handleOnline);
@@ -88,7 +88,6 @@ export default function AddReviewPage() {
       setTimeout(() => {
         setImages(prev => prev.map(p => {
           if (p.id === img.id) {
-            // Randomly fail some uploads for demonstration
             const isError = Math.random() > 0.8;
             return { ...p, status: isError ? 'error' : 'success' };
           }
@@ -114,7 +113,7 @@ export default function AddReviewPage() {
       setImages(prev => prev.map(img => 
         img.id === id ? { ...img, status: 'success' } : img
       ));
-    }, 1500);
+    }, 300);
   };
 
   const handleSubmit = () => {
@@ -129,7 +128,7 @@ export default function AddReviewPage() {
       setIsSubmitting(false);
       alert('评价发表成功！');
       handleBack();
-    }, 2000);
+    }, 300);
   };
 
   if (pageState === 'error') {

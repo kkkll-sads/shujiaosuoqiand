@@ -32,7 +32,7 @@ export const CategoryPage = () => {
     setLoading(true);
     const timer = setTimeout(() => {
       setLoading(false);
-    }, 800);
+    }, 300);
     return () => clearTimeout(timer);
   }, [activeCategory]);
 

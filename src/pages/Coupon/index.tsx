@@ -85,13 +85,11 @@ export const CouponPage = () => {
     
     // Simulate network request
     setTimeout(() => {
-      if (Math.random() < 0.1) {
-        setError(true);
-      } else {
+      {
         setCoupons(MOCK_COUPONS.filter(c => c.status === activeTab));
       }
       setLoading(false);
-    }, 800);
+    }, 300);
   };
 
   const handleBack = () => {

@@ -51,7 +51,7 @@ export const MessageCenterPage = () => {
     setTimeout(() => {
       setMessages(mockData[activeTab]);
       setLoading(false);
-    }, 800);
+    }, 300);
   };
 
   const handleBack = () => {

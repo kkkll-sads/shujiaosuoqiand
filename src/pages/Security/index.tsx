@@ -24,7 +24,7 @@ export const SecurityPage = () => {
     setError(false);
     setTimeout(() => {
       setLoading(false);
-    }, 800);
+    }, 300);
   };
 
   const handleBack = () => {

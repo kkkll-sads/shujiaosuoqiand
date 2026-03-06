@@ -26,8 +26,6 @@ export const OrderPage = () => {
   const [mallTab, setMallTab] = useState('全部');
   const [collectibleTab, setCollectibleTab] = useState('全部');
   const [selectedOrder, setSelectedOrder] = useState<any>(null); // For detail view
-
-  // States for demonstration
   const [loading, setLoading] = useState(true);
   const [offline, setOffline] = useState(false);
   const [moduleError, setModuleError] = useState(false);
@@ -37,7 +35,7 @@ export const OrderPage = () => {
     setLoading(true);
     const timer = setTimeout(() => {
       setLoading(false);
-    }, 1000);
+    }, 300);
     return () => clearTimeout(timer);
   }, [orderType, mallTab, collectibleTab]);
 

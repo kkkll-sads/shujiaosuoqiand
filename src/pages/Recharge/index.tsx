@@ -46,7 +46,7 @@ export function RechargePage() {
     // Simulate loading
     const timer = setTimeout(() => {
       setIsLoading(false);
-    }, 800);
+    }, 300);
 
     return () => {
       window.removeEventListener('online', handleOnline);
@@ -80,7 +80,7 @@ export function RechargePage() {
       alert(`成功充值 ¥${amount}`);
       setAmount('');
       handleGoBack();
-    }, 1500);
+    }, 300);
   };
 
   const numAmount = Number(amount);

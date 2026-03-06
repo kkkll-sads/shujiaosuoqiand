@@ -122,7 +122,7 @@ export function ReviewsPage() {
     // Simulate initial loading
     const timer = setTimeout(() => {
       setViewState('normal');
-    }, 1000);
+    }, 300);
 
     return () => {
       window.removeEventListener('online', handleOnline);
@@ -154,7 +154,7 @@ export function ReviewsPage() {
         setHasMore(false);
       }
       setLoadingMore(false);
-    }, 800);
+    }, 300);
   };
 
   const renderStars = (rating: number, size = 14) => {

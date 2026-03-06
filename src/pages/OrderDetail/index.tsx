@@ -70,7 +70,7 @@ export const OrderDetailPage = () => {
     setError(false);
     setTimeout(() => {
       setLoading(false);
-    }, 800);
+    }, 300);
   };
 
   const handleBack = () => {

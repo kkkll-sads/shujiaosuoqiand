@@ -84,7 +84,7 @@ export function RightsPage() {
     // Simulate loading
     const timer = setTimeout(() => {
       setIsLoading(false);
-    }, 800);
+    }, 300);
     return () => clearTimeout(timer);
   }, []);
 
@@ -117,7 +117,7 @@ export function RightsPage() {
       setImages([]);
       // Show success toast (mock)
       alert('提交成功');
-    }, 1000);
+    }, 300);
   };
 
   const isFormDisabled = data.pending_count > 0;

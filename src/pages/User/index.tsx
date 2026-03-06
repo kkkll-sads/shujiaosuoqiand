@@ -30,8 +30,6 @@ const Button = ({ children, variant = 'primary', className = '', ...props }: any
 
 export const UserPage = () => {
   const { goTo, goBack } = useAppNavigate();
-
-  // States for demonstration
   const [loading, setLoading] = useState(true);
   const [offline, setOffline] = useState(false);
   const [moduleError, setModuleError] = useState(false);
@@ -44,7 +42,7 @@ export const UserPage = () => {
     setLoading(true);
     const timer = setTimeout(() => {
       setLoading(false);
-    }, 1000);
+    }, 300);
     return () => clearTimeout(timer);
   }, [isLoggedIn]);
 
@@ -60,7 +58,7 @@ export const UserPage = () => {
       setIsLoggedIn(false);
       setShowLogoutSheet(false);
       goTo('login');
-    }, 800);
+    }, 300);
   };
 
   const renderHeader = () => {

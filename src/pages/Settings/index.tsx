@@ -26,7 +26,7 @@ export const SettingsPage = () => {
     setError(false);
     setTimeout(() => {
       setLoading(false);
-    }, 800);
+    }, 300);
   };
 
   const handleBack = () => {

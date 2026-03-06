@@ -35,7 +35,7 @@ export const InvitePage = () => {
     setError(false);
     setTimeout(() => {
       setLoading(false);
-    }, 800);
+    }, 300);
   };
 
   const handleBack = () => {
@@ -47,7 +47,6 @@ export const InvitePage = () => {
   };
 
   const handleSaveImage = () => {
-    // Simulate save failure randomly for demonstration
     if (Math.random() > 0.5) {
       setSaveError(true);
     } else {

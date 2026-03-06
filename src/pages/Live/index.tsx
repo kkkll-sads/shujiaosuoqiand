@@ -93,7 +93,7 @@ export const LivePage = () => {
         setLives(MOCK_LIVES);
       }
       setLoading(false);
-    }, 800);
+    }, 300);
   };
 
   useEffect(() => {

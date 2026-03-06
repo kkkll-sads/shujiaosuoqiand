@@ -47,7 +47,7 @@ export function RightsTransferPage() {
     // Simulate loading
     const timer = setTimeout(() => {
       setIsLoading(false);
-    }, 800);
+    }, 300);
 
     return () => {
       window.removeEventListener('online', handleOnline);
@@ -83,7 +83,7 @@ export function RightsTransferPage() {
       alert(`成功划转 ¥${amount} 至 ${selectedTarget?.name}`);
       setAmount('');
       handleGoBack();
-    }, 1500);
+    }, 300);
   };
 
   const selectedTarget = MOCK_DATA.targetAccounts.find(t => t.id === selectedTargetId) || MOCK_DATA.targetAccounts[0];

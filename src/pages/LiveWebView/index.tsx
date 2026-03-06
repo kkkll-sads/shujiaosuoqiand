@@ -47,7 +47,6 @@ export const LiveWebViewPage = () => {
 
     setTimeout(() => {
       clearInterval(interval);
-      // Randomly fail for demonstration purposes (10% chance)
       if (Math.random() > 0.9) {
         setError(true);
         setLoading(false);
@@ -57,7 +56,7 @@ export const LiveWebViewPage = () => {
           setLoading(false);
         }, 300);
       }
-    }, 1500);
+    }, 300);
   };
 
   useEffect(() => {

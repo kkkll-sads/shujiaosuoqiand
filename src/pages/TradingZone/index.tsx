@@ -71,14 +71,14 @@ export const TradingZonePage = () => {
     setError(false);
     setTimeout(() => {
       setLoading(false);
-    }, 1000);
+    }, 300);
   };
 
   const handleRefresh = () => {
     setRefreshing(true);
     setTimeout(() => {
       setRefreshing(false);
-    }, 1000);
+    }, 300);
   };
 
   const handleBack = () => {
