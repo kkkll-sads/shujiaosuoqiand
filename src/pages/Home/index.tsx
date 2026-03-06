@@ -3,10 +3,6 @@ import { useAppNavigate } from '../../lib/navigation';
 import { Search, Headset, ChevronRight, Store, ShieldCheck, FileText, Volume2, Wallet, Package, Truck, Plus, ShoppingCart, WifiOff, RefreshCcw, FileX, ArrowRight } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
 import { Skeleton } from '../../components/ui/Skeleton';
-import { ForceAnnouncementModal } from '../../components/biz/ForceAnnouncementModal';
-import { WebViewActionSheet } from '../../components/biz/WebViewActionSheet';
-import { ImagePickerActionSheet } from '../../components/biz/ImagePickerActionSheet';
-import { useFeedback } from '../../components/ui/FeedbackProvider';
 
 export const HomePage = () => {
   const { goTo } = useAppNavigate();
@@ -14,18 +10,10 @@ export const HomePage = () => {
   const [offline, setOffline] = useState(false);
   const [error, setError] = useState(false);
   const [emptyFeed, setEmptyFeed] = useState(false);
-  const [showForceAnnouncement, setShowForceAnnouncement] = useState(false);
-  const [showWebViewSheet, setShowWebViewSheet] = useState(false);
-  const [showImagePicker, setShowImagePicker] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-
-  const { showNoticeBar, showToast, showLoading, hideLoading } = useFeedback();
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setLoading(false);
-      // Show announcement shortly after loading
-      setTimeout(() => setShowForceAnnouncement(true), 500);
     }, 300);
     return () => clearTimeout(timer);
   }, []);
@@ -271,38 +259,7 @@ export const HomePage = () => {
       {renderHeader()}
       {renderContent()}
 
-      <ForceAnnouncementModal 
-        isOpen={showForceAnnouncement} 
-        onClose={() => setShowForceAnnouncement(false)}
-        onViewDetail={() => {
-          setShowForceAnnouncement(false);
-          goTo('announcement');
-        }}
-      />
 
-      <WebViewActionSheet
-        isOpen={showWebViewSheet}
-        onClose={() => setShowWebViewSheet(false)}
-        isLoading={isRefreshing}
-        onRefresh={() => {
-          setIsRefreshing(true);
-          setTimeout(() => setIsRefreshing(false), 1500);
-        }}
-        onOpenBrowser={() => alert('在系统浏览器中打开')}
-        onFeedback={() => alert('跳转到问题反馈')}
-        onClearCache={() => alert('缓存已清除')}
-      />
-
-      <ImagePickerActionSheet
-        isOpen={showImagePicker}
-        onClose={() => setShowImagePicker(false)}
-        hasUploadedImage={true}
-        hasCameraPermission={false}
-        hasAlbumPermission={true}
-        onTakePhoto={() => alert('打开相机')}
-        onChooseAlbum={() => alert('打开相册')}
-        onViewImage={() => alert('预览图片')}
-      />
     </div>
   );
 };
