@@ -424,14 +424,7 @@ export const CartPage = () => {
 
   return (
     <div className="flex-1 flex flex-col bg-bg-base relative h-full overflow-hidden">
-      {/* Demo Controls */}
-      <div className="px-4 py-2 flex space-x-2 overflow-x-auto no-scrollbar bg-bg-card border-b border-border-light text-[10px] absolute top-12 left-0 right-0 z-50 opacity-50 hover:opacity-100 transition-opacity">
-        <span className="text-text-aux flex items-center shrink-0">Demo:</span>
-        <button onClick={() => setLoading(!loading)} className={`px-2 py-1 rounded border ${loading ? 'bg-primary-start text-white border-primary-start' : 'border-border-light'}`}>Loading</button>
-        <button onClick={() => setOffline(!offline)} className={`px-2 py-1 rounded border ${offline ? 'bg-primary-start text-white border-primary-start' : 'border-border-light'}`}>Offline</button>
-        <button onClick={() => setModuleError(!moduleError)} className={`px-2 py-1 rounded border ${moduleError ? 'bg-primary-start text-white border-primary-start' : 'border-border-light'}`}>Error</button>
-        <button onClick={() => { setEmptyResult(!emptyResult); if(emptyResult) { setCartData([...cartData]); } }} className={`px-2 py-1 rounded border ${emptyResult ? 'bg-primary-start text-white border-primary-start' : 'border-border-light'}`}>Empty Result</button>
-      </div>
+      
 
       {renderHeader()}
       

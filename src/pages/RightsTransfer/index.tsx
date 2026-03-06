@@ -167,8 +167,8 @@ export function RightsTransferPage() {
         <div className="p-4 space-y-3">
           
           {/* Account Overview Card */}
-          <Card className="p-4 bg-gradient-to-br from-red-50 to-white dark:from-red-900/20 dark:to-gray-800 border-none relative overflow-hidden">
-            <div className="absolute right-0 top-0 w-24 h-24 bg-red-100 dark:bg-red-500/10 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
+          <Card className="p-4 bg-gradient-to-br from-red-50 to-white dark:from-bg-box dark:to-bg-box border-none relative overflow-hidden">
+            <div className="absolute right-0 top-0 w-24 h-24 bg-red-100 dark:bg-transparent rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
             
             <div className="flex items-center justify-between mb-4 relative z-10">
               <div className="flex-1">

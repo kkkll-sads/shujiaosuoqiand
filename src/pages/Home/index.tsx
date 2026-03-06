@@ -309,23 +309,7 @@ export const HomePage = () => {
         </div>
       )}
 
-      {/* Demo Controls */}
-      <div className={`px-4 py-2 flex space-x-2 overflow-x-auto no-scrollbar bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 text-[10px] absolute ${offline ? 'top-10' : 'top-12'} left-0 right-0 z-50 opacity-50 hover:opacity-100 transition-opacity`}>
-        <span className="text-gray-500 dark:text-gray-400 flex items-center shrink-0">Demo:</span>
-        <button onClick={() => setLoading(!loading)} className={`px-2 py-1 rounded border ${loading ? 'bg-[#FF4142] text-white border-[#FF4142]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'}`}>Loading</button>
-        <button onClick={() => setOffline(!offline)} className={`px-2 py-1 rounded border ${offline ? 'bg-[#FF4142] text-white border-[#FF4142]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'}`}>Offline</button>
-        <button onClick={() => setError(!error)} className={`px-2 py-1 rounded border ${error ? 'bg-[#FF4142] text-white border-[#FF4142]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'}`}>Error</button>
-        <button onClick={() => setEmptyFeed(!emptyFeed)} className={`px-2 py-1 rounded border ${emptyFeed ? 'bg-[#FF4142] text-white border-[#FF4142]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'}`}>Empty</button>
-        <button onClick={() => setShowForceAnnouncement(true)} className="px-2 py-1 rounded border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 shrink-0">Show Modal</button>
-        <button onClick={() => setShowWebViewSheet(true)} className="px-2 py-1 rounded border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 shrink-0">Web Action</button>
-        <button onClick={() => setShowImagePicker(true)} className="px-2 py-1 rounded border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 shrink-0">Image Picker</button>
-        <button onClick={() => showNoticeBar({ message: '您的账号存在安全风险，请尽快修改密码', type: 'warning', actionText: '去修改' })} className="px-2 py-1 rounded border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 shrink-0">Notice</button>
-        <button onClick={() => showToast({ message: '操作成功', type: 'success' })} className="px-2 py-1 rounded border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 shrink-0">Toast</button>
-        <button onClick={() => {
-          showLoading({ message: '提交中...', subMessage: '请勿关闭页面', timeout: 3000, cancelable: true, onCancel: () => console.log('cancelled') });
-          setTimeout(() => hideLoading(), 5000); // Hide after 5s to demo timeout
-        }} className="px-2 py-1 rounded border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 shrink-0">HUD</button>
-      </div>
+      
 
       {renderHeader()}
       {renderContent()}

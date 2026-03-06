@@ -147,7 +147,7 @@ export function RechargePage() {
         <div className="p-4 space-y-3">
           
           {/* Balance Overview Card */}
-          <Card className="p-4 bg-gradient-to-br from-red-50 to-white dark:from-red-900/20 dark:to-gray-800 border-none">
+          <Card className="p-4 bg-gradient-to-br from-red-50 to-white dark:from-bg-box dark:to-bg-box border-none">
             <div className="flex items-center justify-between mb-2">
               <span className="text-[13px] text-text-sub flex items-center">
                 当前专项金余额 (元)

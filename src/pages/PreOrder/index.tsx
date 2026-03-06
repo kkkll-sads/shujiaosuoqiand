@@ -40,8 +40,7 @@ export const PreOrderPage = () => {
   }, []);
 
   const handleBack = () => {
-    const event = new CustomEvent('change-view', { detail: 'trading_detail' });
-    window.dispatchEvent(event);
+    window.dispatchEvent(new CustomEvent('go-back'));
   };
 
   // Validation
@@ -163,24 +162,10 @@ export const PreOrderPage = () => {
         </div>
       )}
 
-      {/* Demo Controls */}
-      <div className="px-4 py-2 flex space-x-2 overflow-x-auto no-scrollbar bg-bg-card border-b border-border-light text-[10px] absolute top-12 left-0 right-0 z-50 opacity-50 hover:opacity-100 transition-opacity">
-        <span className="text-text-aux flex items-center shrink-0">Demo:</span>
-        <button onClick={() => setLoading(!loading)} className={`shrink-0 px-2 py-1 rounded border ${loading ? 'bg-primary-start text-white border-primary-start' : 'border-border-light'}`}>Loading</button>
-        <button onClick={() => setOffline(!offline)} className={`shrink-0 px-2 py-1 rounded border ${offline ? 'bg-primary-start text-white border-primary-start' : 'border-border-light'}`}>Offline</button>
-        <select 
-          value={poolStatus} 
-          onChange={(e) => setPoolStatus(e.target.value as any)}
-          className="shrink-0 px-2 py-1 rounded border border-border-light bg-white dark:bg-gray-900"
-        >
-          <option value="not_started">未开始</option>
-          <option value="in_progress">进行中</option>
-          <option value="ended">已结束</option>
-        </select>
-      </div>
+      
 
       {/* Top Navigation */}
-      <div className="px-4 pt-12 pb-4 flex items-center justify-between sticky top-0 z-40 bg-gradient-to-b from-red-50 to-red-50/95">
+      <div className="px-4 pt-12 pb-4 flex items-center justify-between sticky top-0 z-40 bg-gradient-to-b from-red-50 to-red-50/95 dark:from-bg-box dark:to-bg-box">
         <button onClick={handleBack} className="w-8 h-8 rounded-full bg-white dark:bg-gray-900/80 flex items-center justify-center shadow-sm active:opacity-70 transition-opacity">
           <ChevronLeft size={20} className="text-text-main" />
         </button>
@@ -190,7 +175,7 @@ export const PreOrderPage = () => {
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto no-scrollbar pb-32 bg-gradient-to-b from-red-50/50 to-bg-base">
+      <div className="flex-1 overflow-y-auto no-scrollbar pb-32 bg-gradient-to-b from-red-50/50 to-bg-base dark:from-bg-base dark:to-bg-base">
         {loading ? (
           renderSkeleton()
         ) : poolStatus === 'ended' ? (

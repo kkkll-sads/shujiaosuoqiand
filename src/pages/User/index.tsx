@@ -63,7 +63,7 @@ export const UserPage = () => {
   const renderHeader = () => {
     if (loading) {
       return (
-        <div className="px-4 pt-12 pb-6 bg-gradient-to-b from-red-50 to-bg-base relative">
+        <div className="px-4 pt-12 pb-6 bg-gradient-to-b from-red-50 to-bg-base dark:from-bg-base dark:to-bg-base relative">
           <div className="absolute top-4 right-4 flex space-x-4">
             <Skeleton className="w-[22px] h-[22px] rounded-full" />
             <Skeleton className="w-[22px] h-[22px] rounded-full" />
@@ -93,7 +93,7 @@ export const UserPage = () => {
 
     if (!isLoggedIn) {
       return (
-        <div className="px-4 pt-12 pb-6 bg-gradient-to-b from-red-50 to-bg-base relative">
+        <div className="px-4 pt-12 pb-6 bg-gradient-to-b from-red-50 to-bg-base dark:from-bg-base dark:to-bg-base relative">
           <div className="absolute top-4 right-4 flex space-x-4 text-text-main">
             <Settings size={22} />
             <MessageSquare size={22} />
@@ -123,7 +123,7 @@ export const UserPage = () => {
     }
 
     return (
-      <div className="px-4 pt-12 pb-6 bg-gradient-to-b from-red-50 to-bg-base relative">
+      <div className="px-4 pt-12 pb-6 bg-gradient-to-b from-red-50 to-bg-base dark:from-bg-base dark:to-bg-base relative">
         <div className="absolute top-4 right-4 flex space-x-4 text-text-main">
           <button 
             className="active:opacity-70 transition-opacity"
@@ -266,15 +266,7 @@ export const UserPage = () => {
         </div>
       )}
 
-      {/* Demo Controls (Hidden in production) */}
-      <div className="px-4 py-2 flex space-x-2 overflow-x-auto no-scrollbar bg-bg-card border-b border-border-light text-[10px] absolute top-8 left-0 right-0 z-50 opacity-50 hover:opacity-100 transition-opacity">
-        <span className="text-text-aux flex items-center shrink-0">Demo:</span>
-        <button onClick={() => setIsLoggedIn(!isLoggedIn)} className={`px-2 py-1 rounded border ${isLoggedIn ? 'bg-primary-start text-white border-primary-start' : 'border-border-light'}`}>Login State</button>
-        <button onClick={() => setLoading(!loading)} className={`px-2 py-1 rounded border ${loading ? 'bg-primary-start text-white border-primary-start' : 'border-border-light'}`}>Loading</button>
-        <button onClick={() => setOffline(!offline)} className={`px-2 py-1 rounded border ${offline ? 'bg-primary-start text-white border-primary-start' : 'border-border-light'}`}>Offline</button>
-        <button onClick={() => setModuleError(!moduleError)} className={`px-2 py-1 rounded border ${moduleError ? 'bg-primary-start text-white border-primary-start' : 'border-border-light'}`}>Error</button>
-        <button onClick={() => setEmptyOrders(!emptyOrders)} className={`px-2 py-1 rounded border ${emptyOrders ? 'bg-primary-start text-white border-primary-start' : 'border-border-light'}`}>Empty Orders</button>
-      </div>
+      
 
       <div className="flex-1 overflow-y-auto no-scrollbar pb-4">
         {renderHeader()}
@@ -422,7 +414,7 @@ export const UserPage = () => {
           {/* Confirmation Center (Business Focus) */}
           <Card className="p-0 overflow-hidden border border-primary-start/20">
             <div 
-              className="px-4 py-3 border-b border-border-light flex justify-between items-center bg-gradient-to-r from-red-50 to-white cursor-pointer active:bg-red-50/80 transition-colors"
+              className="px-4 py-3 border-b border-border-light flex justify-between items-center bg-gradient-to-r from-red-50 to-white dark:from-bg-box dark:to-bg-box cursor-pointer active:bg-red-50/80 dark:active:bg-gray-800 transition-colors"
               onClick={() => {
                 const event = new CustomEvent('change-view', { detail: 'shield' });
                 window.dispatchEvent(event);

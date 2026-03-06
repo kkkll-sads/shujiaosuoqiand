@@ -56,8 +56,7 @@ export default function AddReviewPage() {
   }, []);
 
   const handleBack = () => {
-    const event = new CustomEvent('change-view', { detail: 'product' });
-    window.dispatchEvent(event);
+    window.dispatchEvent(new CustomEvent('go-back'));
   };
 
   const toggleTag = (tag: string) => {

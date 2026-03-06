@@ -122,8 +122,9 @@ export const InvitePage = () => {
         {/* Invite Card */}
         <div className="bg-white dark:bg-gray-900 rounded-[16px] p-6 shadow-sm dark:shadow-none border border-transparent dark:border-gray-800 flex flex-col items-center relative overflow-hidden">
           {/* Decorative background elements */}
-          <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-b from-red-50 dark:from-red-900/10 to-transparent"></div>
+          <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-b from-red-50 dark:from-transparent to-transparent"></div>
           
+
           <div className="text-[14px] text-gray-500 dark:text-gray-400 mb-2 relative z-10">我的专属邀请码</div>
           <div className="flex items-center justify-center mb-6 relative z-10">
             <span className="text-[40px] font-bold text-[#FF4142] tracking-wider leading-none mr-3">{inviteCode}</span>
@@ -281,14 +282,7 @@ export const InvitePage = () => {
 
   return (
     <div className="flex-1 flex flex-col bg-[#FFF8F8] dark:bg-gray-950 relative h-full overflow-hidden">
-      {/* Demo Controls */}
-      <div className="px-4 py-2 flex space-x-2 overflow-x-auto no-scrollbar bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 text-[10px] absolute top-12 left-0 right-0 z-50 opacity-50 hover:opacity-100 transition-opacity">
-        <span className="text-gray-500 dark:text-gray-400 flex items-center shrink-0">Demo:</span>
-        <button onClick={() => setLoading(!loading)} className={`px-2 py-1 rounded border ${loading ? 'bg-[#FF4142] text-white border-[#FF4142]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'}`}>Loading</button>
-        <button onClick={() => setOffline(!offline)} className={`px-2 py-1 rounded border ${offline ? 'bg-[#FF4142] text-white border-[#FF4142]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'}`}>Offline</button>
-        <button onClick={() => setError(!error)} className={`px-2 py-1 rounded border ${error ? 'bg-[#FF4142] text-white border-[#FF4142]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'}`}>Error</button>
-        <button onClick={() => setEmpty(!empty)} className={`px-2 py-1 rounded border ${empty ? 'bg-[#FF4142] text-white border-[#FF4142]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'}`}>Empty</button>
-      </div>
+      
 
       {renderHeader()}
       

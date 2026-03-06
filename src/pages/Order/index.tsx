@@ -308,14 +308,7 @@ export const OrderPage = () => {
         </button>
       </div>
 
-      {/* Demo Controls (Hidden in production) */}
-      <div className="px-4 py-2 flex space-x-2 overflow-x-auto no-scrollbar bg-bg-card border-b border-border-light text-[10px]">
-        <span className="text-text-aux flex items-center shrink-0">Demo:</span>
-        <button onClick={() => setLoading(!loading)} className={`px-2 py-1 rounded border ${loading ? 'bg-primary-start text-white border-primary-start' : 'border-border-light'}`}>Loading</button>
-        <button onClick={() => setOffline(!offline)} className={`px-2 py-1 rounded border ${offline ? 'bg-primary-start text-white border-primary-start' : 'border-border-light'}`}>Offline</button>
-        <button onClick={() => setModuleError(!moduleError)} className={`px-2 py-1 rounded border ${moduleError ? 'bg-primary-start text-white border-primary-start' : 'border-border-light'}`}>Error</button>
-        <button onClick={() => setEmptyList(!emptyList)} className={`px-2 py-1 rounded border ${emptyList ? 'bg-primary-start text-white border-primary-start' : 'border-border-light'}`}>Empty</button>
-      </div>
+      
 
       {/* Primary Segmented Control */}
       <div className="bg-bg-card px-4 py-3 border-b border-border-light">

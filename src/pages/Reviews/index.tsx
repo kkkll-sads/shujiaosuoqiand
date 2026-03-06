@@ -127,8 +127,7 @@ export function ReviewsPage() {
   }, []);
 
   const handleBack = () => {
-    const event = new CustomEvent('change-view', { detail: 'product_detail' });
-    window.dispatchEvent(event);
+    window.dispatchEvent(new CustomEvent('go-back'));
   };
 
   const toggleExpand = (id: string) => {
