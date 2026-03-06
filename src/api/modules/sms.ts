@@ -23,6 +23,7 @@ export const smsApi = {
     return http.post<SendSmsResponseData, SendSmsPayload>('/api/Sms/send', payload, {
       headers: createApiHeaders(options),
       signal: options.signal,
+      useMock: false,
     });
   },
 };

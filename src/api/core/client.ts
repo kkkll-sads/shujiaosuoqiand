@@ -21,6 +21,7 @@ export interface RequestOptions<TBody = unknown>
   responseType?: 'json' | 'text' | 'blob';
   signal?: AbortSignal;
   timeout?: number;
+  useMock?: boolean;
 }
 
 export interface MockRequestContext {
@@ -178,8 +179,9 @@ export class HttpClient {
 
     try {
       const preparedBody = this.prepareBody(options.body, headers);
+      const enableMock = options.useMock ?? this.options.enableMock;
 
-      if (this.options.enableMock) {
+      if (enableMock) {
         const mockHandler = this.options.mockHandlers[buildMockKey(method, url)];
         if (mockHandler) {
           await delay(this.options.mockDelay, controller.signal);

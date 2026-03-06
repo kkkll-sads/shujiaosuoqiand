@@ -60,6 +60,7 @@ export const authApi = {
   getCheckInConfig(signal?: AbortSignal) {
     return http.get<CheckInConfig>('/api/User/checkIn', {
       signal,
+      useMock: false,
     });
   },
 
@@ -72,6 +73,7 @@ export const authApi = {
       },
       {
         signal,
+        useMock: false,
       },
     );
   },
@@ -85,6 +87,7 @@ export const authApi = {
       },
       {
         signal,
+        useMock: false,
       },
     );
   },
@@ -98,6 +101,7 @@ export const authApi = {
       },
       {
         signal,
+        useMock: false,
       },
     );
   },
