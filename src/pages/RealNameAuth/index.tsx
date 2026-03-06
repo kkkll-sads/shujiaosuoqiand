@@ -134,7 +134,7 @@ export const RealNameAuthPage = () => {
       <div className="w-24 h-24 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-4 text-[#FF4142]">
         <AlertCircle size={48} />
       </div>
-      <p className="text-[15px] text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-6">加载失败，请重试</p>
+      <p className="text-[15px] text-gray-500 dark:text-gray-400 mb-6">加载失败，请重试</p>
       <button 
         onClick={fetchData}
         className="px-6 py-2 rounded-full bg-gradient-to-r from-[#FF4142] to-[#FF4B2B] text-white text-[14px] font-medium active:opacity-80 shadow-sm"
@@ -152,7 +152,7 @@ export const RealNameAuthPage = () => {
             <Clock size={40} />
           </div>
           <h2 className="text-[18px] font-bold text-gray-900 dark:text-gray-100 mb-3">审核中</h2>
-          <p className="text-[13px] text-gray-500 dark:text-gray-400 dark:text-gray-500 text-center mb-10 leading-relaxed">您的实名认证信息已提交，预计将在1-3个工作日内完成审核，请耐心等待。</p>
+          <p className="text-[13px] text-gray-500 dark:text-gray-400 text-center mb-10 leading-relaxed">您的实名认证信息已提交，预计将在1-3个工作日内完成审核，请耐心等待。</p>
           <button className="w-full h-[48px] rounded-[16px] border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 font-medium active:bg-gray-50 dark:active:bg-gray-800 transition-colors" onClick={handleBack}>返回</button>
         </div>
       );
@@ -164,7 +164,7 @@ export const RealNameAuthPage = () => {
             <CheckCircle2 size={40} />
           </div>
           <h2 className="text-[18px] font-bold text-gray-900 dark:text-gray-100 mb-3">认证通过</h2>
-          <p className="text-[13px] text-gray-500 dark:text-gray-400 dark:text-gray-500 text-center mb-10 leading-relaxed">恭喜您，实名认证已通过！现在您可以体验全部平台功能了。</p>
+          <p className="text-[13px] text-gray-500 dark:text-gray-400 text-center mb-10 leading-relaxed">恭喜您，实名认证已通过！现在您可以体验全部平台功能了。</p>
           <button className="w-full h-[48px] rounded-[16px] bg-gradient-to-r from-[#FF4142] to-[#FF4B2B] text-white font-medium shadow-sm active:opacity-80 transition-opacity" onClick={handleBack}>完成</button>
         </div>
       );
@@ -234,7 +234,7 @@ export const RealNameAuthPage = () => {
             ) : (
               <>
                 <Camera size={24} className="text-gray-400 dark:text-gray-500 mb-2" />
-                <span className="text-[12px] text-gray-500 dark:text-gray-400 dark:text-gray-500">上传人像面</span>
+                <span className="text-[12px] text-gray-500 dark:text-gray-400">上传人像面</span>
               </>
             )}
           </div>
@@ -252,7 +252,7 @@ export const RealNameAuthPage = () => {
             ) : (
               <>
                 <Camera size={24} className="text-gray-400 dark:text-gray-500 mb-2" />
-                <span className="text-[12px] text-gray-500 dark:text-gray-400 dark:text-gray-500">上传国徽面</span>
+                <span className="text-[12px] text-gray-500 dark:text-gray-400">上传国徽面</span>
               </>
             )}
           </div>
@@ -266,20 +266,20 @@ export const RealNameAuthPage = () => {
           <h3 className="text-[15px] font-bold text-gray-900 dark:text-gray-100">3. 人脸核验</h3>
           <span className="text-[11px] font-normal text-gray-400 dark:text-gray-500 ml-1">（网易易盾服务）</span>
         </div>
-        <p className="text-[12px] text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-5">用于提升账户安全等级，满足国家相关合规要求。</p>
+        <p className="text-[12px] text-gray-500 dark:text-gray-400 mb-5">用于提升账户安全等级，满足国家相关合规要求。</p>
         
         <div className="bg-gray-50 dark:bg-gray-800/50 rounded-[12px] p-4 mb-5 flex justify-around border border-gray-100 dark:border-gray-800">
           <div className="flex flex-col items-center">
-            <div className="w-10 h-10 rounded-full bg-white dark:bg-gray-700 flex items-center justify-center mb-2 text-gray-600 dark:text-gray-300 dark:text-gray-600 shadow-sm"><Sun size={18} /></div>
-            <span className="text-[11px] text-gray-500 dark:text-gray-400 dark:text-gray-500">光线充足</span>
+            <div className="w-10 h-10 rounded-full bg-white dark:bg-gray-700 flex items-center justify-center mb-2 text-gray-600 dark:text-gray-400 shadow-sm"><Sun size={18} /></div>
+            <span className="text-[11px] text-gray-500 dark:text-gray-400">光线充足</span>
           </div>
           <div className="flex flex-col items-center">
-            <div className="w-10 h-10 rounded-full bg-white dark:bg-gray-700 flex items-center justify-center mb-2 text-gray-600 dark:text-gray-300 dark:text-gray-600 shadow-sm"><User size={18} /></div>
-            <span className="text-[11px] text-gray-500 dark:text-gray-400 dark:text-gray-500">摘下帽/口罩</span>
+            <div className="w-10 h-10 rounded-full bg-white dark:bg-gray-700 flex items-center justify-center mb-2 text-gray-600 dark:text-gray-400 shadow-sm"><User size={18} /></div>
+            <span className="text-[11px] text-gray-500 dark:text-gray-400">摘下帽/口罩</span>
           </div>
           <div className="flex flex-col items-center">
-            <div className="w-10 h-10 rounded-full bg-white dark:bg-gray-700 flex items-center justify-center mb-2 text-gray-600 dark:text-gray-300 dark:text-gray-600 shadow-sm"><Wifi size={18} /></div>
-            <span className="text-[11px] text-gray-500 dark:text-gray-400 dark:text-gray-500">网络稳定</span>
+            <div className="w-10 h-10 rounded-full bg-white dark:bg-gray-700 flex items-center justify-center mb-2 text-gray-600 dark:text-gray-400 shadow-sm"><Wifi size={18} /></div>
+            <span className="text-[11px] text-gray-500 dark:text-gray-400">网络稳定</span>
           </div>
         </div>
 
@@ -309,13 +309,13 @@ export const RealNameAuthPage = () => {
     <div className="flex-1 flex flex-col bg-[#FFF8F8] dark:bg-gray-950 relative h-full overflow-hidden">
       {/* Demo Controls */}
       <div className="px-4 py-2 flex space-x-2 overflow-x-auto no-scrollbar bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 text-[10px] absolute top-12 left-0 right-0 z-50 opacity-50 hover:opacity-100 transition-opacity">
-        <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 flex items-center shrink-0">Demo:</span>
-        <button onClick={() => setLoading(!loading)} className={`px-2 py-1 rounded border ${loading ? 'bg-[#FF4142] text-white border-[#FF4142]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 dark:text-gray-600'}`}>Loading</button>
-        <button onClick={() => setOffline(!offline)} className={`px-2 py-1 rounded border ${offline ? 'bg-[#FF4142] text-white border-[#FF4142]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 dark:text-gray-600'}`}>Offline</button>
-        <button onClick={() => setError(!error)} className={`px-2 py-1 rounded border ${error ? 'bg-[#FF4142] text-white border-[#FF4142]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 dark:text-gray-600'}`}>Error</button>
-        <button onClick={() => setAuditStatus('auditing')} className={`px-2 py-1 rounded border ${auditStatus === 'auditing' ? 'bg-[#FF4142] text-white border-[#FF4142]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 dark:text-gray-600'}`}>Auditing</button>
-        <button onClick={() => setAuditStatus('passed')} className={`px-2 py-1 rounded border ${auditStatus === 'passed' ? 'bg-[#FF4142] text-white border-[#FF4142]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 dark:text-gray-600'}`}>Passed</button>
-        <button onClick={() => setAuditStatus('rejected')} className={`px-2 py-1 rounded border ${auditStatus === 'rejected' ? 'bg-[#FF4142] text-white border-[#FF4142]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 dark:text-gray-600'}`}>Rejected</button>
+        <span className="text-gray-500 dark:text-gray-400 flex items-center shrink-0">Demo:</span>
+        <button onClick={() => setLoading(!loading)} className={`px-2 py-1 rounded border ${loading ? 'bg-[#FF4142] text-white border-[#FF4142]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'}`}>Loading</button>
+        <button onClick={() => setOffline(!offline)} className={`px-2 py-1 rounded border ${offline ? 'bg-[#FF4142] text-white border-[#FF4142]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'}`}>Offline</button>
+        <button onClick={() => setError(!error)} className={`px-2 py-1 rounded border ${error ? 'bg-[#FF4142] text-white border-[#FF4142]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'}`}>Error</button>
+        <button onClick={() => setAuditStatus('auditing')} className={`px-2 py-1 rounded border ${auditStatus === 'auditing' ? 'bg-[#FF4142] text-white border-[#FF4142]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'}`}>Auditing</button>
+        <button onClick={() => setAuditStatus('passed')} className={`px-2 py-1 rounded border ${auditStatus === 'passed' ? 'bg-[#FF4142] text-white border-[#FF4142]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'}`}>Passed</button>
+        <button onClick={() => setAuditStatus('rejected')} className={`px-2 py-1 rounded border ${auditStatus === 'rejected' ? 'bg-[#FF4142] text-white border-[#FF4142]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'}`}>Rejected</button>
       </div>
 
       {renderHeader()}
@@ -351,7 +351,7 @@ export const RealNameAuthPage = () => {
               <AlertTriangle size={24} />
             </div>
             <h3 className="text-[18px] font-bold text-gray-900 dark:text-gray-100 mb-2">人脸核验失败</h3>
-            <p className="text-[13px] text-gray-500 dark:text-gray-400 dark:text-gray-500 text-center mb-6 leading-relaxed">未检测到清晰人脸，请确保光线充足且未佩戴口罩/帽子。</p>
+            <p className="text-[13px] text-gray-500 dark:text-gray-400 text-center mb-6 leading-relaxed">未检测到清晰人脸，请确保光线充足且未佩戴口罩/帽子。</p>
             <div className="flex flex-col w-full space-y-3">
               <button 
                 className="w-full h-[44px] rounded-full bg-gradient-to-r from-[#FF4142] to-[#FF4B2B] text-white text-[15px] font-medium shadow-sm active:opacity-80 transition-opacity"
@@ -382,7 +382,7 @@ export const RealNameAuthPage = () => {
               <Camera size={24} />
             </div>
             <h3 className="text-[18px] font-bold text-gray-900 dark:text-gray-100 mb-2">无法访问相机</h3>
-            <p className="text-[13px] text-gray-500 dark:text-gray-400 dark:text-gray-500 text-center mb-6 leading-relaxed">请在系统设置中允许应用访问您的相机权限，以便进行证件拍摄和人脸核验。</p>
+            <p className="text-[13px] text-gray-500 dark:text-gray-400 text-center mb-6 leading-relaxed">请在系统设置中允许应用访问您的相机权限，以便进行证件拍摄和人脸核验。</p>
             <div className="flex w-full space-x-3">
               <button 
                 className="flex-1 h-[44px] rounded-full bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-[15px] font-medium active:bg-gray-200 dark:active:bg-gray-700 transition-colors"

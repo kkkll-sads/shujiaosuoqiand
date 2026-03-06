@@ -102,7 +102,7 @@ export const InvitePage = () => {
       <div className="w-24 h-24 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-4 text-[#FF4142]">
         <AlertCircle size={48} />
       </div>
-      <p className="text-[15px] text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-6">加载失败，请重试</p>
+      <p className="text-[15px] text-gray-500 dark:text-gray-400 mb-6">加载失败，请重试</p>
       <button 
         onClick={fetchData}
         className="px-6 py-2 rounded-full bg-gradient-to-r from-[#FF4142] to-[#FF4B2B] text-white text-[14px] font-medium active:opacity-80 shadow-sm"
@@ -124,7 +124,7 @@ export const InvitePage = () => {
           {/* Decorative background elements */}
           <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-b from-red-50 dark:from-red-900/10 to-transparent"></div>
           
-          <div className="text-[14px] text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-2 relative z-10">我的专属邀请码</div>
+          <div className="text-[14px] text-gray-500 dark:text-gray-400 mb-2 relative z-10">我的专属邀请码</div>
           <div className="flex items-center justify-center mb-6 relative z-10">
             <span className="text-[40px] font-bold text-[#FF4142] tracking-wider leading-none mr-3">{inviteCode}</span>
             <button 
@@ -225,13 +225,13 @@ export const InvitePage = () => {
               <div className="w-12 h-12 rounded-full bg-[#07C160]/10 flex items-center justify-center text-[#07C160] mb-2">
                 <MessageCircle size={24} />
               </div>
-              <span className="text-[12px] text-gray-600 dark:text-gray-400 dark:text-gray-500">微信好友</span>
+              <span className="text-[12px] text-gray-600 dark:text-gray-400">微信好友</span>
             </div>
             <div className="flex flex-col items-center cursor-pointer active:opacity-70">
               <div className="w-12 h-12 rounded-full bg-[#07C160]/10 flex items-center justify-center text-[#07C160] mb-2">
                 <Share2 size={24} />
               </div>
-              <span className="text-[12px] text-gray-600 dark:text-gray-400 dark:text-gray-500">朋友圈</span>
+              <span className="text-[12px] text-gray-600 dark:text-gray-400">朋友圈</span>
             </div>
             <div 
               className="flex flex-col items-center cursor-pointer active:opacity-70"
@@ -240,7 +240,7 @@ export const InvitePage = () => {
               <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-500 mb-2">
                 <LinkIcon size={24} />
               </div>
-              <span className="text-[12px] text-gray-600 dark:text-gray-400 dark:text-gray-500">复制链接</span>
+              <span className="text-[12px] text-gray-600 dark:text-gray-400">复制链接</span>
             </div>
             <div 
               className="flex flex-col items-center cursor-pointer active:opacity-70"
@@ -249,7 +249,7 @@ export const InvitePage = () => {
               <div className="w-12 h-12 rounded-full bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center text-orange-500 mb-2">
                 <Download size={24} />
               </div>
-              <span className="text-[12px] text-gray-600 dark:text-gray-400 dark:text-gray-500">保存图片</span>
+              <span className="text-[12px] text-gray-600 dark:text-gray-400">保存图片</span>
             </div>
           </div>
         </div>
@@ -265,7 +265,7 @@ export const InvitePage = () => {
           </div>
           
           {rulesExpanded && (
-            <div className="px-4 pb-4 pt-1 border-t border-gray-100 dark:border-gray-800 text-[13px] text-gray-500 dark:text-gray-400 dark:text-gray-500 leading-relaxed space-y-2">
+            <div className="px-4 pb-4 pt-1 border-t border-gray-100 dark:border-gray-800 text-[13px] text-gray-500 dark:text-gray-400 leading-relaxed space-y-2">
               <p>1. 邀请好友注册并完成首次实名认证，您和好友各得 100 积分奖励。</p>
               <p>2. 好友在注册后 30 天内完成首笔交易，您将获得交易额 1% 的现金返利，最高不超过 1000 元。</p>
               <p>3. 邀请奖励将在满足条件后的 24 小时内自动发放到您的账户余额/积分中。</p>
@@ -283,11 +283,11 @@ export const InvitePage = () => {
     <div className="flex-1 flex flex-col bg-[#FFF8F8] dark:bg-gray-950 relative h-full overflow-hidden">
       {/* Demo Controls */}
       <div className="px-4 py-2 flex space-x-2 overflow-x-auto no-scrollbar bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 text-[10px] absolute top-12 left-0 right-0 z-50 opacity-50 hover:opacity-100 transition-opacity">
-        <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 flex items-center shrink-0">Demo:</span>
-        <button onClick={() => setLoading(!loading)} className={`px-2 py-1 rounded border ${loading ? 'bg-[#FF4142] text-white border-[#FF4142]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 dark:text-gray-600'}`}>Loading</button>
-        <button onClick={() => setOffline(!offline)} className={`px-2 py-1 rounded border ${offline ? 'bg-[#FF4142] text-white border-[#FF4142]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 dark:text-gray-600'}`}>Offline</button>
-        <button onClick={() => setError(!error)} className={`px-2 py-1 rounded border ${error ? 'bg-[#FF4142] text-white border-[#FF4142]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 dark:text-gray-600'}`}>Error</button>
-        <button onClick={() => setEmpty(!empty)} className={`px-2 py-1 rounded border ${empty ? 'bg-[#FF4142] text-white border-[#FF4142]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 dark:text-gray-600'}`}>Empty</button>
+        <span className="text-gray-500 dark:text-gray-400 flex items-center shrink-0">Demo:</span>
+        <button onClick={() => setLoading(!loading)} className={`px-2 py-1 rounded border ${loading ? 'bg-[#FF4142] text-white border-[#FF4142]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'}`}>Loading</button>
+        <button onClick={() => setOffline(!offline)} className={`px-2 py-1 rounded border ${offline ? 'bg-[#FF4142] text-white border-[#FF4142]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'}`}>Offline</button>
+        <button onClick={() => setError(!error)} className={`px-2 py-1 rounded border ${error ? 'bg-[#FF4142] text-white border-[#FF4142]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'}`}>Error</button>
+        <button onClick={() => setEmpty(!empty)} className={`px-2 py-1 rounded border ${empty ? 'bg-[#FF4142] text-white border-[#FF4142]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'}`}>Empty</button>
       </div>
 
       {renderHeader()}

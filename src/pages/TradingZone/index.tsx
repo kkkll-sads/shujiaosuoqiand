@@ -136,7 +136,7 @@ export const TradingZonePage = () => {
       <div className="w-20 h-20 bg-gray-50 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4 text-gray-400 dark:text-gray-500">
         <RefreshCcw size={32} />
       </div>
-      <p className="text-[14px] text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-6">加载失败，请检查网络后重试</p>
+      <p className="text-[14px] text-gray-500 dark:text-gray-400 mb-6">加载失败，请检查网络后重试</p>
       <button 
         onClick={fetchData}
         className="px-6 py-2 rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-[14px] font-medium active:bg-gray-50 dark:active:bg-gray-700 shadow-sm transition-colors"
@@ -152,7 +152,7 @@ export const TradingZonePage = () => {
         <FileX size={32} />
       </div>
       <p className="text-[15px] font-medium text-gray-900 dark:text-gray-100 mb-1">暂无可参与场次</p>
-      <p className="text-[13px] text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-6">当前没有正在进行或即将开始的交易</p>
+      <p className="text-[13px] text-gray-500 dark:text-gray-400 mb-6">当前没有正在进行或即将开始的交易</p>
       <button 
         onClick={() => {
           const event = new CustomEvent('change-view', { detail: 'store' });
@@ -186,7 +186,7 @@ export const TradingZonePage = () => {
               {/* Top Banner / Theme Image */}
               <div className="relative w-full h-32 bg-gray-100 dark:bg-gray-800 flex items-center justify-center overflow-hidden">
                 {/* Fallback icon behind the image */}
-                <div className="absolute inset-0 flex items-center justify-center text-gray-300 dark:text-gray-700 dark:text-gray-300 dark:text-gray-600">
+                <div className="absolute inset-0 flex items-center justify-center text-gray-300 dark:text-gray-700 dark:text-gray-400">
                   <ImageIcon size={32} />
                 </div>
                 <img 
@@ -231,15 +231,15 @@ export const TradingZonePage = () => {
                 {/* Metrics */}
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex-1">
-                    <div className="text-[12px] text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">预期收益率</div>
-                    <div className={`text-[20px] font-bold ${isEnded ? 'text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500' : 'text-[#FF4142]'}`}>
+                    <div className="text-[12px] text-gray-500 dark:text-gray-400 mb-1">预期收益率</div>
+                    <div className={`text-[20px] font-bold ${isEnded ? 'text-gray-400 dark:text-gray-400' : 'text-[#FF4142]'}`}>
                       {session.return_rate}
                     </div>
                   </div>
                   <div className="w-px h-8 bg-gray-100 dark:bg-gray-800 mx-4"></div>
                   <div className="flex-1">
-                    <div className="text-[12px] text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">本期额度</div>
-                    <div className={`text-[16px] font-bold ${isEnded ? 'text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-gray-100'}`}>
+                    <div className="text-[12px] text-gray-500 dark:text-gray-400 mb-1">本期额度</div>
+                    <div className={`text-[16px] font-bold ${isEnded ? 'text-gray-400 dark:text-gray-400' : 'text-gray-900 dark:text-gray-100'}`}>
                       {session.quota}
                     </div>
                   </div>
@@ -247,7 +247,7 @@ export const TradingZonePage = () => {
 
                 {/* Countdown & Action */}
                 <div className="bg-gray-50 dark:bg-gray-800/50 rounded-[12px] p-3 flex flex-col items-center border border-gray-100 dark:border-gray-800">
-                  <div className="text-[12px] text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">
+                  <div className="text-[12px] text-gray-500 dark:text-gray-400 mb-1">
                     {isActive ? '距结束仅剩' : isUpcoming ? '距开始仅剩' : '本场结束 · CLOSED'}
                   </div>
                   {!isEnded && (
@@ -260,7 +260,7 @@ export const TradingZonePage = () => {
                     className={`w-full h-10 rounded-full text-[14px] font-medium flex items-center justify-center transition-all ${
                       isActive ? 'bg-gradient-to-r from-[#FF4142] to-[#FF4B2B] text-white shadow-sm active:opacity-80' : 
                       isUpcoming ? 'bg-white dark:bg-gray-800 border border-[#FF4142] text-[#FF4142] active:bg-red-50 dark:active:bg-red-900/20' : 
-                      'bg-gray-200 dark:bg-gray-800 text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                      'bg-gray-200 dark:bg-gray-800 text-gray-400 dark:text-gray-400 cursor-not-allowed'
                     }`}
                     disabled={isEnded}
                   >
@@ -285,11 +285,11 @@ export const TradingZonePage = () => {
     <div className="flex-1 flex flex-col bg-[#F7F8FA] dark:bg-gray-950 relative h-full overflow-hidden">
       {/* Demo Controls */}
       <div className="px-4 py-2 flex space-x-2 overflow-x-auto no-scrollbar bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 text-[10px] absolute top-12 left-0 right-0 z-50 opacity-50 hover:opacity-100 transition-opacity">
-        <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 flex items-center shrink-0">Demo:</span>
-        <button onClick={() => setLoading(!loading)} className={`px-2 py-1 rounded border ${loading ? 'bg-[#FF4142] text-white border-[#FF4142]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 dark:text-gray-600'}`}>Loading</button>
-        <button onClick={() => setOffline(!offline)} className={`px-2 py-1 rounded border ${offline ? 'bg-[#FF4142] text-white border-[#FF4142]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 dark:text-gray-600'}`}>Offline</button>
-        <button onClick={() => setError(!error)} className={`px-2 py-1 rounded border ${error ? 'bg-[#FF4142] text-white border-[#FF4142]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 dark:text-gray-600'}`}>Error</button>
-        <button onClick={() => setEmpty(!empty)} className={`px-2 py-1 rounded border ${empty ? 'bg-[#FF4142] text-white border-[#FF4142]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 dark:text-gray-600'}`}>Empty</button>
+        <span className="text-gray-500 dark:text-gray-400 flex items-center shrink-0">Demo:</span>
+        <button onClick={() => setLoading(!loading)} className={`px-2 py-1 rounded border ${loading ? 'bg-[#FF4142] text-white border-[#FF4142]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'}`}>Loading</button>
+        <button onClick={() => setOffline(!offline)} className={`px-2 py-1 rounded border ${offline ? 'bg-[#FF4142] text-white border-[#FF4142]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'}`}>Offline</button>
+        <button onClick={() => setError(!error)} className={`px-2 py-1 rounded border ${error ? 'bg-[#FF4142] text-white border-[#FF4142]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'}`}>Error</button>
+        <button onClick={() => setEmpty(!empty)} className={`px-2 py-1 rounded border ${empty ? 'bg-[#FF4142] text-white border-[#FF4142]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'}`}>Empty</button>
       </div>
 
       {renderHeader()}

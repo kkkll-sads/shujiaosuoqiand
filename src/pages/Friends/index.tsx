@@ -262,7 +262,7 @@ export const FriendsPage = () => {
                         </span>
                       )}
                       {friend.status === 'unverified' && (
-                        <span className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 dark:text-gray-500 text-[10px] px-1.5 py-0.5 rounded flex items-center shrink-0">
+                        <span className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-[10px] px-1.5 py-0.5 rounded flex items-center shrink-0">
                           未实名
                         </span>
                       )}
@@ -327,7 +327,7 @@ export const FriendsPage = () => {
               <div>
                 <h4 className="font-medium text-text-main mb-1">3. 状态说明</h4>
                 <p>• <span className="text-green-600">已实名</span>：已完成身份认证，可正常参与平台活动。</p>
-                <p>• <span className="text-gray-600 dark:text-gray-400 dark:text-gray-500">未实名</span>：仅注册未认证，部分功能受限。</p>
+                <p>• <span className="text-gray-600 dark:text-gray-400">未实名</span>：仅注册未认证，部分功能受限。</p>
                 <p>• <span className="text-red-600">已冻结</span>：账号存在违规行为已被冻结，不计入有效好友。</p>
               </div>
             </div>

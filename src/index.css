@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* 深色模式由 .dark 类控制，不跟随系统；主题由 ThemeContext + 首屏脚本统一设置 */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-primary-start: var(--primary-start);
   --color-primary-end: var(--primary-end);

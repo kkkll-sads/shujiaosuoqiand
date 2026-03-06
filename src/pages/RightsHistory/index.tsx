@@ -19,7 +19,7 @@ const STATUS_MAP = {
   pending: { text: '审核中', color: 'text-orange-500', bg: 'bg-orange-50 dark:bg-orange-500/10' },
   approved: { text: '已通过', color: 'text-green-500', bg: 'bg-green-50 dark:bg-green-500/10' },
   rejected: { text: '已驳回', color: 'text-red-500', bg: 'bg-red-50 dark:bg-red-500/10' },
-  cancelled: { text: '已取消', color: 'text-gray-500 dark:text-gray-400 dark:text-gray-500', bg: 'bg-gray-50 dark:bg-gray-500/10' },
+  cancelled: { text: '已取消', color: 'text-gray-500 dark:text-gray-400', bg: 'bg-gray-50 dark:bg-gray-500/10' },
 };
 
 export function RightsHistoryPage() {

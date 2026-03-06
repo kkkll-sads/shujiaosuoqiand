@@ -107,10 +107,10 @@ export const OrderDetailPage = () => {
         <AlertCircle className="w-full h-full" />
       </div>
       <h3 className="text-[16px] font-medium text-gray-900 dark:text-gray-100 mb-2">加载失败</h3>
-      <p className="text-[13px] text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-6">请检查您的网络设置后重试</p>
+      <p className="text-[13px] text-gray-500 dark:text-gray-400 mb-6">请检查您的网络设置后重试</p>
       <button 
         onClick={fetchData}
-        className="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-full text-[14px] text-gray-700 dark:text-gray-300 dark:text-gray-600 flex items-center active:bg-gray-50 dark:bg-gray-800"
+        className="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-full text-[14px] text-gray-700 dark:text-gray-400 flex items-center active:bg-gray-50 dark:bg-gray-800"
       >
         重新加载
       </button>
@@ -184,7 +184,7 @@ export const OrderDetailPage = () => {
           <div className="flex-1">
             <div className="flex items-center mb-1">
               <span className="text-[15px] font-bold text-[#262626] mr-2">{mockOrder.address.name}</span>
-              <span className="text-[14px] text-gray-500 dark:text-gray-400 dark:text-gray-500">{mockOrder.address.phone}</span>
+              <span className="text-[14px] text-gray-500 dark:text-gray-400">{mockOrder.address.phone}</span>
             </div>
             <p className="text-[13px] text-[#262626] leading-relaxed">{mockOrder.address.detail}</p>
           </div>
@@ -214,7 +214,7 @@ export const OrderDetailPage = () => {
                 </div>
                 <div className="flex justify-between items-center mt-2">
                   <div className="text-[14px] font-bold text-[#262626]">¥{product.price}</div>
-                  <div className="text-[12px] text-gray-500 dark:text-gray-400 dark:text-gray-500">x{product.quantity}</div>
+                  <div className="text-[12px] text-gray-500 dark:text-gray-400">x{product.quantity}</div>
                 </div>
               </div>
             </div>
@@ -235,35 +235,35 @@ export const OrderDetailPage = () => {
           <h3 className="text-[14px] font-bold text-[#262626] mb-3">订单信息</h3>
           <div className="space-y-2 text-[13px]">
             <div className="flex justify-between">
-              <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500">订单编号</span>
+              <span className="text-gray-500 dark:text-gray-400">订单编号</span>
               <div className="flex items-center text-[#262626]">
                 {mockOrder.id}
-                <button onClick={() => handleCopy(mockOrder.id)} className="ml-2 text-gray-400 dark:text-gray-500 active:text-gray-600 dark:text-gray-400 dark:text-gray-500">
+                <button onClick={() => handleCopy(mockOrder.id)} className="ml-2 text-gray-400 dark:text-gray-500 active:text-gray-600 dark:text-gray-400">
                   <Copy size={12} />
                 </button>
               </div>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500">下单时间</span>
+              <span className="text-gray-500 dark:text-gray-400">下单时间</span>
               <span className="text-[#262626]">{mockOrder.createTime}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500">支付方式</span>
+              <span className="text-gray-500 dark:text-gray-400">支付方式</span>
               <span className="text-[#262626]">在线支付</span>
             </div>
           </div>
 
           <div className="mt-4 pt-4 border-t border-gray-50 dark:border-gray-800 space-y-2 text-[13px]">
             <div className="flex justify-between">
-              <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500">商品总额</span>
+              <span className="text-gray-500 dark:text-gray-400">商品总额</span>
               <span className="text-[#262626]">¥{mockOrder.fees.total}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500">运费</span>
+              <span className="text-gray-500 dark:text-gray-400">运费</span>
               <span className="text-[#262626]">¥{mockOrder.fees.shipping}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500">优惠金额</span>
+              <span className="text-gray-500 dark:text-gray-400">优惠金额</span>
               <span className="text-[#f2270c]">{mockOrder.fees.discount}</span>
             </div>
             <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-50 dark:border-gray-800">
@@ -288,10 +288,10 @@ export const OrderDetailPage = () => {
 
       {/* Demo Controls */}
       <div className="px-4 py-2 flex space-x-2 overflow-x-auto no-scrollbar bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 text-[10px] absolute top-11 left-0 right-0 z-50 opacity-30 hover:opacity-100 transition-opacity">
-        <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 flex items-center shrink-0">状态切换:</span>
-        <button onClick={() => {setLoading(false); setError(false);}} className={`px-2 py-1 rounded border ${!loading && !error ? 'bg-[#f2270c] text-white border-[#f2270c]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 dark:text-gray-500'}`}>正常</button>
-        <button onClick={() => {setLoading(true); setError(false);}} className={`px-2 py-1 rounded border ${loading ? 'bg-[#f2270c] text-white border-[#f2270c]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 dark:text-gray-500'}`}>加载中</button>
-        <button onClick={() => {setLoading(false); setError(true);}} className={`px-2 py-1 rounded border ${error ? 'bg-[#f2270c] text-white border-[#f2270c]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 dark:text-gray-500'}`}>错误</button>
+        <span className="text-gray-500 dark:text-gray-400 flex items-center shrink-0">状态切换:</span>
+        <button onClick={() => {setLoading(false); setError(false);}} className={`px-2 py-1 rounded border ${!loading && !error ? 'bg-[#f2270c] text-white border-[#f2270c]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'}`}>正常</button>
+        <button onClick={() => {setLoading(true); setError(false);}} className={`px-2 py-1 rounded border ${loading ? 'bg-[#f2270c] text-white border-[#f2270c]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'}`}>加载中</button>
+        <button onClick={() => {setLoading(false); setError(true);}} className={`px-2 py-1 rounded border ${error ? 'bg-[#f2270c] text-white border-[#f2270c]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'}`}>错误</button>
       </div>
 
       {renderHeader()}

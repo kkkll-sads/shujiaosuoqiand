@@ -235,7 +235,7 @@ export const CouponPage = () => {
               <div>
                 <div className="flex items-start mb-1">
                   <span className={`text-[10px] px-1 rounded mr-1.5 mt-0.5 shrink-0 ${
-                    coupon.status === 'expired' ? 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 dark:text-gray-500' : 'bg-primary-start text-white'
+                    coupon.status === 'expired' ? 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400' : 'bg-primary-start text-white'
                   }`}>
                     {coupon.type === 'discount' ? '折扣' : '满减'}
                   </span>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, WifiOff, AlertCircle, ChevronRight, LogOut } from 'lucide-react';
+import { useTheme } from '../../contexts/ThemeContext';
 
 export const SettingsPage = () => {
   const [loading, setLoading] = useState(true);
@@ -7,7 +8,7 @@ export const SettingsPage = () => {
   const [offline, setOffline] = useState(false);
   
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('system');
+  const { theme, setTheme } = useTheme();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [cacheSize, setCacheSize] = useState('12.5MB');
 
@@ -73,7 +74,7 @@ export const SettingsPage = () => {
       <div className="w-24 h-24 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-4 text-[#FF4142]">
         <AlertCircle size={48} />
       </div>
-      <p className="text-[15px] text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-6">加载失败，请重试</p>
+      <p className="text-[15px] text-gray-500 dark:text-gray-400 mb-6">加载失败，请重试</p>
       <button 
         onClick={fetchData}
         className="px-6 py-2 rounded-full bg-gradient-to-r from-[#FF4142] to-[#FF4B2B] text-white text-[14px] font-medium active:opacity-80 shadow-sm"
@@ -96,19 +97,19 @@ export const SettingsPage = () => {
             <span className="text-[15px] text-gray-900 dark:text-gray-100">外观设置</span>
             <div className="flex items-center space-x-2 bg-gray-100 dark:bg-gray-800 p-1 rounded-full">
               <button 
-                className={`px-3 py-1 text-[12px] rounded-full transition-colors ${theme === 'light' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 dark:text-gray-500'}`}
+                className={`px-3 py-1 text-[12px] rounded-full transition-colors ${theme === 'light' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}
                 onClick={() => setTheme('light')}
               >
                 浅色
               </button>
               <button 
-                className={`px-3 py-1 text-[12px] rounded-full transition-colors ${theme === 'dark' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 dark:text-gray-500'}`}
+                className={`px-3 py-1 text-[12px] rounded-full transition-colors ${theme === 'dark' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}
                 onClick={() => setTheme('dark')}
               >
                 深色
               </button>
               <button 
-                className={`px-3 py-1 text-[12px] rounded-full transition-colors ${theme === 'system' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 dark:text-gray-500'}`}
+                className={`px-3 py-1 text-[12px] rounded-full transition-colors ${theme === 'system' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}
                 onClick={() => setTheme('system')}
               >
                 跟随系统
@@ -118,7 +119,7 @@ export const SettingsPage = () => {
           <div className="px-4 py-3.5 flex items-center justify-between cursor-pointer active:bg-gray-50 dark:active:bg-gray-800 transition-colors">
             <span className="text-[15px] text-gray-900 dark:text-gray-100">语言设置</span>
             <div className="flex items-center">
-              <span className="text-[13px] text-gray-500 dark:text-gray-400 dark:text-gray-500 mr-2">简体中文</span>
+              <span className="text-[13px] text-gray-500 dark:text-gray-400 mr-2">简体中文</span>
               <ChevronRight size={16} className="text-gray-400 dark:text-gray-500" />
             </div>
           </div>
@@ -141,7 +142,7 @@ export const SettingsPage = () => {
           >
             <span className="text-[15px] text-gray-900 dark:text-gray-100">清理缓存</span>
             <div className="flex items-center">
-              <span className="text-[13px] text-gray-500 dark:text-gray-400 dark:text-gray-500 mr-2">{cacheSize}</span>
+              <span className="text-[13px] text-gray-500 dark:text-gray-400 mr-2">{cacheSize}</span>
               <ChevronRight size={16} className="text-gray-400 dark:text-gray-500" />
             </div>
           </div>
@@ -162,7 +163,7 @@ export const SettingsPage = () => {
           >
             <span className="text-[15px] text-gray-900 dark:text-gray-100">关于我们</span>
             <div className="flex items-center">
-              <span className="text-[13px] text-gray-500 dark:text-gray-400 dark:text-gray-500 mr-2">v1.0.0</span>
+              <span className="text-[13px] text-gray-500 dark:text-gray-400 mr-2">v1.0.0</span>
               <ChevronRight size={16} className="text-gray-400 dark:text-gray-500" />
             </div>
           </div>
@@ -185,7 +186,7 @@ export const SettingsPage = () => {
     <div className="flex-1 flex flex-col bg-[#FFF8F8] dark:bg-gray-950 relative h-full overflow-hidden">
       {/* Demo Controls */}
       <div className="px-4 py-2 flex space-x-2 overflow-x-auto no-scrollbar bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 text-[10px] absolute top-12 left-0 right-0 z-50 opacity-50 hover:opacity-100 transition-opacity">
-        <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 flex items-center shrink-0">Demo:</span>
+        <span className="text-gray-500 dark:text-gray-400 flex items-center shrink-0">Demo:</span>
         <button onClick={() => setLoading(!loading)} className={`px-2 py-1 rounded border ${loading ? 'bg-[#FF4142] text-white border-[#FF4142]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 dark:text-gray-600'}`}>Loading</button>
         <button onClick={() => setOffline(!offline)} className={`px-2 py-1 rounded border ${offline ? 'bg-[#FF4142] text-white border-[#FF4142]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 dark:text-gray-600'}`}>Offline</button>
         <button onClick={() => setError(!error)} className={`px-2 py-1 rounded border ${error ? 'bg-[#FF4142] text-white border-[#FF4142]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 dark:text-gray-600'}`}>Error</button>
@@ -206,7 +207,7 @@ export const SettingsPage = () => {
               <LogOut size={24} />
             </div>
             <h3 className="text-[18px] font-bold text-gray-900 dark:text-gray-100 mb-2">确认退出登录？</h3>
-            <p className="text-[13px] text-gray-500 dark:text-gray-400 dark:text-gray-500 text-center mb-6">退出后将无法查看订单和确权进度，需要重新登录。</p>
+            <p className="text-[13px] text-gray-500 dark:text-gray-400 text-center mb-6">退出后将无法查看订单和确权进度，需要重新登录。</p>
             <div className="flex w-full space-x-3">
               <button 
                 className="flex-1 h-[44px] rounded-full bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-[15px] font-medium active:bg-gray-200 dark:active:bg-gray-700 transition-colors"

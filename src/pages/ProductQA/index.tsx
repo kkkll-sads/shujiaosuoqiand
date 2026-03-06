@@ -85,14 +85,14 @@ export const ProductQAPage = () => {
   const renderFilters = () => (
     <div className="bg-white dark:bg-gray-900 px-4 py-3 flex items-center space-x-6 border-b border-gray-100 dark:border-gray-800 shrink-0">
       <button 
-        className={`text-[14px] font-medium transition-colors relative pb-1 ${activeFilter === 'hottest' ? 'text-gray-900 dark:text-gray-100' : 'text-gray-500 dark:text-gray-400 dark:text-gray-500'}`}
+        className={`text-[14px] font-medium transition-colors relative pb-1 ${activeFilter === 'hottest' ? 'text-gray-900 dark:text-gray-100' : 'text-gray-500 dark:text-gray-400'}`}
         onClick={() => setActiveFilter('hottest')}
       >
         最热
         {activeFilter === 'hottest' && <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-1 bg-[#f2270c] rounded-full"></div>}
       </button>
       <button 
-        className={`text-[14px] font-medium transition-colors relative pb-1 ${activeFilter === 'latest' ? 'text-gray-900 dark:text-gray-100' : 'text-gray-500 dark:text-gray-400 dark:text-gray-500'}`}
+        className={`text-[14px] font-medium transition-colors relative pb-1 ${activeFilter === 'latest' ? 'text-gray-900 dark:text-gray-100' : 'text-gray-500 dark:text-gray-400'}`}
         onClick={() => setActiveFilter('latest')}
       >
         最新
@@ -127,10 +127,10 @@ export const ProductQAPage = () => {
         <WifiOff className="w-full h-full" />
       </div>
       <h3 className="text-[16px] font-medium text-gray-900 dark:text-gray-100 mb-2">网络请求失败</h3>
-      <p className="text-[13px] text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-6">请检查您的网络设置后重试</p>
+      <p className="text-[13px] text-gray-500 dark:text-gray-400 mb-6">请检查您的网络设置后重试</p>
       <button 
         onClick={fetchData}
-        className="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-full text-[14px] text-gray-700 dark:text-gray-300 dark:text-gray-600 flex items-center active:bg-gray-50 dark:bg-gray-800"
+        className="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-full text-[14px] text-gray-700 dark:text-gray-400 flex items-center active:bg-gray-50 dark:bg-gray-800"
       >
         <RefreshCcw size={16} className="mr-2" />
         重新加载
@@ -144,7 +144,7 @@ export const ProductQAPage = () => {
         <MessageCircleQuestion className="w-full h-full" strokeWidth={1.5} />
       </div>
       <h3 className="text-[16px] font-medium text-gray-900 dark:text-gray-100 mb-2">暂无问答</h3>
-      <p className="text-[13px] text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-6">还没有人提问，快来做第一个提问的人吧</p>
+      <p className="text-[13px] text-gray-500 dark:text-gray-400 mb-6">还没有人提问，快来做第一个提问的人吧</p>
     </div>
   );
 
@@ -165,7 +165,7 @@ export const ProductQAPage = () => {
             </div>
             <div className="flex items-start mb-3">
               <span className="bg-[#25b513] text-white text-[12px] font-bold w-5 h-5 flex items-center justify-center rounded-sm mr-2 shrink-0 mt-0.5">答</span>
-              <p className="text-[14px] text-gray-600 dark:text-gray-400 dark:text-gray-500 leading-relaxed line-clamp-3">
+              <p className="text-[14px] text-gray-600 dark:text-gray-400 leading-relaxed line-clamp-3">
                 {item.answer}
               </p>
             </div>
@@ -191,11 +191,11 @@ export const ProductQAPage = () => {
 
       {/* Demo Controls */}
       <div className="px-4 py-2 flex space-x-2 overflow-x-auto no-scrollbar bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 text-[10px] absolute top-11 left-0 right-0 z-50 opacity-30 hover:opacity-100 transition-opacity">
-        <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 flex items-center shrink-0">状态切换:</span>
-        <button onClick={() => {setLoading(false); setError(false); setEmpty(false);}} className={`px-2 py-1 rounded border ${!loading && !error && !empty ? 'bg-[#f2270c] text-white border-[#f2270c]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 dark:text-gray-500'}`}>正常</button>
-        <button onClick={() => {setLoading(true); setError(false); setEmpty(false);}} className={`px-2 py-1 rounded border ${loading ? 'bg-[#f2270c] text-white border-[#f2270c]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 dark:text-gray-500'}`}>加载中</button>
-        <button onClick={() => {setLoading(false); setError(true); setEmpty(false);}} className={`px-2 py-1 rounded border ${error ? 'bg-[#f2270c] text-white border-[#f2270c]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 dark:text-gray-500'}`}>错误</button>
-        <button onClick={() => {setLoading(false); setError(false); setEmpty(true);}} className={`px-2 py-1 rounded border ${empty ? 'bg-[#f2270c] text-white border-[#f2270c]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 dark:text-gray-500'}`}>空态</button>
+        <span className="text-gray-500 dark:text-gray-400 flex items-center shrink-0">状态切换:</span>
+        <button onClick={() => {setLoading(false); setError(false); setEmpty(false);}} className={`px-2 py-1 rounded border ${!loading && !error && !empty ? 'bg-[#f2270c] text-white border-[#f2270c]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'}`}>正常</button>
+        <button onClick={() => {setLoading(true); setError(false); setEmpty(false);}} className={`px-2 py-1 rounded border ${loading ? 'bg-[#f2270c] text-white border-[#f2270c]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'}`}>加载中</button>
+        <button onClick={() => {setLoading(false); setError(true); setEmpty(false);}} className={`px-2 py-1 rounded border ${error ? 'bg-[#f2270c] text-white border-[#f2270c]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'}`}>错误</button>
+        <button onClick={() => {setLoading(false); setError(false); setEmpty(true);}} className={`px-2 py-1 rounded border ${empty ? 'bg-[#f2270c] text-white border-[#f2270c]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'}`}>空态</button>
       </div>
 
       {renderHeader()}

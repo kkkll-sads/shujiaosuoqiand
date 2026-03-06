@@ -81,7 +81,7 @@ export const SecurityPage = () => {
       <div className="w-24 h-24 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-4 text-[#FF4142]">
         <AlertCircle size={48} />
       </div>
-      <p className="text-[15px] text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-6">加载失败，请重试</p>
+      <p className="text-[15px] text-gray-500 dark:text-gray-400 mb-6">加载失败，请重试</p>
       <button 
         onClick={fetchData}
         className="px-6 py-2 rounded-full bg-gradient-to-r from-[#FF4142] to-[#FF4B2B] text-white text-[14px] font-medium active:opacity-80 shadow-sm"
@@ -109,7 +109,7 @@ export const SecurityPage = () => {
               账号安全评级：{securityLevel}
             </span>
           </div>
-          <div className="bg-gray-50 dark:bg-gray-800 rounded-[8px] p-3 text-[12px] text-gray-500 dark:text-gray-400 dark:text-gray-500 leading-relaxed">
+          <div className="bg-gray-50 dark:bg-gray-800 rounded-[8px] p-3 text-[12px] text-gray-500 dark:text-gray-400 leading-relaxed">
             建议定期修改密码，并开启多重身份验证，以保障账号资产安全。
           </div>
         </div>
@@ -118,7 +118,7 @@ export const SecurityPage = () => {
         <div className="bg-white dark:bg-gray-900 rounded-[16px] shadow-sm dark:shadow-none border border-transparent dark:border-gray-800 overflow-hidden mb-6">
           <div className="px-4 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between active:bg-gray-50 dark:active:bg-gray-800 transition-colors cursor-pointer">
             <div className="flex items-center">
-              <Lock size={20} className="text-gray-600 dark:text-gray-300 dark:text-gray-600 mr-3" />
+              <Lock size={20} className="text-gray-600 dark:text-gray-400 mr-3" />
               <span className="text-[15px] text-gray-900 dark:text-gray-100">登录密码</span>
             </div>
             <div className="flex items-center">
@@ -129,7 +129,7 @@ export const SecurityPage = () => {
 
           <div className="px-4 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between active:bg-gray-50 dark:active:bg-gray-800 transition-colors cursor-pointer">
             <div className="flex items-center">
-              <Smartphone size={20} className="text-gray-600 dark:text-gray-300 dark:text-gray-600 mr-3" />
+              <Smartphone size={20} className="text-gray-600 dark:text-gray-400 mr-3" />
               <span className="text-[15px] text-gray-900 dark:text-gray-100">绑定手机</span>
             </div>
             <div className="flex items-center">
@@ -140,7 +140,7 @@ export const SecurityPage = () => {
 
           <div className="px-4 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between active:bg-gray-50 dark:active:bg-gray-800 transition-colors cursor-pointer">
             <div className="flex items-center">
-              <MonitorSmartphone size={20} className="text-gray-600 dark:text-gray-300 dark:text-gray-600 mr-3" />
+              <MonitorSmartphone size={20} className="text-gray-600 dark:text-gray-400 mr-3" />
               <span className="text-[15px] text-gray-900 dark:text-gray-100">登录设备管理</span>
             </div>
             <div className="flex items-center">
@@ -151,7 +151,7 @@ export const SecurityPage = () => {
 
           <div className="px-4 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between active:bg-gray-50 dark:active:bg-gray-800 transition-colors cursor-pointer">
             <div className="flex items-center">
-              <History size={20} className="text-gray-600 dark:text-gray-300 dark:text-gray-600 mr-3" />
+              <History size={20} className="text-gray-600 dark:text-gray-400 mr-3" />
               <span className="text-[15px] text-gray-900 dark:text-gray-100">登录记录</span>
             </div>
             <div className="flex items-center">
@@ -162,7 +162,7 @@ export const SecurityPage = () => {
 
           <div className="px-4 py-4 flex items-center justify-between active:bg-gray-50 dark:active:bg-gray-800 transition-colors cursor-pointer">
             <div className="flex items-center">
-              <Fingerprint size={20} className="text-gray-600 dark:text-gray-300 dark:text-gray-600 mr-3" />
+              <Fingerprint size={20} className="text-gray-600 dark:text-gray-400 mr-3" />
               <span className="text-[15px] text-gray-900 dark:text-gray-100">支付安全</span>
             </div>
             <div className="flex items-center">
@@ -184,10 +184,10 @@ export const SecurityPage = () => {
     <div className="flex-1 flex flex-col bg-[#FFF8F8] dark:bg-gray-950 relative h-full overflow-hidden">
       {/* Demo Controls */}
       <div className="px-4 py-2 flex space-x-2 overflow-x-auto no-scrollbar bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 text-[10px] absolute top-12 left-0 right-0 z-50 opacity-50 hover:opacity-100 transition-opacity">
-        <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 flex items-center shrink-0">Demo:</span>
-        <button onClick={() => setLoading(!loading)} className={`px-2 py-1 rounded border ${loading ? 'bg-[#FF4142] text-white border-[#FF4142]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 dark:text-gray-600'}`}>Loading</button>
-        <button onClick={() => setOffline(!offline)} className={`px-2 py-1 rounded border ${offline ? 'bg-[#FF4142] text-white border-[#FF4142]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 dark:text-gray-600'}`}>Offline</button>
-        <button onClick={() => setError(!error)} className={`px-2 py-1 rounded border ${error ? 'bg-[#FF4142] text-white border-[#FF4142]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 dark:text-gray-600'}`}>Error</button>
+        <span className="text-gray-500 dark:text-gray-400 flex items-center shrink-0">Demo:</span>
+        <button onClick={() => setLoading(!loading)} className={`px-2 py-1 rounded border ${loading ? 'bg-[#FF4142] text-white border-[#FF4142]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'}`}>Loading</button>
+        <button onClick={() => setOffline(!offline)} className={`px-2 py-1 rounded border ${offline ? 'bg-[#FF4142] text-white border-[#FF4142]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'}`}>Offline</button>
+        <button onClick={() => setError(!error)} className={`px-2 py-1 rounded border ${error ? 'bg-[#FF4142] text-white border-[#FF4142]' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'}`}>Error</button>
       </div>
 
       {renderHeader()}

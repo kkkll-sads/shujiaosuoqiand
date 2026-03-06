@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Moon, Sun } from 'lucide-react';
+import { useTheme } from './contexts/ThemeContext';
 
 import { HomePage } from './pages/Home';
 import { StorePage } from './pages/Store';
@@ -58,7 +59,7 @@ import { FeedbackProvider } from './components/ui/FeedbackProvider';
 export default function App() {
   const [history, setHistory] = useState<string[]>(['home']);
   const view = history[history.length - 1];
-  const [isDark, setIsDark] = useState(false);
+  const { theme, setTheme, isDark } = useTheme();
 
   useEffect(() => {
     const handleViewChange = (e: any) => {
@@ -94,13 +95,7 @@ export default function App() {
     };
   }, []);
 
-  useEffect(() => {
-    if (isDark) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [isDark]);
+  // Dark mode is now managed by ThemeContext
 
   const showBottomTab = ['home', 'store', 'shield', 'order', 'user'].includes(view);
 
@@ -110,7 +105,7 @@ export default function App() {
         {/* Floating Dark Mode Toggle */}
         <button
           className={`fixed ${showBottomTab ? 'bottom-24' : 'bottom-6'} right-4 z-50 p-3 rounded-full bg-bg-card shadow-lg border border-border-light text-text-main transition-all`}
-          onClick={() => setIsDark(!isDark)}
+          onClick={() => setTheme(isDark ? 'light' : 'dark')}
         >
           {isDark ? <Sun size={20} /> : <Moon size={20} />}
         </button>
