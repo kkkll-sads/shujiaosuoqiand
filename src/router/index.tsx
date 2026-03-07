@@ -58,6 +58,7 @@ const AddReviewPage = lazy(() => import('../pages/AddReview'));
 const ProductQAPage = lazy(() => import('../pages/ProductQA').then(m => ({ default: m.ProductQAPage })));
 const LoginPage = lazy(() => import('../pages/Login').then(m => ({ default: m.LoginPage })));
 const RegisterPage = lazy(() => import('../pages/Register').then(m => ({ default: m.RegisterPage })));
+const ForgotPasswordPage = lazy(() => import('../pages/ForgotPassword').then(m => ({ default: m.ForgotPasswordPage })));
 const DesignSystemPage = lazy(() => import('../pages/DesignSystem').then(m => ({ default: m.DesignSystemPage })));
 
 /**
@@ -150,6 +151,7 @@ export const router = createHashRouter([
       // ========== 认证与登录 ==========
       { path: 'login', element: <Lazy><LoginPage /></Lazy> },
       { path: 'register', element: <Lazy><RegisterPage /></Lazy> },
+      { path: 'forgot-password', element: <Lazy><ForgotPasswordPage /></Lazy> },
 
       // ========== 开发工具 ==========
       { path: 'design', element: <Lazy><DesignSystemPage /></Lazy> },

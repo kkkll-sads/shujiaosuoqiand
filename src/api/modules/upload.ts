@@ -26,6 +26,22 @@ export interface UploadedFile {
   storage: string;
 }
 
+interface UploadedFileRaw {
+  height?: number | string;
+  id?: number | string;
+  mimetype?: string;
+  name?: string;
+  sha1?: string;
+  size?: number | string;
+  storage?: string;
+  url?: string;
+  width?: number | string;
+}
+
+interface UploadResponseRaw extends UploadedFileRaw {
+  file?: UploadedFileRaw;
+}
+
 export function resolveUploadUrl(url: string): string {
   if (!url) {
     return url;
@@ -36,6 +52,36 @@ export function resolveUploadUrl(url: string): string {
   }
 
   return new URL(url.startsWith('/') ? url : `/${url}`, apiConfig.baseURL).toString();
+}
+
+function readNumber(value: number | string | undefined): number {
+  const nextValue = typeof value === 'string' ? Number(value) : value;
+  return typeof nextValue === 'number' && Number.isFinite(nextValue) ? nextValue : 0;
+}
+
+function readOptionalNumber(value: number | string | undefined): number | undefined {
+  const nextValue = typeof value === 'string' ? Number(value) : value;
+  return typeof nextValue === 'number' && Number.isFinite(nextValue) ? nextValue : undefined;
+}
+
+function readString(value: string | undefined): string {
+  return typeof value === 'string' ? value : '';
+}
+
+function normalizeUploadedFile(payload: UploadResponseRaw): UploadedFile {
+  const raw = payload.file ?? payload;
+
+  return {
+    height: readOptionalNumber(raw.height),
+    id: readNumber(raw.id),
+    mimetype: readString(raw.mimetype),
+    name: readString(raw.name),
+    sha1: readString(raw.sha1),
+    size: readNumber(raw.size),
+    storage: readString(raw.storage),
+    url: resolveUploadUrl(readString(raw.url)),
+    width: readOptionalNumber(raw.width),
+  };
 }
 
 export const uploadApi = {
@@ -52,14 +98,11 @@ export const uploadApi = {
       formData.append('topic', payload.topic);
     }
 
-    const response = await http.post<UploadedFile, FormData>('/api/ajax/upload', formData, {
+    const response = await http.post<UploadResponseRaw, FormData>('/api/ajax/upload', formData, {
       headers: createApiHeaders(options),
       signal: options.signal,
     });
 
-    return {
-      ...response,
-      url: resolveUploadUrl(response.url),
-    };
+    return normalizeUploadedFile(response);
   },
 };

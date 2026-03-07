@@ -28,6 +28,7 @@ interface SubmitRealNameRaw {
 interface PaymentAccountRaw {
   account_name?: string;
   account_number?: string;
+  account_number_display?: string;
   bank_branch?: string;
   bank_name?: string;
   icon?: string;
@@ -56,9 +57,17 @@ export interface H5AuthTokenInfo {
   authUrl: string;
 }
 
+export interface GetH5AuthTokenPayload {
+  idCard: string;
+  realName: string;
+  redirectUrl: string;
+}
+
 export interface SubmitRealNamePayload {
   authToken: string;
   idCard: string;
+  idCardBack?: string;
+  idCardFront?: string;
   realName: string;
 }
 
@@ -102,7 +111,7 @@ function normalizeRealNameStatus(payload: RealNameStatusRaw): RealNameStatus {
 function normalizePaymentAccount(payload: PaymentAccountRaw): PaymentAccount {
   return {
     accountName: readOptionalString(payload.account_name),
-    accountNumber: readOptionalString(payload.account_number),
+    accountNumber: readOptionalString(payload.account_number_display ?? payload.account_number),
     bankBranch: readOptionalString(payload.bank_branch),
     bankName: readOptionalString(payload.bank_name),
     icon: payload.icon ? resolveUploadUrl(payload.icon) : undefined,
@@ -123,15 +132,26 @@ export const userApi = {
     return normalizeRealNameStatus(payload);
   },
 
-  async getH5AuthToken(options: UserRequestOptions = {}): Promise<H5AuthTokenInfo> {
-    const payload = await http.post<H5AuthTokenRaw>('/api/User/getH5AuthToken', undefined, {
-      headers: createApiHeaders(options),
-      signal: options.signal,
-    });
+  async getH5AuthToken(
+    payload: GetH5AuthTokenPayload,
+    options: UserRequestOptions = {},
+  ): Promise<H5AuthTokenInfo> {
+    const response = await http.post<H5AuthTokenRaw, Record<string, string>>(
+      '/api/User/getH5AuthToken',
+      {
+        id_card: payload.idCard,
+        real_name: payload.realName,
+        redirect_url: payload.redirectUrl,
+      },
+      {
+        headers: createApiHeaders(options),
+        signal: options.signal,
+      },
+    );
 
     return {
-      authToken: payload.authToken,
-      authUrl: payload.authUrl,
+      authToken: response.authToken,
+      authUrl: response.authUrl,
     };
   },
 
@@ -144,6 +164,8 @@ export const userApi = {
       {
         auth_token: payload.authToken,
         id_card: payload.idCard,
+        id_card_back: payload.idCardBack ?? '',
+        id_card_front: payload.idCardFront ?? '',
         real_name: payload.realName,
       },
       {

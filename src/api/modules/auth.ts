@@ -56,6 +56,13 @@ export interface RegisterPayload {
   invite_code?: string;
 }
 
+export interface RetrievePasswordPayload {
+  type: 'mobile';
+  account: string;
+  captcha: string;
+  password: string;
+}
+
 export const authApi = {
   getCheckInConfig(signal?: AbortSignal) {
     return http.get<CheckInConfig>('/api/User/checkIn', {
@@ -99,6 +106,17 @@ export const authApi = {
         tab: 'register',
         ...payload,
       },
+      {
+        signal,
+        useMock: false,
+      },
+    );
+  },
+
+  retrievePassword(payload: RetrievePasswordPayload, signal?: AbortSignal) {
+    return http.post<Record<string, unknown> | null, RetrievePasswordPayload>(
+      '/api/Account/retrievePassword',
+      payload,
       {
         signal,
         useMock: false,

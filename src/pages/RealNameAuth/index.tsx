@@ -66,8 +66,91 @@ function maskIdCard(idCard: string) {
   return `${idCard.slice(0, 4)} ******** ${idCard.slice(-4)}`;
 }
 
+const FACE_AUTH_QUERY_KEYS = ['authToken', 'auth_token'] as const;
+const FACE_AUTH_TOKEN_STORAGE_KEY = 'real-name-auth-token';
+const FACE_AUTH_URL_STORAGE_KEY = 'real-name-auth-url';
+const FACE_AUTH_RESTORED_MESSAGE = '已恢复人脸核身凭证，请确认人脸核身已完成后提交实名认证。';
+const FACE_AUTH_CALLBACK_MESSAGE = '已收到人脸核身回跳，请核对资料后提交实名认证。';
+
+interface PersistedFaceAuthState {
+  authToken: string;
+  authUrl: string;
+}
+
+function readPersistedFaceAuthState(): PersistedFaceAuthState {
+  if (typeof window === 'undefined') {
+    return {
+      authToken: '',
+      authUrl: '',
+    };
+  }
+
+  return {
+    authToken: window.sessionStorage.getItem(FACE_AUTH_TOKEN_STORAGE_KEY)?.trim() ?? '',
+    authUrl: window.sessionStorage.getItem(FACE_AUTH_URL_STORAGE_KEY)?.trim() ?? '',
+  };
+}
+
+function persistFaceAuthState(authToken: string, authUrl: string) {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  if (authToken) {
+    window.sessionStorage.setItem(FACE_AUTH_TOKEN_STORAGE_KEY, authToken);
+  } else {
+    window.sessionStorage.removeItem(FACE_AUTH_TOKEN_STORAGE_KEY);
+  }
+
+  if (authUrl) {
+    window.sessionStorage.setItem(FACE_AUTH_URL_STORAGE_KEY, authUrl);
+  } else {
+    window.sessionStorage.removeItem(FACE_AUTH_URL_STORAGE_KEY);
+  }
+}
+
+function consumeFaceAuthTokenFromLocation(): string {
+  if (typeof window === 'undefined') {
+    return '';
+  }
+
+  const currentUrl = new URL(window.location.href);
+  let authToken = '';
+
+  for (const key of FACE_AUTH_QUERY_KEYS) {
+    const nextValue = currentUrl.searchParams.get(key)?.trim() ?? '';
+    if (!nextValue) {
+      continue;
+    }
+
+    authToken = nextValue;
+    currentUrl.searchParams.delete(key);
+  }
+
+  if (authToken) {
+    window.history.replaceState(window.history.state, document.title, currentUrl.toString());
+  }
+
+  return authToken;
+}
+
+function buildFaceAuthRedirectUrl(): string {
+  if (typeof window === 'undefined') {
+    return '';
+  }
+
+  const currentUrl = new URL(window.location.href);
+
+  for (const key of FACE_AUTH_QUERY_KEYS) {
+    currentUrl.searchParams.delete(key);
+  }
+
+  return currentUrl.toString();
+}
+
 export const RealNameAuthPage = () => {
   const { goBack } = useAppNavigate();
+  const persistedFaceAuthStateRef = useRef<PersistedFaceAuthState>(readPersistedFaceAuthState());
   const [offline, setOffline] = useState(
     typeof navigator !== 'undefined' ? !navigator.onLine : false,
   );
@@ -78,9 +161,11 @@ export const RealNameAuthPage = () => {
   const [auditStatus, setAuditStatus] = useState<AuditStatus>('none');
   const [auditTime, setAuditTime] = useState('');
   const [auditReason, setAuditReason] = useState('');
-  const [authToken, setAuthToken] = useState('');
-  const [authUrl, setAuthUrl] = useState('');
-  const [authMessage, setAuthMessage] = useState('');
+  const [authToken, setAuthToken] = useState(persistedFaceAuthStateRef.current.authToken);
+  const [authUrl, setAuthUrl] = useState(persistedFaceAuthStateRef.current.authUrl);
+  const [authMessage, setAuthMessage] = useState(
+    persistedFaceAuthStateRef.current.authToken ? FACE_AUTH_RESTORED_MESSAGE : '',
+  );
   const [loadingFaceAuth, setLoadingFaceAuth] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState('');
@@ -111,19 +196,38 @@ export const RealNameAuthPage = () => {
   }, []);
 
   useEffect(() => {
+    const callbackAuthToken = consumeFaceAuthTokenFromLocation();
+    if (!callbackAuthToken) {
+      return;
+    }
+
+    setAuthToken(callbackAuthToken);
+    setAuthMessage(FACE_AUTH_CALLBACK_MESSAGE);
+  }, []);
+
+  useEffect(() => {
+    persistFaceAuthState(authToken, authUrl);
+  }, [authToken, authUrl]);
+
+  useEffect(() => {
     if (!realNameStatus) {
       return;
     }
 
+    const nextAuditStatus = mapAuditStatus(realNameStatus.realNameStatus);
+
     setName(realNameStatus.realName || '');
     setIdNumber(realNameStatus.idCard || '');
-    setAuditStatus(mapAuditStatus(realNameStatus.realNameStatus));
+    setAuditStatus(nextAuditStatus);
     setAuditTime(realNameStatus.auditTime || '');
     setAuditReason(realNameStatus.auditReason || '');
-    setAuthToken('');
-    setAuthUrl('');
-    setAuthMessage('');
     setSubmitMessage('');
+
+    if (nextAuditStatus !== 'none') {
+      setAuthToken('');
+      setAuthUrl('');
+      setAuthMessage('');
+    }
 
     setFrontDocument((current) => {
       if (current.url !== realNameStatus.idCardFront) {
@@ -155,6 +259,14 @@ export const RealNameAuthPage = () => {
       };
     });
   }, [realNameStatus]);
+
+  useEffect(() => {
+    if (auditStatus !== 'none' || authToken.trim().length === 0) {
+      return;
+    }
+
+    setAuthMessage((current) => current || FACE_AUTH_RESTORED_MESSAGE);
+  }, [auditStatus, authToken]);
 
   useEffect(() => {
     return () => {
@@ -263,14 +375,35 @@ export const RealNameAuthPage = () => {
   };
 
   const handleStartFaceAuth = async () => {
+    if (!isInfoFilled) {
+      setAuthMessage('请先填写真实姓名和身份证号。');
+      return;
+    }
+
+    if (!isUploadFilled) {
+      setAuthMessage('请先上传身份证正反面。');
+      return;
+    }
+
+    const redirectUrl = buildFaceAuthRedirectUrl();
+    if (!redirectUrl) {
+      setAuthMessage('无法生成实名认证回跳地址，请刷新页面后重试。');
+      return;
+    }
+
     setLoadingFaceAuth(true);
     setAuthMessage('');
     setSubmitMessage('');
 
     try {
-      const result = await userApi.getH5AuthToken();
+      const result = await userApi.getH5AuthToken({
+        idCard: idNumber.trim(),
+        realName: name.trim(),
+        redirectUrl,
+      });
       setAuthToken(result.authToken);
       setAuthUrl(result.authUrl);
+      persistFaceAuthState(result.authToken, result.authUrl);
       setAuthMessage('已获取人脸核身凭证，请在新打开的页面完成认证后回到当前页提交。');
 
       if (result.authUrl) {
@@ -297,11 +430,16 @@ export const RealNameAuthPage = () => {
       const result = await userApi.submitRealName({
         authToken,
         idCard: idNumber.trim(),
+        idCardBack: backDocument.uploaded?.url ?? backDocument.url ?? undefined,
+        idCardFront: frontDocument.uploaded?.url ?? frontDocument.url ?? undefined,
         realName: name.trim(),
       });
 
       const nextStatus = mapAuditStatus(result.realNameStatus);
       setAuditStatus(nextStatus === 'none' ? 'auditing' : nextStatus);
+      setAuthToken('');
+      setAuthUrl('');
+      setAuthMessage('');
       setSubmitMessage('实名认证信息已提交。');
 
       const latest = await reload().catch(() => undefined);

@@ -34,6 +34,7 @@ interface AccountIncomeSummaryRaw {
 
 interface AccountCollectionSummaryRaw {
   consignment_count?: number | string;
+  consigning_count?: number | string;
   holding_count?: number | string;
   mining_count?: number | string;
   sold_count?: number | string;
@@ -326,7 +327,9 @@ function normalizeOverview(payload: AccountOverviewRaw): AccountOverview {
       withdrawableMoney: readString(payload.balance?.withdrawable_money),
     },
     collection: {
-      consignmentCount: readNumber(payload.collection?.consignment_count),
+      consignmentCount: readNumber(
+        payload.collection?.consignment_count ?? payload.collection?.consigning_count,
+      ),
       holdingCount: readNumber(payload.collection?.holding_count),
       miningCount: readNumber(payload.collection?.mining_count),
       soldCount: readNumber(payload.collection?.sold_count),
