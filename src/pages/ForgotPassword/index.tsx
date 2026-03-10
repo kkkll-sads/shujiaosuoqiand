@@ -75,7 +75,7 @@ export const ForgotPasswordPage = () => {
   };
 
   return (
-    <div className="relative flex h-full flex-1 flex-col overflow-y-auto bg-[#FFF8F8] no-scrollbar">
+    <div className="relative flex h-full flex-1 flex-col overflow-y-auto bg-bg-base no-scrollbar">
       <div className="relative z-10 flex flex-1 flex-col overflow-y-auto px-4 pb-8 pt-12 no-scrollbar">
         <div className="absolute left-4 right-4 top-4 z-20 flex justify-between">
           <button

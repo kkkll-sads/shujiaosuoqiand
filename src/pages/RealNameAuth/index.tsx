@@ -1,42 +1,32 @@
-import type { ChangeEvent } from 'react';
-import { useEffect, useRef, useState } from 'react';
+﻿import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle,
-  Camera,
   CheckCircle2,
-  ChevronRight,
-  Clock,
+  Clock3,
   ExternalLink,
   Loader2,
-  User,
-  Wifi,
+  ScanFace,
+  ShieldCheck,
   XCircle,
 } from 'lucide-react';
+import { userApi } from '../../api';
 import { getErrorMessage } from '../../api/core/errors';
-import { userApi, uploadApi, type UploadedFile } from '../../api';
-import { Card } from '../../components/ui/Card';
-import { ErrorState } from '../../components/ui/ErrorState';
 import { PageHeader } from '../../components/layout/PageHeader';
+import { Card } from '../../components/ui/Card';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { ErrorState } from '../../components/ui/ErrorState';
+import { Skeleton } from '../../components/ui/Skeleton';
+import { PullToRefreshContainer } from '../../components/ui/PullToRefreshContainer';
+import { useAuthSession } from '../../hooks/useAuthSession';
+import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 import { useRequest } from '../../hooks/useRequest';
 import { useAppNavigate } from '../../lib/navigation';
 
 type AuditStatus = 'none' | 'auditing' | 'passed' | 'rejected';
-type DocumentStatus = 'idle' | 'uploading' | 'success' | 'error';
 
-interface UploadedDocumentState {
-  errorMessage?: string;
-  file?: File;
-  status: DocumentStatus;
-  uploaded?: UploadedFile;
-  url: string | null;
-}
-
-function createEmptyDocument(): UploadedDocumentState {
-  return {
-    status: 'idle',
-    url: null,
-  };
-}
+const FACE_AUTH_QUERY_KEYS = ['authToken', 'auth_token'] as const;
+const FACE_AUTH_TOKEN_STORAGE_KEY = 'real-name-auth-token';
+const FACE_AUTH_URL_STORAGE_KEY = 'real-name-auth-url';
 
 function mapAuditStatus(value: number | undefined): AuditStatus {
   switch (value) {
@@ -51,12 +41,6 @@ function mapAuditStatus(value: number | undefined): AuditStatus {
   }
 }
 
-function revokePreviewUrl(url: string | null) {
-  if (url && url.startsWith('blob:')) {
-    URL.revokeObjectURL(url);
-  }
-}
-
 function maskIdCard(idCard: string) {
   if (idCard.length < 8) {
     return idCard;
@@ -65,23 +49,13 @@ function maskIdCard(idCard: string) {
   return `${idCard.slice(0, 4)} ******** ${idCard.slice(-4)}`;
 }
 
-const FACE_AUTH_QUERY_KEYS = ['authToken', 'auth_token'] as const;
-const FACE_AUTH_TOKEN_STORAGE_KEY = 'real-name-auth-token';
-const FACE_AUTH_URL_STORAGE_KEY = 'real-name-auth-url';
-const FACE_AUTH_RESTORED_MESSAGE = '已恢复人脸核身凭证，请确认人脸核身已完成后提交实名认证。';
-const FACE_AUTH_CALLBACK_MESSAGE = '已收到人脸核身回跳，请核对资料后提交实名认证。';
-
-interface PersistedFaceAuthState {
-  authToken: string;
-  authUrl: string;
+function isValidChineseIdCard(idCard: string) {
+  return /^(?:\d{15}|\d{17}[\dXx])$/.test(idCard);
 }
 
-function readPersistedFaceAuthState(): PersistedFaceAuthState {
+function readPersistedFaceAuthState() {
   if (typeof window === 'undefined') {
-    return {
-      authToken: '',
-      authUrl: '',
-    };
+    return { authToken: '', authUrl: '' };
   }
 
   return {
@@ -108,7 +82,16 @@ function persistFaceAuthState(authToken: string, authUrl: string) {
   }
 }
 
-function consumeFaceAuthTokenFromLocation(): string {
+function splitHashPathAndQuery(hash: string) {
+  const normalizedHash = hash.startsWith('#') ? hash.slice(1) : hash;
+  const [path, query = ''] = normalizedHash.split('?');
+  return {
+    path,
+    params: new URLSearchParams(query),
+  };
+}
+
+function consumeFaceAuthTokenFromLocation() {
   if (typeof window === 'undefined') {
     return '';
   }
@@ -126,6 +109,20 @@ function consumeFaceAuthTokenFromLocation(): string {
     currentUrl.searchParams.delete(key);
   }
 
+  const hashState = splitHashPathAndQuery(currentUrl.hash);
+  for (const key of FACE_AUTH_QUERY_KEYS) {
+    const nextValue = hashState.params.get(key)?.trim() ?? '';
+    if (!nextValue) {
+      continue;
+    }
+
+    authToken = nextValue;
+    hashState.params.delete(key);
+  }
+
+  const nextHashQuery = hashState.params.toString();
+  currentUrl.hash = nextHashQuery ? `${hashState.path}?${nextHashQuery}` : hashState.path;
+
   if (authToken) {
     window.history.replaceState(window.history.state, document.title, currentUrl.toString());
   }
@@ -133,44 +130,45 @@ function consumeFaceAuthTokenFromLocation(): string {
   return authToken;
 }
 
-function buildFaceAuthRedirectUrl(): string {
+function buildFaceAuthRedirectUrl() {
   if (typeof window === 'undefined') {
     return '';
   }
 
   const currentUrl = new URL(window.location.href);
-
   for (const key of FACE_AUTH_QUERY_KEYS) {
     currentUrl.searchParams.delete(key);
   }
 
+  const hashState = splitHashPathAndQuery(currentUrl.hash);
+  for (const key of FACE_AUTH_QUERY_KEYS) {
+    hashState.params.delete(key);
+  }
+
+  const nextHashQuery = hashState.params.toString();
+  currentUrl.hash = nextHashQuery ? `${hashState.path}?${nextHashQuery}` : hashState.path;
   return currentUrl.toString();
 }
 
 export const RealNameAuthPage = () => {
-  const { goBack } = useAppNavigate();
-  const persistedFaceAuthStateRef = useRef<PersistedFaceAuthState>(readPersistedFaceAuthState());
-  const [offline, setOffline] = useState(
-    typeof navigator !== 'undefined' ? !navigator.onLine : false,
-  );
+  const { goBack, goTo } = useAppNavigate();
+  const { isAuthenticated } = useAuthSession();
+  const { isOffline, refreshStatus } = useNetworkStatus();
+  const persistedFaceAuthState = readPersistedFaceAuthState();
+  const autoSubmittedTokenRef = useRef('');
   const [name, setName] = useState('');
   const [idNumber, setIdNumber] = useState('');
-  const [frontDocument, setFrontDocument] = useState<UploadedDocumentState>(createEmptyDocument);
-  const [backDocument, setBackDocument] = useState<UploadedDocumentState>(createEmptyDocument);
   const [auditStatus, setAuditStatus] = useState<AuditStatus>('none');
   const [auditTime, setAuditTime] = useState('');
   const [auditReason, setAuditReason] = useState('');
-  const [authToken, setAuthToken] = useState(persistedFaceAuthStateRef.current.authToken);
-  const [authUrl, setAuthUrl] = useState(persistedFaceAuthStateRef.current.authUrl);
+  const [authToken, setAuthToken] = useState(persistedFaceAuthState.authToken);
+  const [authUrl, setAuthUrl] = useState(persistedFaceAuthState.authUrl);
   const [authMessage, setAuthMessage] = useState(
-    persistedFaceAuthStateRef.current.authToken ? FACE_AUTH_RESTORED_MESSAGE : '',
+    persistedFaceAuthState.authToken ? '已恢复人脸核身凭证，等待自动提交审核。' : '',
   );
+  const [submitError, setSubmitError] = useState('');
   const [loadingFaceAuth, setLoadingFaceAuth] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [submitMessage, setSubmitMessage] = useState('');
-
-  const frontInputRef = useRef<HTMLInputElement>(null);
-  const backInputRef = useRef<HTMLInputElement>(null);
 
   const {
     data: realNameStatus,
@@ -178,21 +176,8 @@ export const RealNameAuthPage = () => {
     loading,
     reload,
   } = useRequest((signal) => userApi.getRealNameStatus({ signal }), {
-    keepPreviousData: false,
+    manual: !isAuthenticated,
   });
-
-  useEffect(() => {
-    const handleOnline = () => setOffline(false);
-    const handleOffline = () => setOffline(true);
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
 
   useEffect(() => {
     const callbackAuthToken = consumeFaceAuthTokenFromLocation();
@@ -201,7 +186,7 @@ export const RealNameAuthPage = () => {
     }
 
     setAuthToken(callbackAuthToken);
-    setAuthMessage(FACE_AUTH_CALLBACK_MESSAGE);
+    setAuthMessage('已收到人脸核身回跳，正在准备自动提交审核。');
   }, []);
 
   useEffect(() => {
@@ -213,186 +198,122 @@ export const RealNameAuthPage = () => {
       return;
     }
 
-    const nextAuditStatus = mapAuditStatus(realNameStatus.realNameStatus);
-
+    const nextStatus = mapAuditStatus(realNameStatus.realNameStatus);
     setName(realNameStatus.realName || '');
     setIdNumber(realNameStatus.idCard || '');
-    setAuditStatus(nextAuditStatus);
+    setAuditStatus(nextStatus);
     setAuditTime(realNameStatus.auditTime || '');
     setAuditReason(realNameStatus.auditReason || '');
-    setSubmitMessage('');
+    setSubmitError('');
 
-    if (nextAuditStatus !== 'none') {
+    if (nextStatus !== 'none' && nextStatus !== 'rejected') {
       setAuthToken('');
       setAuthUrl('');
       setAuthMessage('');
+      autoSubmittedTokenRef.current = '';
     }
-
-    setFrontDocument((current) => {
-      if (current.url !== realNameStatus.idCardFront) {
-        revokePreviewUrl(current.url);
-      }
-
-      if (!realNameStatus.idCardFront) {
-        return createEmptyDocument();
-      }
-
-      return {
-        status: 'success',
-        url: realNameStatus.idCardFront,
-      };
-    });
-
-    setBackDocument((current) => {
-      if (current.url !== realNameStatus.idCardBack) {
-        revokePreviewUrl(current.url);
-      }
-
-      if (!realNameStatus.idCardBack) {
-        return createEmptyDocument();
-      }
-
-      return {
-        status: 'success',
-        url: realNameStatus.idCardBack,
-      };
-    });
   }, [realNameStatus]);
 
-  useEffect(() => {
-    if (auditStatus !== 'none' || authToken.trim().length === 0) {
-      return;
+  const formError = useMemo(() => {
+    const trimmedName = name.trim();
+    const trimmedId = idNumber.trim();
+
+    if (!trimmedName) {
+      return '请输入真实姓名';
     }
 
-    setAuthMessage((current) => current || FACE_AUTH_RESTORED_MESSAGE);
-  }, [auditStatus, authToken]);
+    if (trimmedName.length < 2) {
+      return '姓名至少 2 个字符';
+    }
 
-  useEffect(() => {
-    return () => {
-      revokePreviewUrl(frontDocument.url);
-      revokePreviewUrl(backDocument.url);
-    };
-  }, [frontDocument.url, backDocument.url]);
+    if (!trimmedId) {
+      return '请输入身份证号';
+    }
 
-  const isInfoFilled = name.trim().length > 0 && idNumber.trim().length > 0;
-  const isUploadFilled =
-    frontDocument.status === 'success' && backDocument.status === 'success';
+    if (!isValidChineseIdCard(trimmedId)) {
+      return '身份证号格式不正确';
+    }
+
+    return '';
+  }, [idNumber, name]);
+
+  const canEdit = auditStatus === 'none' || auditStatus === 'rejected';
   const canSubmit =
-    auditStatus === 'none' &&
-    isInfoFilled &&
-    isUploadFilled &&
-    authToken.trim().length > 0 &&
-    !submitting;
+    isAuthenticated && canEdit && !formError && !!authToken.trim() && !loadingFaceAuth && !submitting;
 
-  let currentStepIdx = 0;
-  if (auditStatus !== 'none') {
-    currentStepIdx = 3;
-  } else if (authToken) {
-    currentStepIdx = 2;
-  } else if (isUploadFilled) {
-    currentStepIdx = 1;
-  }
-
-  const steps = ['填写信息', '上传证件', '人脸核验', '审核结果'];
-
-  const retryFetch = () => {
+  const handleRetry = () => {
+    refreshStatus();
     void reload().catch(() => undefined);
   };
 
   const openAuthPage = (url: string) => {
     const openedWindow = window.open(url, '_blank', 'noopener,noreferrer');
     if (!openedWindow) {
-      setAuthMessage('浏览器拦截了新窗口，请允许弹窗后重新打开认证页面。');
+      setAuthMessage('浏览器拦截了新窗口，请允许弹窗后重试。');
     }
   };
 
-  const uploadDocument = async (
-    file: File,
-    side: 'front' | 'back',
-  ) => {
-    const previewUrl = URL.createObjectURL(file);
-    const setDocument = side === 'front' ? setFrontDocument : setBackDocument;
+  const handleSubmit = async (mode: 'manual' | 'auto' = 'manual') => {
+    if (!canSubmit) {
+      if (mode === 'manual') {
+        setSubmitError(formError || '请先完成人脸核身');
+      }
+      return;
+    }
 
-    setDocument((current) => {
-      revokePreviewUrl(current.url);
-      return {
-        errorMessage: undefined,
-        file,
-        status: 'uploading',
-        url: previewUrl,
-      };
-    });
+    setSubmitting(true);
+    setSubmitError('');
 
     try {
-      const uploaded = await uploadApi.upload({
-        file,
-        topic: 'real-name',
+      const result = await userApi.submitRealName({
+        authToken,
+        idCard: idNumber.trim(),
+        realName: name.trim(),
       });
 
-      setDocument((current) => {
-        if (current.url !== uploaded.url) {
-          revokePreviewUrl(current.url);
-        }
-
-        return {
-          errorMessage: undefined,
-          file,
-          status: 'success',
-          uploaded,
-          url: uploaded.url,
-        };
-      });
-    } catch (uploadError) {
-      setDocument((current) => ({
-        ...current,
-        errorMessage: getErrorMessage(uploadError),
-        file,
-        status: 'error',
-        url: current.url || previewUrl,
-      }));
+      const reloadedStatus = await reload().catch(() => undefined);
+      const nextStatus = mapAuditStatus(reloadedStatus?.realNameStatus ?? result.realNameStatus);
+      setAuditStatus(nextStatus === 'none' ? 'passed' : nextStatus);
+    } catch (submitErr) {
+      setSubmitError(getErrorMessage(submitErr));
+      if (mode === 'auto') {
+        setAuthMessage('已收到回跳 token，但自动提交失败，请手动重试。');
+      }
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const handleDocumentChange =
-    (side: 'front' | 'back') => (event: ChangeEvent<HTMLInputElement>) => {
-      const nextFile = event.target.files?.[0];
-      if (!nextFile) {
-        return;
-      }
-
-      void uploadDocument(nextFile, side);
-      event.target.value = '';
-    };
-
-  const handleRetryUpload = (side: 'front' | 'back') => {
-    const document = side === 'front' ? frontDocument : backDocument;
-    if (!document.file) {
+  useEffect(() => {
+    const trimmedToken = authToken.trim();
+    if (!trimmedToken || !canEdit || !!formError || submitting || loadingFaceAuth) {
       return;
     }
 
-    void uploadDocument(document.file, side);
-  };
+    if (autoSubmittedTokenRef.current === trimmedToken) {
+      return;
+    }
+
+    autoSubmittedTokenRef.current = trimmedToken;
+    void handleSubmit('auto');
+  }, [authToken, canEdit, formError, loadingFaceAuth, submitting]);
 
   const handleStartFaceAuth = async () => {
-    if (!isInfoFilled) {
-      setAuthMessage('请先填写真实姓名和身份证号。');
-      return;
-    }
-
-    if (!isUploadFilled) {
-      setAuthMessage('请先上传身份证正反面。');
+    if (formError) {
+      setAuthMessage(formError);
       return;
     }
 
     const redirectUrl = buildFaceAuthRedirectUrl();
     if (!redirectUrl) {
-      setAuthMessage('无法生成实名认证回跳地址，请刷新页面后重试。');
+      setAuthMessage('无法生成回跳地址，请刷新页面后重试。');
       return;
     }
 
     setLoadingFaceAuth(true);
+    setSubmitError('');
     setAuthMessage('');
-    setSubmitMessage('');
+    autoSubmittedTokenRef.current = '';
 
     try {
       const result = await userApi.getH5AuthToken({
@@ -400,468 +321,285 @@ export const RealNameAuthPage = () => {
         realName: name.trim(),
         redirectUrl,
       });
-      setAuthToken(result.authToken);
+
+      setAuthToken('');
       setAuthUrl(result.authUrl);
-      persistFaceAuthState(result.authToken, result.authUrl);
-      setAuthMessage('已获取人脸核身凭证，请在新打开的页面完成认证后回到当前页提交。');
+      setAuthMessage('人脸核身链接已生成，完成核身后会自动回填 token 并提交。');
 
       if (result.authUrl) {
         openAuthPage(result.authUrl);
       }
-    } catch (authError) {
+    } catch (authErr) {
       setAuthToken('');
       setAuthUrl('');
-      setAuthMessage(getErrorMessage(authError));
+      setAuthMessage(getErrorMessage(authErr));
     } finally {
       setLoadingFaceAuth(false);
     }
   };
 
-  const handleSubmit = async () => {
-    if (!canSubmit) {
-      return;
-    }
-
-    setSubmitting(true);
-    setSubmitMessage('');
-
-    try {
-      const result = await userApi.submitRealName({
-        authToken,
-        idCard: idNumber.trim(),
-        idCardBack: backDocument.uploaded?.url ?? backDocument.url ?? undefined,
-        idCardFront: frontDocument.uploaded?.url ?? frontDocument.url ?? undefined,
-        realName: name.trim(),
-      });
-
-      const nextStatus = mapAuditStatus(result.realNameStatus);
-      setAuditStatus(nextStatus === 'none' ? 'auditing' : nextStatus);
-      setAuthToken('');
-      setAuthUrl('');
-      setAuthMessage('');
-      setSubmitMessage('实名认证信息已提交。');
-
-      const latest = await reload().catch(() => undefined);
-      if (!latest) {
-        setAuditStatus(nextStatus === 'none' ? 'auditing' : nextStatus);
-      }
-    } catch (submitError) {
-      setSubmitMessage(getErrorMessage(submitError));
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const renderHeader = () => (
-    <PageHeader
-      title="实名认证"
-      onBack={goBack}
-      offline={offline}
-      onRefresh={retryFetch}
-    />
-  );
-
-  const renderStepBar = () => (
-    <Card className="relative mx-4 mt-4 mb-4 flex items-center justify-between border border-transparent p-4 dark:border-gray-800">
-      <div className="absolute top-1/2 left-[12%] right-[12%] z-0 h-px -translate-y-1/2 bg-gray-100 dark:bg-gray-800" />
-      {steps.map((step, index) => {
-        const isActive = currentStepIdx >= index;
-        const isCurrent = currentStepIdx === index;
-
-        return (
-          <div
-            key={step}
-            className="relative z-10 flex flex-col items-center bg-bg-card px-1"
-          >
-            <div
-              className={`mb-1.5 flex h-5 w-5 items-center justify-center rounded-full text-s font-bold transition-colors ${
-                isActive
-                  ? 'bg-brand-start text-white'
-                  : 'bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500'
-              }`}
-            >
-              {isActive && index < currentStepIdx ? <CheckCircle2 size={12} /> : index + 1}
-            </div>
-            <span
-              className={`text-xs ${
-                isCurrent
-                  ? 'font-medium text-brand-start'
-                  : isActive
-                    ? 'text-gray-900 dark:text-gray-100'
-                    : 'text-gray-400 dark:text-gray-500'
-              }`}
-            >
-              {step}
-            </span>
-          </div>
-        );
-      })}
-    </Card>
-  );
-
-  const renderSkeleton = () => (
-    <div className="space-y-4 p-4">
-      <div className="h-20 w-full animate-pulse rounded-2xl bg-white dark:bg-gray-900" />
-      <div className="h-40 w-full animate-pulse rounded-2xl bg-white dark:bg-gray-900" />
-      <div className="h-48 w-full animate-pulse rounded-2xl bg-white dark:bg-gray-900" />
+  const renderLoading = () => (
+    <div className="space-y-4 px-4 py-4">
+      <Card className="border border-border-light p-5">
+        <Skeleton className="h-5 w-32" />
+        <Skeleton className="mt-4 h-4 w-full" />
+        <Skeleton className="mt-2 h-4 w-2/3" />
+      </Card>
+      <Card className="border border-border-light p-5">
+        <Skeleton className="h-5 w-24" />
+        <Skeleton className="mt-4 h-12 w-full rounded-2xl" />
+        <Skeleton className="mt-4 h-12 w-full rounded-2xl" />
+        <Skeleton className="mt-4 h-20 w-full rounded-2xl" />
+      </Card>
     </div>
   );
 
-  const renderDocumentCard = (
-    title: string,
-    document: UploadedDocumentState,
-    onPick: () => void,
-    onRetry: () => void,
-  ) => (
-    <button
-      type="button"
-      onClick={onPick}
-      className="relative flex-1 overflow-hidden rounded-xl border border-dashed border-gray-300 bg-gray-50 transition-opacity active:opacity-80 dark:border-gray-600 dark:bg-gray-800"
-    >
-      <div className="aspect-[1.6/1] w-full">
-        {document.url ? (
-          <img
-            src={document.url}
-            className="h-full w-full object-cover"
-            alt={title}
-            referrerPolicy="no-referrer"
-          />
-        ) : (
-          <div className="flex h-full flex-col items-center justify-center">
-            <Camera size={24} className="mb-2 text-gray-400 dark:text-gray-500" />
-            <span className="text-sm text-gray-500 dark:text-gray-400">{title}</span>
-          </div>
-        )}
-      </div>
-
-      {document.status === 'uploading' && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/45 text-white">
-          <Loader2 size={20} className="mb-2 animate-spin" />
-          <span className="text-sm">上传中...</span>
-        </div>
-      )}
-
-      {document.status === 'error' && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/55 px-3 text-white">
-          <AlertCircle size={18} className="mb-2 text-red-300" />
-          <span className="mb-2 text-center text-xs">
-            {document.errorMessage || '上传失败'}
-          </span>
-          <span
-            className="rounded bg-white px-2 py-0.5 text-xs text-gray-900"
-            onClick={(event) => {
-              event.stopPropagation();
-              onRetry();
-            }}
-          >
-            重试
-          </span>
-        </div>
-      )}
-    </button>
-  );
-
-  const renderResult = () => {
-    if (auditStatus === 'auditing') {
+  const renderStatusCard = () => {
+    if (auditStatus === 'passed') {
       return (
-        <div className="px-6 pt-16">
-          <Card className="flex flex-col items-center p-6 text-center">
-            <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-blue-50 text-blue-500 dark:bg-blue-900/20">
-              <Clock size={40} />
+        <Card className="mx-4 mt-4 border border-emerald-200/80 p-5 dark:border-emerald-900/60">
+          <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-300">
+              <CheckCircle2 size={24} />
             </div>
-            <h2 className="mb-3 text-3xl font-bold text-gray-900 dark:text-gray-100">审核中</h2>
-            <p className="mb-3 text-base leading-relaxed text-gray-500 dark:text-gray-400">
-              您的实名认证信息已提交，预计 1-3 个工作日内完成审核。
-            </p>
-            {auditTime && (
-              <p className="mb-8 text-sm text-gray-400 dark:text-gray-500">
-                提交时间：{auditTime}
-              </p>
-            )}
-            <button
-              className="h-[48px] w-full rounded-2xl border border-gray-200 font-medium text-gray-900 transition-colors active:bg-gray-50 dark:border-gray-700 dark:text-gray-100 dark:active:bg-gray-800"
-              onClick={goBack}
-            >
-              返回
-            </button>
-          </Card>
-        </div>
+            <div className="flex-1">
+              <h2 className="text-lg font-semibold text-text-main">实名认证已通过</h2>
+              <p className="mt-1 text-sm text-text-sub">当前账户已具备实名状态。</p>
+              <div className="mt-4 rounded-2xl bg-bg-base p-4">
+                <div className="text-xs text-text-aux">真实姓名</div>
+                <div className="mt-1 text-sm font-medium text-text-main">{name || '--'}</div>
+                <div className="mt-3 text-xs text-text-aux">身份证号</div>
+                <div className="mt-1 text-sm font-medium text-text-main">{maskIdCard(idNumber)}</div>
+                {auditTime ? (
+                  <>
+                    <div className="mt-3 text-xs text-text-aux">审核时间</div>
+                    <div className="mt-1 text-sm font-medium text-text-main">{auditTime}</div>
+                  </>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        </Card>
       );
     }
 
-    if (auditStatus === 'passed') {
+    if (auditStatus === 'auditing') {
       return (
-        <div className="px-6 pt-16">
-          <Card className="flex flex-col items-center p-6 text-center">
-            <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-green-50 text-green-600 dark:bg-green-900/20">
-              <CheckCircle2 size={40} />
+        <Card className="mx-4 mt-4 border border-blue-200/80 p-5 dark:border-blue-900/60">
+          <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-300">
+              <Clock3 size={24} />
             </div>
-            <h2 className="mb-3 text-3xl font-bold text-gray-900 dark:text-gray-100">认证通过</h2>
-            <p className="mb-3 text-base leading-relaxed text-gray-500 dark:text-gray-400">
-              实名认证已通过，当前账户已具备实名状态。
-            </p>
-            <div className="mb-8 w-full rounded-xl bg-gray-50 p-4 text-left dark:bg-gray-800">
-              <div className="mb-2 text-sm text-gray-500 dark:text-gray-400">真实姓名</div>
-              <div className="mb-4 text-base font-medium text-gray-900 dark:text-gray-100">
-                {name || '--'}
-              </div>
-              <div className="mb-2 text-sm text-gray-500 dark:text-gray-400">身份证号</div>
-              <div className="text-base font-medium text-gray-900 dark:text-gray-100">
-                {maskIdCard(idNumber)}
-              </div>
-              {auditTime && (
-                <>
-                  <div className="mt-4 mb-2 text-sm text-gray-500 dark:text-gray-400">
-                    审核时间
-                  </div>
-                  <div className="text-base font-medium text-gray-900 dark:text-gray-100">
-                    {auditTime}
-                  </div>
-                </>
-              )}
+            <div className="flex-1">
+              <h2 className="text-lg font-semibold text-text-main">实名认证审核中</h2>
+              <p className="mt-1 text-sm text-text-sub">资料已提交，请等待平台审核结果。</p>
             </div>
-            <button
-              className="h-[48px] w-full rounded-2xl bg-gradient-to-r from-brand-start to-brand-end font-medium text-white shadow-sm transition-opacity active:opacity-80"
-              onClick={goBack}
-            >
-              完成
-            </button>
-          </Card>
-        </div>
+          </div>
+        </Card>
       );
     }
 
     if (auditStatus === 'rejected') {
       return (
-        <div className="px-6 pt-16">
-          <Card className="flex flex-col items-center p-6 text-center">
-            <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-red-50 text-brand-start dark:bg-red-900/20">
-              <XCircle size={40} />
+        <Card className="mx-4 mt-4 border border-red-200/80 p-5 dark:border-red-900/60">
+          <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-50 text-red-500 dark:bg-red-950/40 dark:text-red-300">
+              <XCircle size={24} />
             </div>
-            <h2 className="mb-4 text-3xl font-bold text-gray-900 dark:text-gray-100">认证驳回</h2>
-            <div className="mb-8 w-full rounded-xl border border-gray-100 bg-gray-50 p-4 text-left dark:border-gray-700 dark:bg-gray-800">
-              <p className="mb-2 text-sm font-medium text-gray-900 dark:text-gray-100">
-                驳回原因
-              </p>
-              <p className="text-base leading-relaxed text-brand-start">
-                {auditReason || '请核对身份证信息与人脸核验信息后重新提交。'}
-              </p>
-              {auditTime && (
-                <p className="mt-3 text-sm text-gray-400 dark:text-gray-500">
-                  审核时间：{auditTime}
-                </p>
-              )}
+            <div className="flex-1">
+              <h2 className="text-lg font-semibold text-text-main">实名认证未通过</h2>
+              <p className="mt-1 text-sm text-text-sub">请根据驳回原因修改资料后重新提交。</p>
+              <div className="mt-4 rounded-2xl bg-bg-base p-4">
+                <div className="text-xs text-text-aux">驳回原因</div>
+                <div className="mt-1 text-sm font-medium text-red-500 dark:text-red-300">
+                  {auditReason || '请核对姓名和身份证号后重新发起认证'}
+                </div>
+              </div>
             </div>
-            <button
-              className="mb-3 h-[48px] w-full rounded-2xl bg-gradient-to-r from-brand-start to-brand-end font-medium text-white shadow-sm transition-opacity active:opacity-80"
-              onClick={() => {
-                setAuditStatus('none');
-                setAuthToken('');
-                setAuthUrl('');
-                setAuthMessage('');
-                setSubmitMessage('');
-              }}
-            >
-              重新提交
-            </button>
-            <button
-              className="h-[48px] w-full rounded-2xl border border-gray-200 font-medium text-gray-900 transition-colors active:bg-gray-50 dark:border-gray-700 dark:text-gray-100 dark:active:bg-gray-800"
-              onClick={goBack}
-            >
-              返回
-            </button>
-          </Card>
-        </div>
+          </div>
+        </Card>
       );
     }
 
-    return null;
+    return (
+      <Card className="mx-4 mt-4 border border-orange-200/80 p-5 dark:border-orange-900/60">
+        <div className="flex items-start gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-50 text-orange-500 dark:bg-orange-950/40 dark:text-orange-300">
+            <ShieldCheck size={24} />
+          </div>
+          <div className="flex-1">
+            <h2 className="text-lg font-semibold text-text-main">填写身份信息并完成人脸核身</h2>
+            <p className="mt-1 text-sm text-text-sub">
+              流程：填写身份信息，发起人脸核身，回跳后自动提交审核。
+            </p>
+          </div>
+        </div>
+      </Card>
+    );
   };
 
-  const renderForm = () => (
-    <div className="space-y-4 px-4 pb-28">
-      <Card className="border border-transparent p-5 dark:border-gray-800">
-        <h3 className="mb-4 text-lg font-bold text-gray-900 dark:text-gray-100">1. 身份信息</h3>
-        <div className="space-y-4">
-          <input
-            type="text"
-            placeholder="请输入真实姓名"
-            className="h-12 w-full rounded-2xl border border-transparent bg-gray-50 px-4 text-md text-gray-900 transition-all placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-[#FF4142] dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-          />
-          <input
-            type="text"
-            placeholder="请输入身份证号"
-            className="h-12 w-full rounded-2xl border border-transparent bg-gray-50 px-4 text-md text-gray-900 transition-all placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-[#FF4142] dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
-            value={idNumber}
-            onChange={(event) => setIdNumber(event.target.value)}
-          />
-          <p className="flex items-center text-sm text-gray-400 dark:text-gray-500">
-            <AlertCircle size={12} className="mr-1" />
-            请确保填写信息与证件一致
-          </p>
-        </div>
-      </Card>
+  const renderForm = () => {
+    if (!canEdit) {
+      return null;
+    }
 
-      <Card className="border border-transparent p-5 dark:border-gray-800">
-        <h3 className="mb-4 text-lg font-bold text-gray-900 dark:text-gray-100">2. 证件上传</h3>
-        <div className="mb-4 flex space-x-3">
-          {renderDocumentCard(
-            '上传人像面',
-            frontDocument,
-            () => frontInputRef.current?.click(),
-            () => handleRetryUpload('front'),
-          )}
-          {renderDocumentCard(
-            '上传国徽面',
-            backDocument,
-            () => backInputRef.current?.click(),
-            () => handleRetryUpload('back'),
-          )}
-        </div>
-        <input
-          ref={frontInputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={handleDocumentChange('front')}
-        />
-        <input
-          ref={backInputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={handleDocumentChange('back')}
-        />
-        <p className="text-s leading-relaxed text-gray-400 dark:text-gray-500">
-          证件图片仅用于实名认证审核，请确保照片清晰、完整、无遮挡。
-        </p>
-      </Card>
+    return (
+      <div className="mx-4 mt-4 mb-28 space-y-4">
+        <Card className="border border-border-light p-5">
+          <h3 className="text-base font-semibold text-text-main">身份信息</h3>
 
-      <Card className="border border-transparent p-5 dark:border-gray-800">
-        <div className="mb-2 flex items-center">
-          <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">3. 人脸核验</h3>
-          <span className="ml-1 text-s text-gray-400 dark:text-gray-500">（H5 人脸核身）</span>
-        </div>
-        <p className="mb-5 text-sm text-gray-500 dark:text-gray-400">
-          点击按钮后将打开认证页面，完成后返回当前页面再提交实名信息。
-        </p>
-
-        <div className="mb-5 flex justify-around rounded-xl border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-800/50">
-          <div className="flex flex-col items-center">
-            <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-white text-gray-600 shadow-sm dark:bg-gray-700 dark:text-gray-400">
-              <User size={18} />
+          <div className="mt-4 space-y-4">
+            <div>
+              <div className="mb-2 text-sm text-text-sub">真实姓名</div>
+              <input
+                type="text"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                placeholder="请输入真实姓名"
+                className="h-12 w-full rounded-2xl border border-border-light bg-bg-base px-4 text-sm text-text-main outline-none transition-colors placeholder:text-text-aux focus:border-orange-400"
+              />
             </div>
-            <span className="text-s text-gray-500 dark:text-gray-400">保持正脸</span>
+
+            <div>
+              <div className="mb-2 text-sm text-text-sub">身份证号</div>
+              <input
+                type="text"
+                value={idNumber}
+                onChange={(event) =>
+                  setIdNumber(event.target.value.replace(/\s+/g, '').toUpperCase())
+                }
+                placeholder="请输入身份证号"
+                className="h-12 w-full rounded-2xl border border-border-light bg-bg-base px-4 text-sm text-text-main outline-none transition-colors placeholder:text-text-aux focus:border-orange-400"
+              />
+            </div>
           </div>
-          <div className="flex flex-col items-center">
-            <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-white text-gray-600 shadow-sm dark:bg-gray-700 dark:text-gray-400">
-              <Wifi size={18} />
-            </div>
-            <span className="text-s text-gray-500 dark:text-gray-400">网络稳定</span>
-          </div>
-          <div className="flex flex-col items-center">
-            <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-white text-gray-600 shadow-sm dark:bg-gray-700 dark:text-gray-400">
-              <Camera size={18} />
-            </div>
-            <span className="text-s text-gray-500 dark:text-gray-400">光线充足</span>
-          </div>
-        </div>
 
-        {authToken ? (
-          <div className="space-y-3">
-            <div className="flex h-[48px] items-center justify-center rounded-2xl border border-green-200 bg-green-50 text-lg font-medium text-green-600 dark:border-green-800/50 dark:bg-green-900/20">
-              <CheckCircle2 size={18} className="mr-2" />
-              已获取认证凭证
+          <div className="mt-4 flex items-start gap-2 rounded-2xl bg-bg-base p-4 text-sm text-text-sub">
+            <AlertCircle size={16} className="mt-0.5 shrink-0 text-orange-500" />
+            <div>
+              <div>请确保填写信息与身份证一致。</div>
+              <div className="mt-1">修改姓名或身份证号后，应重新发起人脸核身。</div>
             </div>
-            {authUrl && (
+          </div>
+        </Card>
+
+        <Card className="border border-border-light p-5">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h3 className="text-base font-semibold text-text-main">人脸核身</h3>
+              <p className="mt-1 text-sm text-text-sub">
+                完成核身后会自动回到当前页，并自动提交审核。
+              </p>
+            </div>
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-bg-base text-orange-500">
+              <ScanFace size={22} />
+            </div>
+          </div>
+
+          <div className="mt-4 space-y-3">
+            <div className="rounded-2xl bg-bg-base p-4 text-sm text-text-sub">
+              {authToken
+                ? '已收到回跳 token，正在自动提交。'
+                : authUrl
+                  ? '核身链接已生成，请在新页面完成认证。'
+                  : '尚未发起人脸核身。'}
+            </div>
+
+            <button
+              type="button"
+              onClick={handleStartFaceAuth}
+              disabled={loadingFaceAuth || submitting}
+              className="flex h-12 w-full items-center justify-center rounded-2xl border border-border-main bg-bg-card text-sm font-medium text-text-main transition-colors active:bg-bg-base disabled:cursor-not-allowed disabled:text-text-aux"
+            >
+              {loadingFaceAuth ? (
+                <>
+                  <Loader2 size={16} className="mr-2 animate-spin" />
+                  获取中...
+                </>
+              ) : (
+                '开始人脸核身'
+              )}
+            </button>
+
+            {authUrl ? (
               <button
                 type="button"
-                className="flex h-[44px] w-full items-center justify-center rounded-2xl border border-gray-200 text-base font-medium text-gray-900 transition-colors active:bg-gray-50 dark:border-gray-700 dark:text-gray-100 dark:active:bg-gray-800"
                 onClick={() => openAuthPage(authUrl)}
+                className="flex h-11 w-full items-center justify-center rounded-2xl text-sm text-text-sub transition-colors active:text-text-main"
               >
-                重新打开认证页面
+                打开核身页面
                 <ExternalLink size={14} className="ml-2" />
               </button>
-            )}
+            ) : null}
+
+            {authMessage ? <div className="text-sm text-text-sub">{authMessage}</div> : null}
+            {submitError ? <div className="text-sm text-red-500 dark:text-red-300">{submitError}</div> : null}
           </div>
-        ) : (
-          <button
-            type="button"
-            className="flex h-[48px] w-full items-center justify-center rounded-2xl bg-gradient-to-r from-brand-start to-brand-end text-lg font-medium text-white shadow-sm transition-opacity active:opacity-80"
-            onClick={handleStartFaceAuth}
-            disabled={loadingFaceAuth}
-          >
-            {loadingFaceAuth ? (
-              <>
-                <Loader2 size={18} className="mr-2 animate-spin" />
-                获取中...
-              </>
-            ) : (
-              '开始人脸核验'
-            )}
-          </button>
-        )}
+        </Card>
+      </div>
+    );
+  };
 
-        {authMessage && (
-          <p className="mt-4 text-sm leading-relaxed text-gray-500 dark:text-gray-400">
-            {authMessage}
-          </p>
-        )}
-
-        <div className="mt-4 text-center">
-          <button className="flex w-full items-center justify-center text-sm text-gray-400 transition-colors active:text-gray-600 dark:text-gray-500 dark:active:text-gray-300">
-            核验遇到问题？
-            <ChevronRight size={12} />
-          </button>
-        </div>
-      </Card>
-    </div>
-  );
+  if (!isAuthenticated) {
+    return (
+      <div className="flex h-full flex-1 flex-col overflow-hidden bg-bg-base">
+        <PageHeader title="实名认证" onBack={goBack} />
+        <EmptyState
+          icon={<ShieldCheck size={48} />}
+          message="登录后查看并提交实名认证信息"
+          actionText="去登录"
+          actionVariant="primary"
+          onAction={() => goTo('login')}
+        />
+      </div>
+    );
+  }
 
   return (
-    <div className="relative flex h-full flex-1 flex-col overflow-hidden bg-[#FFF8F8] dark:bg-gray-950">
-      {renderHeader()}
+    <div className="flex h-full flex-1 flex-col overflow-hidden bg-bg-base">
+      <PageHeader title="实名认证" onBack={goBack} offline={isOffline} onRefresh={handleRetry} />
 
-      <div className="relative flex-1 overflow-y-auto no-scrollbar">
-        {loading ? (
-          renderSkeleton()
-        ) : error ? (
-          <ErrorState message={getErrorMessage(error)} onRetry={retryFetch} />
-        ) : (
-          <>
-            {renderStepBar()}
-            {auditStatus === 'none' ? renderForm() : renderResult()}
-          </>
-        )}
-      </div>
-
-      {auditStatus === 'none' && !loading && !error && (
-        <div className="absolute right-0 bottom-0 left-0 z-40 border-t border-gray-100 bg-white px-4 py-3 pb-safe dark:border-gray-800 dark:bg-gray-900">
-          {submitMessage && (
-            <p className="mb-2 text-sm text-brand-start dark:text-red-400">{submitMessage}</p>
+      <PullToRefreshContainer
+        className="flex-1 overflow-y-auto no-scrollbar"
+        onRefresh={async () => {
+          handleRetry();
+        }}
+        disabled={isOffline}
+      >
+        <div className="pb-6">
+          {loading ? (
+            renderLoading()
+          ) : error ? (
+            <div className="px-4 py-6">
+              <ErrorState message={getErrorMessage(error)} onRetry={handleRetry} />
+            </div>
+          ) : (
+            <>
+              {renderStatusCard()}
+              {renderForm()}
+            </>
           )}
+        </div>
+      </PullToRefreshContainer>
+
+      {canEdit && !loading && !error ? (
+        <div className="shrink-0 border-t border-border-light bg-bg-card px-4 py-3 pb-safe">
           <button
-            className={`h-[48px] w-full rounded-2xl text-lg font-medium transition-all ${
+            type="button"
+            onClick={() => void handleSubmit('manual')}
+            disabled={!canSubmit}
+            className={`h-12 w-full rounded-2xl text-sm font-medium transition-all ${
               canSubmit
                 ? 'bg-gradient-to-r from-brand-start to-brand-end text-white shadow-sm active:opacity-80'
-                : 'cursor-not-allowed bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500'
+                : 'cursor-not-allowed bg-bg-hover text-text-aux'
             }`}
-            disabled={!canSubmit}
-            onClick={handleSubmit}
           >
-            {submitting ? (
-              <span className="inline-flex items-center">
-                <Loader2 size={18} className="mr-2 animate-spin" />
-                提交中...
-              </span>
-            ) : (
-              '提交审核'
-            )}
+            {submitting ? '提交中...' : '手动提交审核'}
           </button>
         </div>
-      )}
+      ) : null}
     </div>
   );
 };
+
+

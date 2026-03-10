@@ -1,4 +1,4 @@
-import type { ChangeEvent } from 'react';
+﻿import type { ChangeEvent } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -40,6 +40,7 @@ import { useRouteScrollRestoration } from '../../hooks/useRouteScrollRestoration
 import { copyToClipboard } from '../../lib/clipboard';
 import { useAppNavigate } from '../../lib/navigation';
 import { PageHeader } from '../../components/layout/PageHeader';
+import { PullToRefreshContainer } from '../../components/ui/PullToRefreshContainer';
 
 const QUICK_AMOUNTS = [500, 1000, 2000, 5000, 10000];
 
@@ -109,14 +110,14 @@ function buildCompanyAccountSubtitle(account: CompanyAccount) {
 
 function getOrderStatusClassName(status: number) {
   if (status === 1) {
-    return 'bg-green-50 text-green-600';
+    return 'bg-green-50 text-green-600 dark:bg-green-500/15 dark:text-green-300';
   }
 
   if (status === 2) {
-    return 'bg-red-50 text-red-600';
+    return 'bg-red-50 text-red-600 dark:bg-red-500/15 dark:text-red-300';
   }
 
-  return 'bg-orange-50 text-orange-600';
+  return 'bg-orange-50 text-orange-600 dark:bg-orange-500/15 dark:text-orange-300';
 }
 
 function getOrderTitle(record: RechargeOrderRecord) {
@@ -149,6 +150,7 @@ export function RechargePage() {
     loading: profileLoading,
     reload: reloadProfile,
   } = useRequest((signal) => accountApi.getProfile({ signal }), {
+    cacheKey: 'recharge:profile',
     deps: [isAuthenticated],
     manual: !isAuthenticated,
   });
@@ -158,6 +160,7 @@ export function RechargePage() {
     loading: companyAccountsLoading,
     reload: reloadCompanyAccounts,
   } = useRequest((signal) => rechargeApi.getCompanyAccountList({ usage: 'recharge' }, { signal }), {
+    cacheKey: 'recharge:company-accounts',
     deps: [isAuthenticated],
     manual: !isAuthenticated,
   });
@@ -167,6 +170,7 @@ export function RechargePage() {
     loading: recentOrdersLoading,
     reload: reloadRecentOrders,
   } = useRequest((signal) => rechargeApi.getMyOrderList({ limit: 3, page: 1 }, { signal }), {
+    cacheKey: 'recharge:recent-orders',
     deps: [isAuthenticated],
     manual: !isAuthenticated,
   });
@@ -182,6 +186,7 @@ export function RechargePage() {
       })),
     [companyAccounts],
   );
+  const recentOrderList = Array.isArray(recentOrders?.list) ? recentOrders.list : [];
 
   useEffect(() => {
     if (!paymentAccounts.length) {
@@ -223,7 +228,7 @@ export function RechargePage() {
     containerRef: scrollContainerRef,
     enabled: isAuthenticated && !hasBlockingError,
     namespace: 'recharge-page',
-    restoreDeps: [isAuthenticated, hasBlockingError, mainLoading, recentOrders?.list.length ?? 0],
+    restoreDeps: [isAuthenticated, hasBlockingError, mainLoading, recentOrderList.length],
     restoreWhen: isAuthenticated && !hasBlockingError && !mainLoading,
   });
 
@@ -350,7 +355,7 @@ export function RechargePage() {
 
   if (!isAuthenticated) {
     return (
-      <div className="flex h-full flex-1 flex-col bg-red-50/30">
+      <div className="flex h-full flex-1 flex-col bg-bg-base">
         {renderHeader()}
         <div ref={scrollContainerRef} className="flex-1 overflow-y-auto no-scrollbar px-4">
           <EmptyState
@@ -366,7 +371,7 @@ export function RechargePage() {
 
   if (hasBlockingError) {
     return (
-      <div className="flex h-full flex-1 flex-col bg-red-50/30">
+      <div className="flex h-full flex-1 flex-col bg-bg-base">
         {renderHeader()}
         <div ref={scrollContainerRef} className="flex-1 overflow-y-auto no-scrollbar">
           <ErrorState
@@ -379,13 +384,20 @@ export function RechargePage() {
   }
 
   return (
-    <div className="relative flex h-full flex-1 flex-col bg-red-50/30">
+    <div className="relative flex h-full flex-1 flex-col bg-bg-base">
       {isOffline && <OfflineBanner onAction={handleReload} className="absolute top-12 right-0 left-0 z-50" />}
 
       {renderHeader()}
 
-      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto no-scrollbar pb-[112px]">
-        <div className="space-y-3 px-4 py-4">
+      <PullToRefreshContainer
+        className="flex-1 overflow-y-auto no-scrollbar"
+        onRefresh={async () => {
+          handleReload();
+        }}
+        disabled={isOffline}
+      >
+        <div ref={scrollContainerRef} className="pb-[112px]">
+          <div className="space-y-3 px-4 py-4">
           <Card className="relative overflow-hidden p-4">
             <div className="pointer-events-none absolute top-0 right-0 h-24 w-24 rounded-bl-full bg-gradient-to-bl from-primary-start/5 to-transparent" />
             {mainLoading ? (
@@ -462,7 +474,7 @@ export function RechargePage() {
                   onClick={() => setAmount(String(value))}
                   className={`shrink-0 rounded-full border px-4 py-1.5 text-sm font-medium transition-colors ${
                     amount === String(value)
-                      ? 'border-primary-start bg-red-50 text-primary-start'
+                      ? 'border-primary-start bg-red-50 text-primary-start dark:bg-red-500/12 dark:text-red-300'
                       : 'border-transparent bg-bg-base text-text-main'
                   }`}
                 >
@@ -596,7 +608,7 @@ export function RechargePage() {
             />
 
             {uploadingScreenshot ? (
-              <div className="flex h-40 items-center justify-center rounded-2xl border border-dashed border-primary-start/30 bg-red-50/50">
+              <div className="flex h-40 items-center justify-center rounded-2xl border border-dashed border-primary-start/30 bg-red-50/50 dark:bg-red-500/10">
                 <div className="flex items-center text-sm text-primary-start">
                   <Loader2 size={16} className="mr-2 animate-spin" />
                   正在上传付款截图
@@ -632,7 +644,7 @@ export function RechargePage() {
               <button
                 type="button"
                 onClick={handlePickScreenshot}
-                className="flex h-40 w-full flex-col items-center justify-center rounded-2xl border border-dashed border-border-main bg-bg-base text-text-sub transition-colors active:bg-red-50/50"
+                className="flex h-40 w-full flex-col items-center justify-center rounded-2xl border border-dashed border-border-main bg-bg-base text-text-sub transition-colors active:bg-red-50/50 dark:active:bg-red-500/10"
               >
                 <ImagePlus size={28} className="mb-2 text-text-aux" />
                 <span className="text-base font-medium">上传付款截图</span>
@@ -676,7 +688,7 @@ export function RechargePage() {
                   </div>
                 ))}
               </div>
-            ) : recentOrdersError && !recentOrders?.list.length ? (
+            ) : recentOrdersError && !recentOrderList.length ? (
               <div className="flex items-center justify-between px-4 py-4">
                 <span className="mr-4 text-sm text-text-sub">{getErrorMessage(recentOrdersError)}</span>
                 <button
@@ -687,9 +699,9 @@ export function RechargePage() {
                   重试
                 </button>
               </div>
-            ) : recentOrders?.list.length ? (
+            ) : recentOrderList.length ? (
               <div className="divide-y divide-border-light">
-                {recentOrders.list.map((record) => (
+                {recentOrderList.map((record) => (
                   <div key={record.id} className="flex items-center justify-between px-4 py-3">
                     <div className="min-w-0">
                       <div className="mb-1 truncate text-md font-medium text-text-main">
@@ -721,11 +733,12 @@ export function RechargePage() {
           </Card>
 
           <div className="flex items-start px-2 py-1 text-sm text-text-sub">
-            <ShieldCheck size={14} className="mt-0.5 mr-1.5 shrink-0 text-green-600" />
+            <ShieldCheck size={14} className="mt-0.5 mr-1.5 shrink-0 text-green-600 dark:text-green-400" />
             <span>为保障资金安全，请确认转账信息与收款账户一致，平台不会以任何理由要求您私下转账到个人账户。</span>
           </div>
         </div>
-      </div>
+        </div>
+      </PullToRefreshContainer>
 
       <div className="absolute right-0 bottom-0 left-0 border-t border-border-light bg-bg-card px-4 py-3 shadow-[0_-4px_16px_rgba(0,0,0,0.05)]">
         <div className="flex items-center justify-between">
@@ -743,7 +756,7 @@ export function RechargePage() {
             className={`flex h-12 min-w-[148px] items-center justify-center rounded-full px-6 text-lg font-medium transition ${
               canSubmit
                 ? 'bg-gradient-to-r from-primary-start to-primary-end text-white shadow-md shadow-red-500/20 active:scale-[0.98]'
-                : 'bg-gray-200 text-gray-400'
+                : 'bg-gray-200 text-gray-400 dark:bg-gray-800 dark:text-gray-500'
             }`}
           >
             {submitting ? (
@@ -760,3 +773,7 @@ export function RechargePage() {
     </div>
   );
 }
+
+
+
+

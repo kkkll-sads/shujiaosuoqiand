@@ -1,4 +1,4 @@
-@import "tailwindcss";
+﻿@import "tailwindcss";
 
 /* 深色模式由 .dark 类控制，不跟随系统；主题由 ThemeContext + 首屏脚本统一设置 */
 @custom-variant dark (&:where(.dark, .dark *));
@@ -176,5 +176,24 @@
   }
   100% {
     transform: translateX(100%);
+  }
+}
+
+
+.app-viewport-height {
+  height: 100vh;
+}
+
+.app-min-viewport-height {
+  min-height: 100vh;
+}
+
+@supports (height: 100dvh) {
+  .app-viewport-height {
+    height: 100dvh;
+  }
+
+  .app-min-viewport-height {
+    min-height: 100dvh;
   }
 }

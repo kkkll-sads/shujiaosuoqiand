@@ -1,9 +1,10 @@
-import React, { useEffect, useRef, useState } from 'react';
+﻿import React, { useEffect, useRef, useState } from 'react';
 import { ChevronLeft, WifiOff, AlertCircle, Info, X, Ticket } from 'lucide-react';
 import { useAppNavigate } from '../../lib/navigation';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { ErrorState } from '../../components/ui/ErrorState';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { PullToRefreshContainer } from '../../components/ui/PullToRefreshContainer';
 import { useRouteScrollRestoration } from '../../hooks/useRouteScrollRestoration';
 import { useSessionState } from '../../hooks/useSessionState';
 
@@ -113,12 +114,12 @@ export const CouponPage = () => {
   const renderHeader = () => (
     <div className="bg-white dark:bg-gray-900 z-40 relative shrink-0">
       {offline && (
-        <div className="bg-red-50 text-primary-start px-4 py-2 flex items-center justify-between text-sm">
+        <div className="bg-red-50 text-primary-start px-4 py-2 flex items-center justify-between text-sm dark:bg-red-900/30 dark:text-red-300">
           <div className="flex items-center">
             <WifiOff size={14} className="mr-2" />
             <span>网络不稳定，请检查网络设置</span>
           </div>
-          <button onClick={() => setOffline(false)} className="font-medium px-2 py-1 bg-white dark:bg-gray-900 rounded shadow-sm">刷新</button>
+          <button onClick={() => setOffline(false)} className="rounded px-2 py-1 font-medium shadow-sm bg-white dark:bg-gray-800 dark:text-gray-100">刷新</button>
         </div>
       )}
       <div className="h-12 flex items-center justify-between px-3 pt-safe">
@@ -200,7 +201,7 @@ export const CouponPage = () => {
           <div key={coupon.id} className="bg-white dark:bg-gray-900 rounded-xl flex relative overflow-hidden shadow-sm">
             {/* Left: Amount */}
             <div className={`w-[104px] flex flex-col items-center justify-center p-3 shrink-0 ${
-              coupon.status === 'expired' ? 'bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-500' : 'bg-red-50 text-primary-start'
+              coupon.status === 'expired' ? 'bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-500' : 'bg-red-50 text-primary-start dark:bg-red-500/12 dark:text-red-300'
             }`}>
               <div className="flex items-baseline">
                 {coupon.type === 'discount' ? (
@@ -229,7 +230,7 @@ export const CouponPage = () => {
               <div>
                 <div className="flex items-start mb-1">
                   <span className={`text-xs px-1 rounded mr-1.5 mt-0.5 shrink-0 ${
-                    coupon.status === 'expired' ? 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400' : 'bg-primary-start text-white'
+                    coupon.status === 'expired' ? 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400' : 'bg-primary-start text-white dark:bg-red-500/85'
                   }`}>
                     {coupon.type === 'discount' ? '折扣' : '满减'}
                   </span>
@@ -259,7 +260,7 @@ export const CouponPage = () => {
                 {coupon.status === 'received' && (
                   <button 
                     onClick={() => goTo('store')}
-                    className="w-[64px] h-[26px] shrink-0 rounded-full border border-primary-start text-primary-start text-sm font-medium active:bg-red-50"
+                    className="w-[64px] h-[26px] shrink-0 rounded-full border border-primary-start text-primary-start text-sm font-medium active:bg-red-50 dark:border-red-400 dark:text-red-300 dark:active:bg-red-500/12"
                   >
                     去使用
                   </button>
@@ -309,7 +310,7 @@ export const CouponPage = () => {
             {selectedCoupon.unusableReason && (
               <div className="mb-6">
                 <div className="text-md font-bold text-text-main mb-2">不可用原因</div>
-                <div className="text-base text-primary-start leading-relaxed bg-red-50 p-3 rounded-lg">
+                <div className="text-base text-primary-start leading-relaxed bg-red-50 p-3 rounded-lg dark:bg-red-500/12 dark:text-red-300">
                   {selectedCoupon.unusableReason}
                 </div>
               </div>
@@ -326,7 +327,7 @@ export const CouponPage = () => {
           <div className="p-4 border-t border-border-light shrink-0 pb-safe">
             <button 
               onClick={() => setSelectedCoupon(null)}
-              className="w-full h-11 rounded-full bg-bg-card border border-border-main text-text-main text-lg font-medium active:bg-gray-50 dark:bg-gray-800"
+              className="w-full h-11 rounded-full bg-bg-card border border-border-main text-text-main text-lg font-medium active:bg-gray-50 dark:bg-gray-800 dark:active:bg-gray-700"
             >
               我知道了
             </button>
@@ -350,3 +351,5 @@ export const CouponPage = () => {
     </div>
   );
 };
+
+

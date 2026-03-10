@@ -1,25 +1,14 @@
-import { useCallback, useEffect, useState } from 'react';
-
-const getIsOffline = () => (typeof navigator !== 'undefined' ? !navigator.onLine : false);
+import { useCallback } from 'react';
+import {
+  refreshAppLifecycleSnapshot,
+  useAppLifecycle,
+} from '../lib/appLifecycle';
 
 export const useNetworkStatus = () => {
-  const [isOffline, setIsOffline] = useState(getIsOffline);
-
-  useEffect(() => {
-    const handleOnline = () => setIsOffline(false);
-    const handleOffline = () => setIsOffline(true);
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
+  const { isOffline } = useAppLifecycle();
 
   const refreshStatus = useCallback(() => {
-    setIsOffline(getIsOffline());
+    refreshAppLifecycleSnapshot();
   }, []);
 
   return {

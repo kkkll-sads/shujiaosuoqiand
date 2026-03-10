@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react';
+﻿import React, { useCallback, useRef, useState } from 'react';
 import { ChevronLeft, WifiOff, Edit, Trash2, Check } from 'lucide-react';
 import { addressApi, type AddressItem } from '../../api/modules/address';
 import { getErrorMessage } from '../../api/core/errors';
@@ -6,6 +6,7 @@ import { useAppNavigate } from '../../lib/navigation';
 import { useFeedback } from '../../components/ui/FeedbackProvider';
 import { ErrorState } from '../../components/ui/ErrorState';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { PullToRefreshContainer } from '../../components/ui/PullToRefreshContainer';
 import { useRouteScrollRestoration } from '../../hooks/useRouteScrollRestoration';
 
 interface AddressForm {
@@ -414,3 +415,4 @@ export const AddressPage = () => {
     </div>
   );
 };
+

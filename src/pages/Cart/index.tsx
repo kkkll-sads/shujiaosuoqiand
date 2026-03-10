@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, CheckCircle2, Circle, Minus, Plus, Trash2, Heart, Store, ChevronRight, WifiOff, RefreshCcw, ShoppingCart, ChevronDown } from 'lucide-react';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { useAppNavigate } from '../../lib/navigation';
@@ -6,6 +6,7 @@ import { PageHeader } from '../../components/layout/PageHeader';
 import { useRouteScrollRestoration } from '../../hooks/useRouteScrollRestoration';
 import { useRequest } from '../../hooks/useRequest';
 import { shopCartApi, type ShopCartListItem } from '../../api/modules/shopCart';
+import { PullToRefreshContainer } from '../../components/ui/PullToRefreshContainer';
 
 interface CartItem {
   id: string;
@@ -504,3 +505,4 @@ export const CartPage = () => {
     </div>
   );
 };
+

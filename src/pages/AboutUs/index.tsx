@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { ChevronRight, Copy } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { appVersionApi } from '../../api';
 import { getErrorMessage } from '../../api/core/errors';
 import { PageHeader } from '../../components/layout/PageHeader';
@@ -26,6 +27,7 @@ function openDownloadUrl(downloadUrl: string) {
 }
 
 export const AboutUsPage = () => {
+  const navigate = useNavigate();
   const { isOffline } = useNetworkStatus();
   const { showToast } = useFeedback();
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
@@ -150,15 +152,23 @@ export const AboutUsPage = () => {
             </span>
           </div>
 
-          <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3.5 transition-colors active:bg-gray-50 dark:border-gray-800 dark:active:bg-gray-800">
+          <button
+            type="button"
+            className="flex w-full items-center justify-between border-b border-gray-100 px-4 py-3.5 text-left transition-colors active:bg-gray-50 dark:border-gray-800 dark:active:bg-gray-800"
+            onClick={() => navigate('/user_agreement')}
+          >
             <span className="text-lg text-gray-900 dark:text-gray-100">用户协议</span>
             <ChevronRight size={16} className="text-gray-400 dark:text-gray-500" />
-          </div>
+          </button>
 
-          <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3.5 transition-colors active:bg-gray-50 dark:border-gray-800 dark:active:bg-gray-800">
+          <button
+            type="button"
+            className="flex w-full items-center justify-between border-b border-gray-100 px-4 py-3.5 text-left transition-colors active:bg-gray-50 dark:border-gray-800 dark:active:bg-gray-800"
+            onClick={() => navigate('/privacy_policy')}
+          >
             <span className="text-lg text-gray-900 dark:text-gray-100">隐私政策</span>
             <ChevronRight size={16} className="text-gray-400 dark:text-gray-500" />
-          </div>
+          </button>
 
           {CONTACT_PHONE ? (
             <button

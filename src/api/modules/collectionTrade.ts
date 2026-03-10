@@ -1,39 +1,70 @@
-/**
- * 藏品交易订单 API 模块
- * 买入订单：GET /api/collectionTrade/buyOrders
- * 卖出订单：GET /api/collectionTrade/sellOrders
- */
 import { http } from '../http';
 
-/* ==================== 类型定义 ==================== */
+function readNumber(value: unknown, fallback = 0): number {
+  const nextValue = Number(value);
+  return Number.isFinite(nextValue) ? nextValue : fallback;
+}
 
-/** 买入订单列表项 */
+function readString(value: unknown, fallback = ''): string {
+  return typeof value === 'string' ? value : fallback;
+}
+
+function padDatePart(value: number): string {
+  return String(value).padStart(2, '0');
+}
+
+function formatTimestamp(value: number): string {
+  if (!Number.isFinite(value) || value <= 0) {
+    return '';
+  }
+
+  const timestamp = value > 1_000_000_000_000 ? value : value * 1000;
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+
+  return [
+    `${date.getFullYear()}-${padDatePart(date.getMonth() + 1)}-${padDatePart(date.getDate())}`,
+    `${padDatePart(date.getHours())}:${padDatePart(date.getMinutes())}:${padDatePart(date.getSeconds())}`,
+  ].join(' ');
+}
+
+function readDateTime(value: unknown, fallback = ''): string {
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return fallback;
+    }
+
+    if (/^\d+$/.test(trimmed)) {
+      return formatTimestamp(Number(trimmed)) || fallback;
+    }
+
+    return trimmed;
+  }
+
+  if (typeof value === 'number') {
+    return formatTimestamp(value) || fallback;
+  }
+
+  return fallback;
+}
+
 export interface CollectionBuyOrder {
-  /** 订单号 */
   order_no: string;
-  /** 订单 ID */
   order_id: number;
-  /** 用户藏品 ID */
   user_collection_id: number;
-  /** 藏品标题 */
   item_title: string;
-  /** 藏品图片 URL */
   image: string;
-  /** 买入价格（实际支付金额） */
   buy_price: number;
-  /** 支付方式文字：专项金支付 / 混合支付 / 消费金支付 */
   pay_type_text: string;
-  /** 专项金支付金额 */
   pay_balance_available: number;
-  /** 待激活金支付金额 */
   pay_pending_activation_gold: number;
-  /** 状态文字：待寄售 / 寄售中 / 已售出 */
   status_text: string;
-  /** 购买时间 (Y-m-d H:i:s) */
   buy_time: string;
 }
 
-/** 买入订单列表响应 data */
 export interface CollectionBuyOrdersResponse {
   list: CollectionBuyOrder[];
   total: number;
@@ -41,31 +72,19 @@ export interface CollectionBuyOrdersResponse {
   limit: number;
 }
 
-/** 卖出订单列表项 */
 export interface CollectionSellOrder {
-  /** 关联的买入订单号 */
   order_no: string;
-  /** 关联的买入订单 ID（用于查询 orderDetail） */
   order_id: number;
-  /** 寄售记录 ID */
   consignment_id: number;
-  /** 用户藏品 ID */
   user_collection_id: number;
-  /** 藏品标题 */
   item_title: string;
-  /** 藏品图片 URL */
   image: string;
-  /** 原始购入价格 */
   buy_price: number;
-  /** 寄售价（成交价） */
   sold_price: number;
-  /** 状态文字：已售出 */
   status_text: string;
-  /** 售出时间 (Y-m-d H:i:s) */
   sold_time: string;
 }
 
-/** 卖出订单列表响应 data */
 export interface CollectionSellOrdersResponse {
   list: CollectionSellOrder[];
   total: number;
@@ -73,7 +92,6 @@ export interface CollectionSellOrdersResponse {
   limit: number;
 }
 
-/** 订单详情 - 商品明细项（旧结构，保留兼容） */
 export interface CollectionOrderDetailItem {
   id: number;
   order_id?: number;
@@ -86,7 +104,6 @@ export interface CollectionOrderDetailItem {
   create_time?: number;
 }
 
-/** 订单详情响应（旧结构，保留兼容） */
 export interface CollectionOrderDetailResponse {
   id: number;
   order_no: string;
@@ -117,89 +134,287 @@ export interface CollectionOrderDetailResponse {
   items: CollectionOrderDetailItem[];
 }
 
-/** 买入订单详情 GET /api/collectionTrade/buyOrderDetail */
 export interface CollectionBuyOrderDetail {
-  /** 订单 ID */
   order_id: number;
-  /** 订单号 */
   order_no: string;
-  /** 藏品标题 */
   item_title: string;
-  /** 藏品图片 */
   image: string;
-  /** 买入价格（专项金部分） */
   buy_price: number;
-  /** 订单总金额 */
   total_amount: number;
-  /** 支付方式文本 */
   pay_type_text: string;
-  /** 专项金支付金额 */
   pay_balance_available: number;
-  /** 待激活确权金支付金额 */
   pay_pending_activation_gold: number;
-  /** 混合支付比例 */
   pay_ratio: string;
-  /** 寄售状态文本：待寄售/寄售中/已售出/矿机运行中 */
   status_text: string;
-  /** 订单状态：pending/paid/completed/cancelled/refunded */
   order_status: string;
-  /** 订单状态文本 */
   order_status_text: string;
-  /** 用户藏品 ID */
   user_collection_id: number;
-  /** 矿机状态：0=未开启 1=运行中 */
   mining_status: number;
-  /** 购买时间 */
   buy_time: string;
-  /** 下单时间 */
   create_time: string;
 }
 
-/** 卖出订单详情 GET /api/collectionTrade/sellOrderDetail */
 export interface CollectionSellOrderDetail {
-  /** 寄售记录 ID */
   consignment_id: number;
-  /** 原买入订单 ID */
   order_id: number;
-  /** 原买入订单号 */
   order_no: string;
-  /** 藏品标题 */
   item_title: string;
-  /** 藏品图片 */
   image: string;
-  /** 原始购入价格 */
   buy_price: number;
-  /** 成交价格 */
   sold_price: number;
-  /** 挂单价格 */
   consign_price: number;
-  /** 收益金额 */
   profit_amount: number;
-  /** 手续费 */
   service_fee: number;
-  /** 状态文本 */
   status_text: string;
-  /** 挂单时间 */
   consign_time: string;
-  /** 成交时间 */
   sold_time: string;
-  /** 结算状态：0=未结算 1=已结算 */
   settle_status: number;
-  /** 结算时间 */
   settle_time: string;
-  /** 结算到可提现金额 */
   payout_total_withdrawable: number;
-  /** 结算到消费金金额 */
   payout_total_consume: number;
 }
 
-/* ==================== API 实例 ==================== */
+export type MyCollectionStatus =
+  | 'all'
+  | 'holding'
+  | 'consigned'
+  | 'mining'
+  | 'failed'
+  | 'sold';
+
+export interface MyCollectionQuery {
+  page?: number;
+  limit?: number;
+  status?: MyCollectionStatus;
+  session_id?: number;
+  zone_id?: number;
+  keyword?: string;
+  sort?: 'create_time' | 'price' | 'market_price' | 'consignment_price' | 'id';
+  order?: 'asc' | 'desc';
+}
+
+interface MyCollectionItemRaw {
+  id?: number | string;
+  user_collection_id?: number | string;
+  consignment_id?: number | string;
+  unique_id?: string;
+  title?: string;
+  image?: string;
+  asset_code?: string;
+  hash?: string;
+  price?: number | string;
+  buy_price?: number | string;
+  market_price?: number | string;
+  sold_price?: number | string;
+  principal_amount?: number | string;
+  profit_amount?: number | string;
+  transaction_count?: number | string;
+  fail_count?: number | string;
+  consignment_status?: number | string;
+  consignment_status_text?: string;
+  status_text?: string;
+  session_id?: number | string;
+  session_title?: string;
+  session_start_time?: string;
+  session_end_time?: string;
+  zone_id?: number | string;
+  price_zone?: string;
+  zone_name?: string;
+  price_zone_calc?: number | string;
+  mining_status?: number | string;
+  mining_start_time?: number | string;
+  mining_start_time_text?: string;
+  create_time?: number | string;
+  create_time_text?: string;
+  sold_time?: number | string;
+  settle_status?: number | string;
+  settle_time?: number | string | null;
+  payout_total_withdrawable?: number | string;
+  payout_total_consume?: number | string;
+  service_fee?: number | string;
+}
+
+interface MyCollectionResponseRaw {
+  list?: MyCollectionItemRaw[];
+  total?: number | string;
+  page?: number | string;
+  limit?: number | string;
+  current_page?: number | string;
+  per_page?: number | string;
+  last_page?: number | string;
+}
+
+export interface MyCollectionItem {
+  id: number;
+  user_collection_id: number;
+  consignment_id: number;
+  unique_id: string;
+  title: string;
+  image: string;
+  asset_code: string;
+  hash: string;
+  price: number;
+  buy_price: number;
+  market_price: number;
+  sold_price: number;
+  principal_amount: number;
+  profit_amount: number;
+  transaction_count: number;
+  fail_count: number;
+  consignment_status: number;
+  consignment_status_text: string;
+  status_text: string;
+  session_id: number;
+  session_title: string;
+  session_start_time: string;
+  session_end_time: string;
+  zone_id: number;
+  price_zone: string;
+  zone_name: string;
+  price_zone_calc: number;
+  mining_status: number;
+  mining_start_time: number;
+  mining_start_time_text: string;
+  create_time: number;
+  create_time_text: string;
+  sold_time: string;
+  settle_status: number;
+  settle_time: string;
+  payout_total_withdrawable: number;
+  payout_total_consume: number;
+  service_fee: number;
+}
+
+export interface MyCollectionResponse {
+  list: MyCollectionItem[];
+  total: number;
+  page: number;
+  limit: number;
+  last_page: number;
+}
+
+function normalizeMyCollectionStatus(item: MyCollectionItemRaw): string {
+  const miningStatus = readNumber(item.mining_status);
+  const consignmentStatus = readNumber(item.consignment_status);
+  const statusText = readString(item.status_text).trim();
+  const consignmentStatusText = readString(item.consignment_status_text).trim();
+
+  if (statusText) {
+    return statusText;
+  }
+
+  if (consignmentStatusText) {
+    return consignmentStatusText;
+  }
+
+  if (miningStatus === 1) {
+    return '\u77ff\u673a\u8fd0\u884c\u4e2d';
+  }
+
+  if (consignmentStatus === 1) {
+    return '\u5bc4\u552e\u4e2d';
+  }
+
+  if (consignmentStatus === 2) {
+    return '\u5df2\u552e\u51fa';
+  }
+
+  if (consignmentStatus === 3) {
+    return '\u5bc4\u552e\u5931\u8d25';
+  }
+
+  return '\u6301\u6709\u4e2d';
+}
+
+function normalizeMyCollectionItem(item: MyCollectionItemRaw): MyCollectionItem {
+  const id = readNumber(item.id);
+  const userCollectionId = readNumber(item.user_collection_id, id);
+  const consignmentId = readNumber(item.consignment_id);
+  const buyPrice = readNumber(item.buy_price, readNumber(item.price));
+  const createTime = readNumber(item.create_time);
+  const miningStartTime = readNumber(item.mining_start_time);
+
+  return {
+    id,
+    user_collection_id: userCollectionId,
+    consignment_id: consignmentId,
+    unique_id: readString(item.unique_id, String(id || userCollectionId || consignmentId || 0)),
+    title: readString(item.title),
+    image: readString(item.image),
+    asset_code: readString(item.asset_code),
+    hash: readString(item.hash),
+    price: readNumber(item.price, buyPrice),
+    buy_price: buyPrice,
+    market_price: readNumber(item.market_price, buyPrice),
+    sold_price: readNumber(item.sold_price),
+    principal_amount: readNumber(item.principal_amount, buyPrice),
+    profit_amount: readNumber(item.profit_amount),
+    transaction_count: readNumber(item.transaction_count),
+    fail_count: readNumber(item.fail_count),
+    consignment_status: readNumber(item.consignment_status),
+    consignment_status_text: readString(item.consignment_status_text),
+    status_text: normalizeMyCollectionStatus(item),
+    session_id: readNumber(item.session_id),
+    session_title: readString(item.session_title),
+    session_start_time: readString(item.session_start_time),
+    session_end_time: readString(item.session_end_time),
+    zone_id: readNumber(item.zone_id),
+    price_zone: readString(item.price_zone),
+    zone_name: readString(item.zone_name),
+    price_zone_calc: readNumber(item.price_zone_calc),
+    mining_status: readNumber(item.mining_status),
+    mining_start_time: miningStartTime,
+    mining_start_time_text:
+      readString(item.mining_start_time_text) || readDateTime(item.mining_start_time),
+    create_time: createTime,
+    create_time_text: readString(item.create_time_text) || readDateTime(item.create_time),
+    sold_time: readDateTime(item.sold_time),
+    settle_status: readNumber(item.settle_status),
+    settle_time: readDateTime(item.settle_time),
+    payout_total_withdrawable: readNumber(item.payout_total_withdrawable),
+    payout_total_consume: readNumber(item.payout_total_consume),
+    service_fee: readNumber(item.service_fee),
+  };
+}
 
 export const collectionTradeApi = {
-  /**
-   * 买入订单列表
-   * GET /api/collectionTrade/buyOrders
-   */
+  myCollection(
+    params: MyCollectionQuery = {},
+    signal?: AbortSignal,
+  ) {
+    return http
+      .get<MyCollectionResponseRaw>('/api/collectionTrade/myCollection', {
+        query: {
+          page: params.page ?? 1,
+          limit: params.limit ?? 10,
+          status: params.status ?? 'holding',
+          ...(params.session_id != null && { session_id: params.session_id }),
+          ...(params.zone_id != null && { zone_id: params.zone_id }),
+          ...(params.keyword ? { keyword: params.keyword } : {}),
+          ...(params.sort ? { sort: params.sort } : {}),
+          ...(params.order ? { order: params.order } : {}),
+        },
+        signal,
+      })
+      .then((response): MyCollectionResponse => {
+        const page = readNumber(response.current_page ?? response.page, params.page ?? 1);
+        const limit = readNumber(response.per_page ?? response.limit, params.limit ?? 10);
+        const total = readNumber(response.total);
+        const lastPage = Math.max(
+          1,
+          readNumber(response.last_page, Math.ceil(total / Math.max(limit, 1))),
+        );
+
+        return {
+          list: Array.isArray(response.list) ? response.list.map(normalizeMyCollectionItem) : [],
+          total,
+          page,
+          limit,
+          last_page: lastPage,
+        };
+      });
+  },
+
   buyOrders(
     params?: { page?: number; limit?: number },
     signal?: AbortSignal,
@@ -210,10 +425,6 @@ export const collectionTradeApi = {
     });
   },
 
-  /**
-   * 卖出订单列表
-   * GET /api/collectionTrade/sellOrders
-   */
   sellOrders(
     params?: { page?: number; limit?: number },
     signal?: AbortSignal,
@@ -224,10 +435,6 @@ export const collectionTradeApi = {
     });
   },
 
-  /**
-   * 订单详情（旧接口，保留兼容）
-   * GET /api/collectionTrade/orderDetail
-   */
   detail(id: number, signal?: AbortSignal) {
     return http.get<CollectionOrderDetailResponse>('/api/collectionTrade/orderDetail', {
       query: { id },
@@ -235,10 +442,6 @@ export const collectionTradeApi = {
     });
   },
 
-  /**
-   * 买入订单详情
-   * GET /api/collectionTrade/buyOrderDetail
-   */
   buyOrderDetail(params: { id?: number; order_no?: string }, signal?: AbortSignal) {
     return http.get<CollectionBuyOrderDetail>('/api/collectionTrade/buyOrderDetail', {
       query: params,
@@ -246,11 +449,6 @@ export const collectionTradeApi = {
     });
   },
 
-  /**
-   * 卖出订单详情
-   * GET /api/collectionTrade/sellOrderDetail
-   * @param id 寄售记录 ID (consignment_id)
-   */
   sellOrderDetail(params: { id: number }, signal?: AbortSignal) {
     return http.get<CollectionSellOrderDetail>('/api/collectionTrade/sellOrderDetail', {
       query: params,
@@ -258,4 +456,3 @@ export const collectionTradeApi = {
     });
   },
 };
-

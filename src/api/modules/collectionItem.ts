@@ -31,18 +31,19 @@ export interface CollectionItem {
 }
 
 /** 列表分页响应 */
+export interface CollectionSessionSummary {
+  id: number;
+  title: string;
+  is_mixed_pay_available?: boolean;
+}
+
 export interface CollectionItemListResponse {
   list: CollectionItem[];
   total: number;
   page: number;
   limit: number;
   /** 场次基础信息 */
-  session?: {
-    id: number;
-    title: string;
-    is_mixed_pay_available?: boolean;
-    [key: string]: unknown;
-  };
+  session?: CollectionSessionSummary;
 }
 
 /** 查询参数 */
@@ -104,7 +105,7 @@ export interface CollectionDetailResponse {
   /** 价格分区列表 */
   zones: CollectionZone[];
   /** 场次信息 */
-  session?: Record<string, unknown>;
+  session?: CollectionSessionSummary;
   /** 用户余额信息 */
   user: CollectionUserInfo;
   /** 算力配置 */

@@ -1,10 +1,11 @@
-import { useMemo, useRef, useState } from 'react';
+﻿import { useMemo, useRef, useState } from 'react';
 import { announcementApi, type AnnouncementItem } from '../../api';
 import { getErrorMessage } from '../../api/core/errors';
 import { OfflineBanner } from '../../components/layout/OfflineBanner';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { ErrorState } from '../../components/ui/ErrorState';
+import { PullToRefreshContainer } from '../../components/ui/PullToRefreshContainer';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 import { useRequest } from '../../hooks/useRequest';
 import { useRouteScrollRestoration } from '../../hooks/useRouteScrollRestoration';
@@ -167,9 +168,21 @@ export const AnnouncementPage = () => {
         backButtonClassName="text-gray-900 dark:text-gray-100"
       />
 
-      <div ref={scrollContainerRef} className="relative flex-1 overflow-y-auto no-scrollbar">
-        {selectedAnnouncement ? renderDetail() : renderList()}
-      </div>
+      <PullToRefreshContainer
+        className="relative flex-1 overflow-y-auto no-scrollbar"
+        onRefresh={async () => {
+          await reload().catch(() => undefined);
+        }}
+        disabled={isOffline || Boolean(selectedAnnouncement)}
+      >
+        <div ref={scrollContainerRef}>
+          {selectedAnnouncement ? renderDetail() : renderList()}
+        </div>
+      </PullToRefreshContainer>
     </div>
   );
 };
+
+
+
+

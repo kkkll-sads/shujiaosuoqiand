@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   ChevronLeft,
@@ -14,6 +14,7 @@ import { shopCartApi, type ShopCartListItem } from '../../api/modules/shopCart';
 import { shopOrderApi } from '../../api/modules/shopOrder';
 import { getErrorMessage } from '../../api/core/errors';
 import { useFeedback } from '../../components/ui/FeedbackProvider';
+import { PullToRefreshContainer } from '../../components/ui/PullToRefreshContainer';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { useAppNavigate } from '../../lib/navigation';
 
@@ -167,12 +168,12 @@ export const CheckoutPage = () => {
   const renderHeader = () => (
     <div className="bg-white dark:bg-gray-900 z-40 relative shrink-0 border-b border-border-light">
       {offline && (
-        <div className="bg-red-50 text-primary-start px-4 py-2 flex items-center justify-between text-sm">
+        <div className="bg-red-50 text-primary-start px-4 py-2 flex items-center justify-between text-sm dark:bg-red-900/30 dark:text-red-300">
           <div className="flex items-center">
             <WifiOff size={14} className="mr-2" />
             <span>网络不稳定，请检查网络设置</span>
           </div>
-          <button onClick={() => setOffline(false)} className="font-medium px-2 py-1 bg-white dark:bg-gray-900 rounded shadow-sm">刷新</button>
+          <button onClick={() => setOffline(false)} className="rounded px-2 py-1 font-medium shadow-sm bg-white dark:bg-gray-800 dark:text-gray-100">刷新</button>
         </div>
       )}
       <div className="h-12 flex items-center justify-between px-3 pt-safe">
@@ -225,7 +226,7 @@ export const CheckoutPage = () => {
           <p className="text-md text-text-sub mb-4">加载失败，请检查网络</p>
           <button
             onClick={handleRetry}
-            className="px-6 py-2 border border-border-light rounded-full text-base text-text-main bg-white dark:bg-gray-900 shadow-sm active:bg-bg-base"
+            className="px-6 py-2 border border-border-light rounded-full text-base text-text-main bg-white dark:bg-gray-900 shadow-sm active:bg-bg-base dark:active:bg-gray-800"
           >
             重试
           </button>
@@ -247,7 +248,7 @@ export const CheckoutPage = () => {
           <div className="flex items-center justify-between">
             {noAddress ? (
               <div className="flex items-center py-2">
-                <div className="w-8 h-8 rounded-full bg-primary-start/10 flex items-center justify-center mr-3">
+                <div className="w-8 h-8 rounded-full bg-primary-start/10 dark:bg-red-500/15 flex items-center justify-center mr-3">
                   <Plus size={16} className="text-primary-start" />
                 </div>
                 <span className="text-lg font-medium text-text-main">新增收货地址</span>
@@ -405,3 +406,5 @@ export const CheckoutPage = () => {
     </div>
   );
 };
+
+

@@ -30,7 +30,10 @@ const OrderDetailPage = lazy(() => import('../pages/OrderDetail').then(m => ({ d
 const LogisticsPage = lazy(() => import('../pages/Logistics').then(m => ({ default: m.LogisticsPage })));
 const AfterSalesPage = lazy(() => import('../pages/AfterSales').then(m => ({ default: m.AfterSalesPage })));
 const CouponPage = lazy(() => import('../pages/Coupon').then(m => ({ default: m.CouponPage })));
+const ActivityCenterPage = lazy(() => import('../pages/ActivityCenter').then(m => ({ default: m.ActivityCenterPage })));
+const ConsignmentCouponPage = lazy(() => import('../pages/ConsignmentCoupon').then(m => ({ default: m.ConsignmentCouponPage })));
 const AddressPage = lazy(() => import('../pages/Address').then(m => ({ default: m.AddressPage })));
+const PaymentAccountsPage = lazy(() => import('../pages/PaymentAccounts').then(m => ({ default: m.PaymentAccountsPage })));
 const FavoritesPage = lazy(() => import('../pages/Favorites').then(m => ({ default: m.FavoritesPage })));
 const MessageCenterPage = lazy(() => import('../pages/MessageCenter').then(m => ({ default: m.MessageCenterPage })));
 const AnnouncementPage = lazy(() => import('../pages/Announcement').then(m => ({ default: m.AnnouncementPage })));
@@ -39,6 +42,7 @@ const SettingsPage = lazy(() => import('../pages/Settings').then(m => ({ default
 const AboutUsPage = lazy(() => import('../pages/AboutUs').then(m => ({ default: m.AboutUsPage })));
 const SecurityPage = lazy(() => import('../pages/Security').then(m => ({ default: m.SecurityPage })));
 const BillingPage = lazy(() => import('../pages/Billing').then(m => ({ default: m.BillingPage })));
+const MyCardPacksPage = lazy(() => import('../pages/MyCardPacks').then(m => ({ default: m.MyCardPacksPage })));
 const RealNameAuthPage = lazy(() => import('../pages/RealNameAuth').then(m => ({ default: m.RealNameAuthPage })));
 const InvitePage = lazy(() => import('../pages/Invite').then(m => ({ default: m.InvitePage })));
 const FriendsPage = lazy(() => import('../pages/Friends').then(m => ({ default: m.FriendsPage })));
@@ -50,6 +54,8 @@ const ReservationDetailPage = lazy(() => import('../pages/ReservationDetail').th
 const ItemDetailPage = lazy(() => import('../pages/ItemDetail').then(m => ({ default: m.ItemDetailPage })));
 const FlashSalePage = lazy(() => import('../pages/FlashSale').then(m => ({ default: m.FlashSalePage })));
 const RightsHistoryPage = lazy(() => import('../pages/RightsHistory').then(m => ({ default: m.RightsHistoryPage })));
+const AccumulatedRightsPage = lazy(() => import('../pages/AccumulatedRights').then(m => ({ default: m.AccumulatedRightsPage })));
+const MyCollectionPage = lazy(() => import('../pages/MyCollection').then(m => ({ default: m.MyCollectionPage })));
 const RechargePage = lazy(() => import('../pages/Recharge').then(m => ({ default: m.RechargePage })));
 const TransferPage = lazy(() => import('../pages/Transfer').then(m => ({ default: m.TransferPage })));
 const RightsTransferPage = lazy(() => import('../pages/RightsTransfer').then(m => ({ default: m.RightsTransferPage })));
@@ -63,6 +69,7 @@ const ProductQAPage = lazy(() => import('../pages/ProductQA').then(m => ({ defau
 const LoginPage = lazy(() => import('../pages/Login').then(m => ({ default: m.LoginPage })));
 const RegisterPage = lazy(() => import('../pages/Register').then(m => ({ default: m.RegisterPage })));
 const ForgotPasswordPage = lazy(() => import('../pages/ForgotPassword').then(m => ({ default: m.ForgotPasswordPage })));
+const CommonPage = lazy(() => import('../pages/CommonPage').then(m => ({ default: m.CommonPage })));
 const DesignSystemPage = lazy(() => import('../pages/DesignSystem').then(m => ({ default: m.DesignSystemPage })));
 const SignInPage = lazy(() => import('../pages/SignIn').then(m => ({ default: m.SignInPage })));
 const NotFoundPage = lazy(() => import('../pages/NotFound').then(m => ({ default: m.NotFoundPage })));
@@ -182,7 +189,13 @@ export const router = createHashRouter([
 
       // ========== 用户资产 ==========
       { path: 'coupon', element: <Lazy><CouponPage /></Lazy> },
+      { path: 'activity-center', element: <Lazy><ActivityCenterPage /></Lazy> },
+      { path: 'consignment-voucher', element: <Lazy><ConsignmentCouponPage /></Lazy> },
       { path: 'billing', element: <Lazy><BillingPage /></Lazy> },
+      { path: 'my-collection', element: <Lazy><MyCollectionPage /></Lazy> },
+      { path: 'my-card-packs', element: <Lazy><MyCardPacksPage /></Lazy> },
+      { path: 'accumulated-rights', element: <Lazy><AccumulatedRightsPage /></Lazy> },
+      { path: 'growth_rights', element: <Lazy><AccumulatedRightsPage /></Lazy> },
       { path: 'recharge', element: <Lazy><RechargePage /></Lazy> },
       { path: 'transfer', element: <Lazy><TransferPage /></Lazy> },
       { path: 'withdraw', element: <Lazy><WithdrawPage /></Lazy> },
@@ -191,6 +204,7 @@ export const router = createHashRouter([
 
       // ========== 用户中心 ==========
       { path: 'address', element: <Lazy><AddressPage /></Lazy> },
+      { path: 'payment-accounts', element: <Lazy><PaymentAccountsPage /></Lazy> },
       { path: 'favorites', element: <Lazy><FavoritesPage /></Lazy> },
       { path: 'messages', element: <Lazy><MessageCenterPage /></Lazy> },
       { path: 'friends', element: <Lazy><FriendsPage /></Lazy> },
@@ -198,6 +212,7 @@ export const router = createHashRouter([
       { path: 'settings', element: <Lazy><SettingsPage /></Lazy> },
       { path: 'security', element: <Lazy><SecurityPage /></Lazy> },
       { path: 'auth/real-name', element: <Lazy><RealNameAuthPage /></Lazy> },
+      { path: 'real_name_auth', element: <Lazy><RealNameAuthPage /></Lazy> },
 
       // ========== 签到 ==========
       { path: 'sign-in', element: <Lazy><SignInPage /></Lazy> },
@@ -205,6 +220,7 @@ export const router = createHashRouter([
       // ========== 信息页面 ==========
       { path: 'announcement', element: <Lazy><AnnouncementPage /></Lazy> },
       { path: 'help', element: <Lazy><HelpCenterPage /></Lazy> },
+      { path: 'help_center', element: <Lazy><HelpCenterPage /></Lazy> },
       { path: 'about', element: <Lazy><AboutUsPage /></Lazy> },
 
       // ========== 直播 ==========
@@ -215,6 +231,8 @@ export const router = createHashRouter([
       { path: 'login', element: <Lazy><LoginPage /></Lazy> },
       { path: 'register', element: <Lazy><RegisterPage /></Lazy> },
       { path: 'forgot-password', element: <Lazy><ForgotPasswordPage /></Lazy> },
+      { path: 'user_agreement', element: <Lazy><CommonPage pageType="user_agreement" /></Lazy> },
+      { path: 'privacy_policy', element: <Lazy><CommonPage pageType="privacy_policy" /></Lazy> },
 
       // ========== 开发工具 ==========
       { path: 'design', element: <Lazy><DesignSystemPage /></Lazy> },

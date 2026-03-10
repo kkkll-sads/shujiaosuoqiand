@@ -1,10 +1,4 @@
-/**
- * @file 全局错误边界
- * @description 捕获 React 渲染错误（如 HMR 导致的 Hook 失效）。
- *              开发环境自动刷新页面，生产环境显示友好错误界面。
- */
-
-import { Component, type ErrorInfo, type ReactNode } from 'react';
+﻿import { Component, type ErrorInfo, type ReactNode } from 'react';
 
 interface Props {
   children: ReactNode;
@@ -15,6 +9,7 @@ interface State {
 }
 
 export class AppErrorBoundary extends Component<Props, State> {
+  declare props: Props;
   state: State = { hasError: false };
 
   static getDerivedStateFromError(): State {
@@ -24,7 +19,6 @@ export class AppErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error('[AppErrorBoundary]', error, info);
 
-    // HMR 导致的 Hook 错误 → 自动刷新
     const isHookError =
       error.message?.includes('queue') ||
       error.message?.includes('Hooks') ||
@@ -32,7 +26,7 @@ export class AppErrorBoundary extends Component<Props, State> {
       error.message?.includes('rendered more hooks');
 
     if (isHookError) {
-      console.warn('[AppErrorBoundary] 检测到 HMR Hook 错误，自动刷新页面...');
+      console.warn('[AppErrorBoundary] detected a hot-reload hook mismatch and will refresh the page.');
       window.location.reload();
     }
   }
@@ -40,16 +34,12 @@ export class AppErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return (
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          height: '100dvh',
-          padding: '24px',
-          fontFamily: 'system-ui, sans-serif',
-          textAlign: 'center',
-        }}>
+        <div
+          className="app-min-viewport-height flex flex-col items-center justify-center px-6 text-center"
+          style={{
+            fontFamily: 'system-ui, sans-serif',
+          }}
+        >
           <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</div>
           <h2 style={{ fontSize: '18px', margin: '0 0 8px', color: '#333' }}>
             页面出了点问题
@@ -76,7 +66,6 @@ export class AppErrorBoundary extends Component<Props, State> {
       );
     }
 
-    const { children } = this.props as Props;
-    return children;
+    return this.props.children;
   }
 }

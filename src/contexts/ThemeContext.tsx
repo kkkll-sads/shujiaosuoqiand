@@ -1,30 +1,35 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+﻿import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { addMediaQueryChangeListener } from '../lib/browserCompat';
 
 type Theme = 'light' | 'dark' | 'system';
 
 interface ThemeContextType {
   theme: Theme;
   setTheme: (theme: Theme) => void;
-  /** 当前实际是否为深色（system 时根据系统偏好派生） */
   isDark: boolean;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
-
 const STORAGE_KEY = 'app-theme';
 
-/** 未保存过主题时默认「跟随系统」，与设备深浅色一致；只有用户选过 浅色/深色 才写入并固定。 */
 function getStoredTheme(): Theme {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored === 'light' || stored === 'dark' || stored === 'system') {
       return stored;
     }
-  } catch {}
+  } catch {
+    // Ignore storage failures on restricted browsers.
+  }
+
   return 'system';
 }
 
 function getSystemDark(): boolean {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+    return false;
+  }
+
   return window.matchMedia('(prefers-color-scheme: dark)').matches;
 }
 
@@ -42,10 +47,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     setThemeState(newTheme);
     try {
       localStorage.setItem(STORAGE_KEY, newTheme);
-    } catch {}
+    } catch {
+      // Ignore storage failures on restricted browsers.
+    }
   }, []);
 
-  // 响应 theme 变化，更新 isDark 及 document.documentElement
   useEffect(() => {
     const updateDark = () => {
       const dark = resolveIsDark(theme);
@@ -59,13 +65,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
     updateDark();
 
-    // 当 theme === 'system' 时，监听系统偏好变化
-    if (theme === 'system') {
-      const mql = window.matchMedia('(prefers-color-scheme: dark)');
-      const handler = () => updateDark();
-      mql.addEventListener('change', handler);
-      return () => mql.removeEventListener('change', handler);
+    if (theme !== 'system' || typeof window.matchMedia !== 'function') {
+      return undefined;
     }
+
+    const mediaQueryList = window.matchMedia('(prefers-color-scheme: dark)');
+    return addMediaQueryChangeListener(mediaQueryList, updateDark);
   }, [theme]);
 
   return (
@@ -76,9 +81,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 }
 
 export function useTheme(): ThemeContextType {
-  const ctx = useContext(ThemeContext);
-  if (!ctx) {
+  const context = useContext(ThemeContext);
+  if (!context) {
     throw new Error('useTheme must be used within a ThemeProvider');
   }
-  return ctx;
+
+  return context;
 }
+

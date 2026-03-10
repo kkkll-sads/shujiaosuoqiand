@@ -1,9 +1,10 @@
-import React, { useRef, useState, useEffect } from 'react';
+﻿import React, { useRef, useState, useEffect } from 'react';
 import { ChevronLeft, WifiOff, AlertCircle, Package, ChevronRight, Camera, CheckCircle2, Clock, HeadphonesIcon, FileText, RefreshCcw, Store } from 'lucide-react';
 import { useAppNavigate } from '../../lib/navigation';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { ErrorState } from '../../components/ui/ErrorState';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { PullToRefreshContainer } from '../../components/ui/PullToRefreshContainer';
 import { useRouteScrollRestoration } from '../../hooks/useRouteScrollRestoration';
 import { useSessionState } from '../../hooks/useSessionState';
 
@@ -124,12 +125,12 @@ export const AfterSalesPage = () => {
   const renderHeader = (title: string) => (
     <div className="bg-white dark:bg-gray-900 z-40 relative shrink-0 border-b border-border-light">
       {offline && (
-        <div className="bg-red-50 text-primary-start px-4 py-2 flex items-center justify-between text-sm">
+        <div className="bg-red-50 dark:bg-red-900/30 text-primary-start dark:text-red-300 px-4 py-2 flex items-center justify-between text-sm">
           <div className="flex items-center">
             <WifiOff size={14} className="mr-2" />
             <span>网络不稳定，请检查网络设置</span>
           </div>
-          <button onClick={() => setOffline(false)} className="font-medium px-2 py-1 bg-white dark:bg-gray-900 rounded shadow-sm">刷新</button>
+          <button onClick={() => setOffline(false)} className="font-medium px-2 py-1 bg-white dark:bg-gray-800 dark:text-gray-100 rounded shadow-sm">刷新</button>
         </div>
       )}
       <div className="h-12 flex items-center justify-between px-3 pt-safe">
@@ -254,7 +255,7 @@ export const AfterSalesPage = () => {
                           listScrollContainerRef.current?.scrollTop ?? listScrollTopRef.current;
                         setView('detail');
                       }}
-                      className="px-4 py-1.5 rounded-full border border-border-main text-sm text-text-main active:bg-gray-50 dark:bg-gray-800 transition-colors"
+                      className="px-4 py-1.5 rounded-full border border-border-main text-sm text-text-main active:bg-gray-50 dark:bg-gray-800 dark:active:bg-gray-700 transition-colors"
                     >
                       查看详情
                     </button>
@@ -287,11 +288,11 @@ export const AfterSalesPage = () => {
           
           <div className="space-y-3">
             <div 
-              className="bg-white dark:bg-gray-900 rounded-xl p-4 shadow-sm flex items-center justify-between active:bg-gray-50 dark:bg-gray-800 transition-colors cursor-pointer"
+              className="bg-white dark:bg-gray-900 rounded-xl p-4 shadow-sm flex items-center justify-between active:bg-gray-50 dark:active:bg-gray-800 transition-colors cursor-pointer"
               onClick={() => { setSelectedService('退货退款'); setView('apply'); }}
             >
               <div className="flex items-center">
-                <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center mr-3 text-primary-start shrink-0">
+                <div className="w-10 h-10 rounded-full bg-red-50 dark:bg-red-500/15 flex items-center justify-center mr-3 text-primary-start dark:text-red-300 shrink-0">
                   <Package size={20} />
                 </div>
                 <div>
@@ -303,11 +304,11 @@ export const AfterSalesPage = () => {
             </div>
 
             <div 
-              className="bg-white dark:bg-gray-900 rounded-xl p-4 shadow-sm flex items-center justify-between active:bg-gray-50 dark:bg-gray-800 transition-colors cursor-pointer"
+              className="bg-white dark:bg-gray-900 rounded-xl p-4 shadow-sm flex items-center justify-between active:bg-gray-50 dark:active:bg-gray-800 transition-colors cursor-pointer"
               onClick={() => { setSelectedService('仅退款'); setView('apply'); }}
             >
               <div className="flex items-center">
-                <div className="w-10 h-10 rounded-full bg-orange-50 flex items-center justify-center mr-3 text-orange-500 shrink-0">
+                <div className="w-10 h-10 rounded-full bg-orange-50 dark:bg-orange-500/15 flex items-center justify-center mr-3 text-orange-500 dark:text-orange-300 shrink-0">
                   <span className="text-3xl font-bold">¥</span>
                 </div>
                 <div>
@@ -319,7 +320,7 @@ export const AfterSalesPage = () => {
             </div>
 
             <div 
-              className="bg-white dark:bg-gray-900 rounded-xl p-4 shadow-sm flex items-center justify-between active:bg-gray-50 dark:bg-gray-800 transition-colors cursor-pointer"
+              className="bg-white dark:bg-gray-900 rounded-xl p-4 shadow-sm flex items-center justify-between active:bg-gray-50 dark:active:bg-gray-800 transition-colors cursor-pointer"
               onClick={() => { setSelectedService('换货'); setView('apply'); }}
             >
               <div className="flex items-center">
@@ -500,3 +501,5 @@ export const AfterSalesPage = () => {
     </div>
   );
 };
+
+

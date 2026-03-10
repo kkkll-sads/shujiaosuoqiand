@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   ChevronLeft,
@@ -73,7 +73,7 @@ export const CashierPage = () => {
           desc: `可用消费金 ${Number(scoreBalanceParam).toLocaleString('zh-CN')}`,
           icon: Coins,
           color: 'text-orange-500',
-          bg: 'bg-orange-50',
+          bg: 'bg-orange-50 dark:bg-orange-500/15',
         },
       ];
     }
@@ -85,7 +85,7 @@ export const CashierPage = () => {
           desc: `可用余额 ¥${Number(balanceParam).toLocaleString('zh-CN', { minimumFractionDigits: 2 })}`,
           icon: Wallet,
           color: 'text-primary-start',
-          bg: 'bg-primary-start/10',
+          bg: 'bg-primary-start/10 dark:bg-red-500/15',
         },
       ];
     }
@@ -97,7 +97,7 @@ export const CashierPage = () => {
         desc: `可用余额 ¥${Number(balanceParam).toLocaleString('zh-CN', { minimumFractionDigits: 2 })}`,
         icon: Wallet,
         color: 'text-primary-start',
-        bg: 'bg-primary-start/10',
+        bg: 'bg-primary-start/10 dark:bg-red-500/15',
       },
       {
         id: 'score',
@@ -105,7 +105,7 @@ export const CashierPage = () => {
         desc: `可用消费金 ${Number(scoreBalanceParam).toLocaleString('zh-CN')}`,
         icon: Coins,
         color: 'text-orange-500',
-        bg: 'bg-orange-50',
+        bg: 'bg-orange-50 dark:bg-orange-500/15',
       },
     ];
   }, [isScoreOnly, isMoneyOnly, balanceParam, scoreBalanceParam]);
@@ -242,14 +242,14 @@ export const CashierPage = () => {
   const renderHeader = () => (
     <div className="bg-white dark:bg-gray-900 z-40 relative shrink-0 border-b border-border-light">
       {offline && (
-        <div className="bg-red-50 text-primary-start px-4 py-2 flex items-center justify-between text-sm">
+        <div className="bg-red-50 dark:bg-red-900/30 text-primary-start dark:text-red-300 px-4 py-2 flex items-center justify-between text-sm">
           <div className="flex items-center">
             <WifiOff size={14} className="mr-2" />
             <span>网络不稳定，请检查网络设置</span>
           </div>
           <button
             onClick={() => setOffline(false)}
-            className="font-medium px-2 py-1 bg-white dark:bg-gray-900 rounded shadow-sm"
+            className="font-medium px-2 py-1 bg-white dark:bg-gray-800 dark:text-gray-100 rounded shadow-sm"
           >
             刷新
           </button>
@@ -316,7 +316,7 @@ export const CashierPage = () => {
       <div className="p-3 pb-24">
         {/* Countdown */}
         <div className="flex justify-center mb-3">
-          <div className="bg-orange-50 text-orange-600 px-3 py-1 rounded-full text-sm font-medium flex items-center">
+          <div className="bg-orange-50 text-orange-600 px-3 py-1 rounded-full text-sm font-medium flex items-center dark:bg-orange-500/15 dark:text-orange-200">
             支付剩余时间 {formatTime(timeLeft)}
           </div>
         </div>
@@ -405,7 +405,7 @@ export const CashierPage = () => {
       {showFailureModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-10">
           <div className="bg-white dark:bg-gray-900 rounded-2xl w-full overflow-hidden flex flex-col items-center pt-6 pb-5 px-5 animate-in fade-in zoom-in duration-200">
-            <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mb-3">
+            <div className="w-12 h-12 rounded-full bg-red-50 dark:bg-red-500/15 flex items-center justify-center mb-3">
               <AlertCircle size={24} className="text-primary-start" />
             </div>
             <h3 className="text-xl font-bold text-text-main mb-2">支付失败</h3>
@@ -435,3 +435,4 @@ export const CashierPage = () => {
     </div>
   );
 };
+

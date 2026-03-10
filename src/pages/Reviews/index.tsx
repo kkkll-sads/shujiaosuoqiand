@@ -26,14 +26,14 @@ import { useAppNavigate } from '../../lib/navigation';
 
 const EMPTY_SUMMARY: ShopProductReviewSummary = {
   follow_up_count: 0,
-  good_rate: 100,
+  good_rate: 0,
   preview: [],
   total: 0,
   with_media_count: 0,
 };
 
 const EMPTY_REVIEW_LIST: ShopProductReviewListResponse = {
-  good_rate: 100,
+  good_rate: 0,
   limit: 10,
   list: [],
   page: 1,
@@ -232,6 +232,12 @@ export function ReviewsPage() {
       );
     }
 
+    const totalReviews = summaryRequest.data?.total ?? 0;
+    const goodRate =
+      totalReviews > 0 && summaryRequest.data?.good_rate != null
+        ? summaryRequest.data.good_rate
+        : null;
+
     return (
       <div className="pb-safe">
         <Card className="m-4 p-4 shadow-sm">
@@ -239,13 +245,16 @@ export function ReviewsPage() {
             <div className="flex items-baseline space-x-2">
               <span className="text-base font-medium text-text-main">好评率</span>
               <span className="text-6xl font-bold text-primary-start">
-                {summaryRequest.data?.good_rate ?? 100}%
+                {goodRate != null ? `${goodRate}%` : '--'}
               </span>
             </div>
             <div className="flex flex-col items-end">
               <div className="mb-1 flex items-center space-x-1">
                 <span className="text-sm text-text-sub">综合评分</span>
-                {renderStars(Math.max(1, Math.min(5, Math.round((summaryRequest.data?.good_rate ?? 100) / 20))), 12)}
+                {renderStars(
+                  goodRate == null ? 0 : Math.max(0, Math.min(5, Math.round(goodRate / 20))),
+                  12,
+                )}
               </div>
               <span className="text-s text-text-aux">
                 {summaryRequest.data?.total ?? 0} 条评价

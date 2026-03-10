@@ -68,20 +68,14 @@ export interface ShopProductSku {
 
 export interface ShopProductDetail extends ShopProductItem {
   after_sale?: ShopProductAfterSale | null;
-  create_time?: number;
   delivery_info?: ShopProductDeliveryInfo | null;
   description?: string;
   detail_images: string[];
   has_sku?: string;
   images: string[];
-  is_card_product?: string;
-  price_range?: string | null;
   skus?: ShopProductSku[];
   sku_specs?: ShopProductSkuSpec[];
   specs?: ShopProductDetailSpec[];
-  status?: string;
-  sort?: number;
-  update_time?: number;
 }
 
 export interface ShopProductReviewFollowUp {

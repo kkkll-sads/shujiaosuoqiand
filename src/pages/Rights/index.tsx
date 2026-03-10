@@ -1,71 +1,99 @@
-import React, { useRef, useState, useEffect } from 'react';
-import { ChevronLeft, FileText, Info, AlertCircle, CheckCircle2, Clock, XCircle, Upload, X, ChevronRight } from 'lucide-react';
+﻿import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'react';
+import {
+  AlertCircle,
+  ChevronRight,
+  FileText,
+  Info,
+  Loader2,
+  Upload,
+  X,
+  XCircle,
+} from 'lucide-react';
+import {
+  rightsDeclarationApi,
+  type RightsDeclarationStatus,
+  type RightsDeclarationVoucherType,
+} from '../../api';
+import { getErrorMessage } from '../../api/core/errors';
+import { uploadApi, type UploadedFile } from '../../api/modules/upload';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { ErrorState } from '../../components/ui/ErrorState';
+import { PageHeader } from '../../components/layout/PageHeader';
+import { useFeedback } from '../../components/ui/FeedbackProvider';
 import { UnlockPanel } from '../../features/rights/UnlockPanel';
 import { GrowthRightsContent } from '../GrowthRights';
-import { getErrorMessage } from '../../api/core/errors';
+import { useRequest } from '../../hooks/useRequest';
 import { useRouteScrollRestoration } from '../../hooks/useRouteScrollRestoration';
 import { useSessionState } from '../../hooks/useSessionState';
 import { useOldAssetsUnlock } from '../../hooks/useOldAssetsUnlock';
 import { useAppNavigate } from '../../lib/navigation';
-import { PageHeader } from '../../components/layout/PageHeader';
-import { useFeedback } from '../../components/ui/FeedbackProvider';
 
-// Mock Data
-const MOCK_DATA = {
-  pending_count: 1,
-  approved_count: 5,
-  history: [
-    { id: '1', type: 'screenshot', amount: 5000, status: 'pending', time: '2026-03-01 10:00:00' },
-    { id: '2', type: 'transfer_record', amount: 10000, status: 'approved', time: '2026-02-28 14:30:00' },
-    { id: '3', type: 'other', amount: 2000, status: 'rejected', time: '2026-02-25 09:15:00' },
-  ],
-  unlock: {
-    conditions: [
-      { id: 'c1', text: '完成实名认证', met: true },
-      { id: 'c2', text: '绑定有效银行卡', met: true },
-      { id: 'c3', text: '历史交易达标', met: false },
-    ],
-    required_gold: 10000,
-    current_gold: 4500,
-    can_unlock: false,
-    unlocked_count: 0,
-    available_quota: 0,
-  },
-};
-
-const VOUCHER_TYPES = {
+const VOUCHER_TYPES: Record<RightsDeclarationVoucherType, string> = {
+  other: '其他',
   screenshot: '截图凭证',
   transfer_record: '转账记录',
-  other: '其他'
 };
 
-const STATUS_MAP = {
-  pending: { text: '审核中', color: 'text-orange-500', bg: 'bg-orange-50 dark:bg-orange-500/10' },
+const STATUS_MAP: Record<
+  RightsDeclarationStatus,
+  { bg: string; color: string; text: string }
+> = {
   approved: { text: '已通过', color: 'text-green-500', bg: 'bg-green-50 dark:bg-green-500/10' },
-  rejected: { text: '已驳回', color: 'text-red-500', bg: 'bg-red-50 dark:bg-red-500/10' },
   cancelled: { text: '已取消', color: 'text-gray-500 dark:text-gray-400', bg: 'bg-gray-50 dark:bg-gray-500/10' },
+  pending: { text: '审核中', color: 'text-orange-500', bg: 'bg-orange-50 dark:bg-orange-500/10' },
+  rejected: { text: '已驳回', color: 'text-red-500', bg: 'bg-red-50 dark:bg-red-500/10' },
 };
+
+type UploadStatus = 'uploading' | 'success' | 'error';
+
+interface UploadImage {
+  errorMessage?: string;
+  file: File;
+  id: string;
+  status: UploadStatus;
+  uploaded?: UploadedFile;
+  url: string;
+}
+
+function ApplySkeleton() {
+  return (
+    <div className="space-y-4">
+      <Card className="h-32 animate-pulse rounded-2xl bg-white dark:bg-bg-card" />
+      <Card className="h-[420px] animate-pulse rounded-2xl bg-white dark:bg-bg-card" />
+      <Card className="h-48 animate-pulse rounded-2xl bg-white dark:bg-bg-card" />
+    </div>
+  );
+}
 
 export function RightsPage() {
   const { showToast } = useFeedback();
   const { goTo, goBack } = useAppNavigate();
-  const [isLoading, setIsLoading] = useState(true);
-  const [data, setData] = useState(MOCK_DATA);
   const [activeTab, setActiveTab] = useSessionState<'apply' | 'unlock' | 'growth'>(
     'rights-page:tab',
     'apply',
   );
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
-  
-  // Form State
-  const [voucherType, setVoucherType] = useState('screenshot');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const imagesRef = useRef<UploadImage[]>([]);
+
+  const [voucherType, setVoucherType] = useState<RightsDeclarationVoucherType>('screenshot');
   const [amount, setAmount] = useState('');
   const [remark, setRemark] = useState('');
-  const [images, setImages] = useState<string[]>([]);
+  const [images, setImages] = useState<UploadImage[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const {
+    data: reviewStatusData,
+    error: reviewStatusError,
+    loading: reviewStatusLoading,
+    reload: reloadReviewStatus,
+  } = useRequest(
+    (signal) => rightsDeclarationApi.getReviewStatus({ limit: 3 }, { signal }),
+    {
+      cacheKey: 'rights-declaration:review-status',
+    },
+  );
 
   const {
     unlockStatus,
@@ -76,209 +104,288 @@ export function RightsPage() {
   const [unlockLoading, setUnlockLoading] = useState(false);
 
   useEffect(() => {
+    imagesRef.current = images;
+  }, [images]);
+
+  useEffect(() => {
+    return () => {
+      imagesRef.current.forEach((image) => {
+        if (image.url.startsWith('blob:')) {
+          URL.revokeObjectURL(image.url);
+        }
+      });
+    };
+  }, []);
+
+  useEffect(() => {
     if (activeTab === 'unlock') {
       void reloadUnlockStatus().catch(() => undefined);
     }
   }, [activeTab, reloadUnlockStatus]);
 
-  useEffect(() => {
-    // Simulate loading
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, []);
-
   useRouteScrollRestoration({
     containerRef: scrollContainerRef,
     namespace: `rights-page:${activeTab}`,
-    restoreDeps: [activeTab, isLoading],
-    restoreWhen: !isLoading,
+    restoreDeps: [activeTab, reviewStatusLoading, unlockStatus.isLoading],
+    restoreWhen:
+      activeTab === 'apply'
+        ? !reviewStatusLoading
+        : activeTab === 'unlock'
+          ? !unlockStatus.isLoading
+          : true,
   });
 
-  const handleGoBack = () => {
-    goBack();
+  const pendingCount = reviewStatusData?.pendingCount ?? 0;
+  const approvedCount = reviewStatusData?.approvedCount ?? 0;
+  const history = reviewStatusData?.list ?? [];
+  const numericAmount = Number(amount);
+  const isFormDisabled = pendingCount > 0;
+  const successfulImages = images
+    .filter((image) => image.status === 'success' && image.uploaded?.url)
+    .map((image) => image.uploaded!.url);
+  const hasUploadingImages = images.some((image) => image.status === 'uploading');
+  const isSubmitDisabled =
+    isFormDisabled ||
+    numericAmount <= 0 ||
+    successfulImages.length === 0 ||
+    hasUploadingImages ||
+    isSubmitting;
+
+  const revokePreviewUrl = (url: string) => {
+    if (url.startsWith('blob:')) {
+      URL.revokeObjectURL(url);
+    }
   };
 
-  const handleGoHistory = () => {
-    goTo('rights_history');
+  const uploadSingleImage = useCallback(async (image: UploadImage) => {
+    try {
+      const uploaded = await uploadApi.upload({ file: image.file, topic: 'rights_declaration' });
+      setImages((prev) =>
+        prev.map((item) =>
+          item.id === image.id
+            ? { ...item, errorMessage: undefined, status: 'success', uploaded, url: uploaded.url }
+            : item,
+        ),
+      );
+      if (uploaded.url !== image.url) {
+        revokePreviewUrl(image.url);
+      }
+    } catch (error) {
+      setImages((prev) =>
+        prev.map((item) =>
+          item.id === image.id
+            ? { ...item, errorMessage: getErrorMessage(error), status: 'error' }
+            : item,
+        ),
+      );
+    }
+  }, []);
+
+  const handleImageUpload = (event: ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files?.length) {
+      return;
+    }
+
+    const nextImages = Array.from<File>(files)
+      .slice(0, Math.max(0, 8 - images.length))
+      .map((file) => ({
+        file,
+        id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        status: 'uploading' as UploadStatus,
+        url: URL.createObjectURL(file),
+      }));
+
+    setImages((prev) => [...prev, ...nextImages]);
+    nextImages.forEach((image) => {
+      void uploadSingleImage(image);
+    });
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
-  const handleImageUpload = () => {
-    if (images.length >= 8) return;
-    // Mock upload
-    setImages([...images, `https://picsum.photos/seed/${Math.random()}/200/200`]);
+  const removeImage = (id: string) => {
+    setImages((prev) => {
+      const target = prev.find((item) => item.id === id);
+      if (target) {
+        revokePreviewUrl(target.url);
+      }
+      return prev.filter((item) => item.id !== id);
+    });
   };
 
-  const handleRemoveImage = (index: number) => {
-    setImages(images.filter((_, i) => i !== index));
+  const retryUpload = (id: string) => {
+    const target = images.find((item) => item.id === id);
+    if (!target) {
+      return;
+    }
+
+    setImages((prev) =>
+      prev.map((item) =>
+        item.id === id ? { ...item, errorMessage: undefined, status: 'uploading' } : item,
+      ),
+    );
+
+    void uploadSingleImage({ ...target, errorMessage: undefined, status: 'uploading' });
   };
 
-  const handleSubmit = () => {
-    if (data.pending_count > 0 || !amount || Number(amount) <= 0 || images.length === 0) return;
+  const resetForm = () => {
+    imagesRef.current.forEach((image) => {
+      revokePreviewUrl(image.url);
+    });
+    setAmount('');
+    setRemark('');
+    setImages([]);
+  };
+
+  const handleSubmit = async () => {
+    if (isSubmitDisabled) {
+      return;
+    }
+
     setIsSubmitting(true);
-    setTimeout(() => {
+    try {
+      await rightsDeclarationApi.submit({
+        amount: numericAmount,
+        images: successfulImages,
+        remark: remark.trim() || undefined,
+        voucherType,
+      });
+      resetForm();
+      await reloadReviewStatus();
+      showToast({ message: '提交成功，请等待管理员审核', type: 'success' });
+    } catch (error) {
+      showToast({ message: getErrorMessage(error), type: 'error', duration: 3000 });
+    } finally {
       setIsSubmitting(false);
-      setData(prev => ({ ...prev, pending_count: prev.pending_count + 1 }));
-      setAmount('');
-      setRemark('');
-      setImages([]);
-      showToast({ message: '提交成功', type: 'success' });
-    }, 300);
+    }
   };
-
-  const isFormDisabled = data.pending_count > 0;
-  const isSubmitDisabled = isFormDisabled || !amount || Number(amount) <= 0 || images.length === 0;
 
   const handleUnlock = async () => {
-    if (!unlockStatus.canUnlock || unlockLoading) return;
+    if (!unlockStatus.canUnlock || unlockLoading) {
+      return;
+    }
+
     setUnlockLoading(true);
     try {
       await doUnlock();
       showToast({ message: '解锁成功', type: 'success' });
-    } catch (err) {
-      showToast({ message: getErrorMessage(err) || '解锁失败，请稍后重试', type: 'error' });
+    } catch (error) {
+      showToast({ message: getErrorMessage(error) || '解锁失败，请稍后重试', type: 'error' });
     } finally {
       setUnlockLoading(false);
     }
   };
 
-  if (isLoading) {
+  const renderApplyContent = () => {
+    if (reviewStatusLoading && !reviewStatusData) {
+      return <ApplySkeleton />;
+    }
+
+    if (reviewStatusError && !reviewStatusData) {
+      return (
+        <ErrorState
+          message={getErrorMessage(reviewStatusError)}
+          onRetry={() => {
+            void reloadReviewStatus().catch(() => undefined);
+          }}
+        />
+      );
+    }
+
     return (
-      <div className="flex-1 bg-[#FDFBFB] dark:bg-bg-base flex flex-col">
-        <div className="h-12 flex items-center px-4 border-b border-border-light">
-          <div className="w-6 h-6 bg-gray-200 dark:bg-gray-800 rounded-full animate-pulse" />
-          <div className="flex-1 flex justify-center">
-            <div className="w-24 h-5 bg-gray-200 dark:bg-gray-800 rounded animate-pulse" />
-          </div>
-          <div className="w-6 h-6" />
-        </div>
-        <div className="p-4 space-y-4">
-          <div className="h-32 bg-gray-200 dark:bg-gray-800 rounded-2xl animate-pulse" />
-          <div className="h-96 bg-gray-200 dark:bg-gray-800 rounded-2xl animate-pulse" />
-          <div className="h-48 bg-gray-200 dark:bg-gray-800 rounded-2xl animate-pulse" />
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex-1 bg-[#FDFBFB] dark:bg-bg-base flex flex-col overflow-hidden">
-      {/* Header */}
-      <div className="h-12 flex items-center justify-between px-4 bg-white dark:bg-gray-900/80 dark:bg-bg-card/80 backdrop-blur-md sticky top-0 z-20 border-b border-border-light shadow-sm">
-        <button onClick={handleGoBack} className="p-2 -ml-2 text-text-main active:scale-95 transition-transform">
-          <ChevronLeft size={24} />
-        </button>
-        <h1 className="text-2xl font-semibold text-text-main">确权中心</h1>
-        <div className="flex items-center gap-3">
-          <button onClick={handleGoHistory} className="text-text-main active:scale-95 transition-transform">
-            <FileText size={20} />
-          </button>
-          <button className="text-text-main active:scale-95 transition-transform">
-            <Info size={20} />
-          </button>
-        </div>
-      </div>
-
-      {/* Global Tabs */}
-      <div className="flex px-4 bg-white dark:bg-bg-card border-b border-border-light sticky top-12 z-10">
-        <button
-          className={`flex-1 pb-3 text-lg font-bold relative transition-colors ${activeTab === 'apply' ? 'text-text-main' : 'text-text-sub'}`}
-          onClick={() => setActiveTab('apply')}
-        >
-          确权申请
-          {activeTab === 'apply' && (
-            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-[3px] bg-red-500 rounded-full" />
-          )}
-        </button>
-        <button
-          className={`flex-1 pb-3 text-lg font-bold relative transition-colors ${activeTab === 'unlock' ? 'text-text-main' : 'text-text-sub'}`}
-          onClick={() => setActiveTab('unlock')}
-        >
-          旧资产解锁
-          {activeTab === 'unlock' && (
-            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-[3px] bg-red-500 rounded-full" />
-          )}
-        </button>
-        <button
-          className={`flex-1 pb-3 text-lg font-bold relative transition-colors ${activeTab === 'growth' ? 'text-text-main' : 'text-text-sub'}`}
-          onClick={() => setActiveTab('growth')}
-        >
-          成长权益
-          {activeTab === 'growth' && (
-            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-[3px] bg-red-500 rounded-full" />
-          )}
-        </button>
-      </div>
-
-      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-4 pt-4 pb-24 space-y-4">
-        {activeTab === 'apply' && (
-          <div className="animate-in fade-in duration-300 space-y-4">
-            {/* ReviewStatsSummary + ClaimSteps */}
-        <Card className="p-4 bg-white dark:bg-bg-card border border-border-light shadow-sm rounded-2xl">
-          <div className="flex justify-between items-center mb-6">
-            <div className="text-center flex-1 border-r border-border-light">
-              <div className="text-5xl font-bold text-text-main leading-none mb-1">{data.pending_count}</div>
+      <div className="animate-in fade-in duration-300 space-y-4">
+        <Card className="rounded-2xl border border-border-light bg-white p-4 shadow-sm dark:bg-bg-card">
+          <div className="mb-6 flex items-center justify-between">
+            <div className="flex-1 border-r border-border-light text-center">
+              <div className="mb-1 text-5xl font-bold leading-none text-text-main">{pendingCount}</div>
               <div className="text-sm text-text-sub">审核中</div>
             </div>
-            <div className="text-center flex-1">
-              <div className="text-5xl font-bold text-text-main leading-none mb-1">{data.approved_count}</div>
+            <div className="flex-1 text-center">
+              <div className="mb-1 text-5xl font-bold leading-none text-text-main">{approvedCount}</div>
               <div className="text-sm text-text-sub">已通过</div>
             </div>
           </div>
 
           <div className="relative">
-            {/* Steps */}
-            <div className="flex justify-between items-center relative z-10">
+            <div className="relative z-10 flex items-center justify-between">
               <div className="flex flex-col items-center gap-2">
-                <div className="w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center text-sm">1</div>
-                <span className="text-sm text-text-main font-medium">提交申请</span>
+                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-sm text-white">1</div>
+                <span className="text-sm font-medium text-text-main">提交申请</span>
               </div>
-              <div className="flex-1 h-[2px] bg-red-100 dark:bg-red-900/30 mx-2" />
+              <div className="mx-2 h-[2px] flex-1 bg-red-100 dark:bg-red-900/30" />
               <div className="flex flex-col items-center gap-2">
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-sm ${data.pending_count > 0 ? 'bg-red-500 text-white shadow-[0_0_8px_rgba(239,68,68,0.5)]' : 'bg-gray-100 dark:bg-gray-800 text-text-sub'}`}>2</div>
-                <span className={`text-sm font-medium ${data.pending_count > 0 ? 'text-red-500' : 'text-text-sub'}`}>审核中</span>
+                <div
+                  className={`flex h-6 w-6 items-center justify-center rounded-full text-sm ${
+                    pendingCount > 0
+                      ? 'bg-red-500 text-white shadow-[0_0_8px_rgba(239,68,68,0.45)]'
+                      : 'bg-gray-100 text-text-sub dark:bg-gray-800'
+                  }`}
+                >
+                  2
+                </div>
+                <span
+                  className={`text-sm font-medium ${pendingCount > 0 ? 'text-red-500' : 'text-text-sub'}`}
+                >
+                  审核中
+                </span>
               </div>
-              <div className="flex-1 h-[2px] bg-gray-100 dark:bg-gray-800 mx-2" />
+              <div className="mx-2 h-[2px] flex-1 bg-gray-100 dark:bg-gray-800" />
               <div className="flex flex-col items-center gap-2">
-                <div className="w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-800 text-text-sub flex items-center justify-center text-sm">3</div>
-                <span className="text-sm text-text-sub font-medium">审核完成</span>
+                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gray-100 text-sm text-text-sub dark:bg-gray-800">
+                  3
+                </div>
+                <span className="text-sm font-medium text-text-sub">审核完成</span>
               </div>
             </div>
           </div>
 
-          <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl flex items-start gap-2">
-            <AlertCircle size={14} className={data.pending_count > 0 ? "text-orange-500 mt-[2px]" : "text-blue-500 mt-[2px]"} />
-            <p className={`text-sm leading-relaxed ${data.pending_count > 0 ? "text-orange-600 dark:text-orange-400" : "text-blue-600 dark:text-blue-400"}`}>
-              {data.pending_count > 0 ? '当前有待审核记录，暂不可重复提交' : '可提交新的确权申请'}
+          <div className="mt-4 flex items-start gap-2 rounded-xl bg-gray-50 p-3 dark:bg-gray-800/50">
+            <AlertCircle
+              size={14}
+              className={pendingCount > 0 ? 'mt-[2px] text-orange-500' : 'mt-[2px] text-blue-500'}
+            />
+            <p
+              className={`text-sm leading-relaxed ${
+                pendingCount > 0
+                  ? 'text-orange-600 dark:text-orange-400'
+                  : 'text-blue-600 dark:text-blue-400'
+              }`}
+            >
+              {pendingCount > 0 ? '当前有待审核记录，暂不可重复提交' : '可提交新的确权申请'}
             </p>
           </div>
         </Card>
 
-        {/* ClaimFormSection */}
-        <Card className={`p-4 bg-white dark:bg-bg-card border border-border-light shadow-sm rounded-2xl transition-opacity ${isFormDisabled ? 'opacity-60 pointer-events-none' : ''}`}>
-          <h2 className="text-xl font-bold text-text-main mb-4">确权申请</h2>
-          
-          {isFormDisabled && (
-            <div className="mb-4 p-3 bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/20 rounded-xl flex items-center gap-2">
+        <Card
+          className={`rounded-2xl border border-border-light bg-white p-4 shadow-sm transition-opacity dark:bg-bg-card ${
+            isFormDisabled ? 'pointer-events-none opacity-60' : ''
+          }`}
+        >
+          <h2 className="mb-4 text-xl font-bold text-text-main">确权申请</h2>
+
+          {isFormDisabled ? (
+            <div className="mb-4 flex items-center gap-2 rounded-xl border border-red-100 bg-red-50 p-3 dark:border-red-500/20 dark:bg-red-500/10">
               <AlertCircle size={16} className="text-red-500" />
               <span className="text-base text-red-600 dark:text-red-400">存在待审核记录，禁止重复提交</span>
             </div>
-          )}
+          ) : null}
 
           <div className="space-y-4">
-            {/* Voucher Type */}
             <div>
-              <label className="block text-base text-text-sub mb-2">凭证类型</label>
+              <label className="mb-2 block text-base text-text-sub">凭证类型</label>
               <div className="flex gap-2">
                 {Object.entries(VOUCHER_TYPES).map(([key, label]) => (
                   <button
                     key={key}
-                    onClick={() => setVoucherType(key)}
-                    className={`flex-1 py-2 px-3 rounded-xl text-base font-medium transition-colors border ${
-                      voucherType === key 
-                        ? 'bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/30 text-red-600 dark:text-red-400' 
-                        : 'bg-gray-50 dark:bg-gray-800 border-transparent text-text-main'
+                    type="button"
+                    onClick={() => setVoucherType(key as RightsDeclarationVoucherType)}
+                    className={`flex-1 rounded-xl border px-3 py-2 text-base font-medium transition-colors ${
+                      voucherType === key
+                        ? 'border-red-200 bg-red-50 text-red-600 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-400'
+                        : 'border-transparent bg-gray-50 text-text-main dark:bg-gray-800'
                     }`}
                   >
                     {label}
@@ -287,41 +394,40 @@ export function RightsPage() {
               </div>
             </div>
 
-            {/* Amount */}
             <div>
-              <label className="block text-base text-text-sub mb-2">确权金额</label>
+              <label className="mb-2 block text-base text-text-sub">确权金额</label>
               <div className="relative">
                 <input
                   type="number"
                   placeholder="请输入确权金额"
                   value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  className="w-full pl-8 pr-10 h-12 text-xl font-medium bg-gray-50 dark:bg-gray-800 border border-transparent focus:bg-white dark:focus:bg-bg-card focus:border-red-500 rounded-xl outline-none transition-colors text-text-main placeholder:text-gray-400 dark:text-gray-500"
+                  onChange={(event) => setAmount(event.target.value)}
+                  className="h-12 w-full rounded-xl border border-transparent bg-gray-50 pl-8 pr-10 text-xl font-medium text-text-main outline-none transition-colors placeholder:text-gray-400 focus:border-red-500 focus:bg-white dark:bg-gray-800 dark:text-text-main dark:placeholder:text-gray-500 dark:focus:bg-bg-card"
                 />
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-main font-medium">¥</span>
-                {amount && (
-                  <button 
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 font-medium text-text-main">¥</span>
+                {amount ? (
+                  <button
+                    type="button"
                     onClick={() => setAmount('')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 p-1"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 dark:text-gray-500"
                   >
                     <XCircle size={16} />
                   </button>
-                )}
+                ) : null}
               </div>
-              {!isFormDisabled && amount && Number(amount) <= 0 && (
-                <p className="text-sm text-red-500 mt-1">请输入正确金额</p>
-              )}
+              {!isFormDisabled && amount && numericAmount <= 0 ? (
+                <p className="mt-1 text-sm text-red-500">请输入正确金额</p>
+              ) : null}
             </div>
 
-            {/* Remark */}
             <div>
-              <label className="block text-base text-text-sub mb-2">备注说明</label>
+              <label className="mb-2 block text-base text-text-sub">备注说明</label>
               <div className="relative">
                 <textarea
                   placeholder="请输入备注信息（选填）"
                   value={remark}
-                  onChange={(e) => setRemark(e.target.value.slice(0, 200))}
-                  className="w-full p-3 bg-gray-50 dark:bg-gray-800 border border-transparent focus:bg-white dark:focus:bg-bg-card focus:border-red-500 rounded-xl text-md text-text-main resize-none h-24 outline-none transition-colors"
+                  onChange={(event) => setRemark(event.target.value.slice(0, 200))}
+                  className="h-24 w-full resize-none rounded-xl border border-transparent bg-gray-50 p-3 text-md text-text-main outline-none transition-colors focus:border-red-500 focus:bg-white dark:bg-gray-800 dark:focus:bg-bg-card"
                 />
                 <span className="absolute bottom-3 right-3 text-sm text-gray-400 dark:text-gray-500">
                   {remark.length}/200
@@ -329,52 +435,84 @@ export function RightsPage() {
               </div>
             </div>
 
-            {/* Images */}
             <div>
-              <div className="flex justify-between items-center mb-2">
+              <div className="mb-2 flex items-center justify-between">
                 <label className="block text-base text-text-sub">凭证图片</label>
                 <span className="text-sm text-gray-400 dark:text-gray-500">{images.length}/8 张</span>
               </div>
               <div className="grid grid-cols-4 gap-2">
-                {images.map((img, index) => (
-                  <div key={index} className="relative aspect-square rounded-xl overflow-hidden border border-border-light group">
-                    <img src={img} alt="" className="w-full h-full object-cover" />
-                    <button 
-                      onClick={() => handleRemoveImage(index)}
-                      className="absolute top-1 right-1 w-6 h-6 bg-black/50 rounded-full flex items-center justify-center text-white"
+                {images.map((image) => (
+                  <div
+                    key={image.id}
+                    className="group relative aspect-square overflow-hidden rounded-xl border border-border-light bg-gray-50 dark:bg-gray-800"
+                  >
+                    <img src={image.url} alt="凭证图片" className="h-full w-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => removeImage(image.id)}
+                      className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/50 text-white"
                     >
                       <X size={14} />
                     </button>
+                    {image.status === 'uploading' ? (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 text-white">
+                        <Loader2 size={18} className="mb-1 animate-spin" />
+                        <span className="text-xs">上传中</span>
+                      </div>
+                    ) : null}
+                    {image.status === 'error' ? (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/65 px-2 text-white">
+                        <AlertCircle size={18} className="mb-1 text-red-400" />
+                        <span className="mb-1 line-clamp-2 text-center text-[11px]">
+                          {image.errorMessage || '上传失败'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => retryUpload(image.id)}
+                          className="rounded bg-white px-2 py-0.5 text-xs text-gray-900"
+                        >
+                          重试
+                        </button>
+                      </div>
+                    ) : null}
                   </div>
                 ))}
-                {images.length < 8 && (
-                  <button 
-                    onClick={handleImageUpload}
-                    className="aspect-square rounded-xl border border-dashed border-gray-300 dark:border-gray-700 flex flex-col items-center justify-center gap-1 text-gray-400 dark:text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                {images.length < 8 ? (
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex aspect-square flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-gray-300 text-gray-400 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-500 dark:hover:bg-gray-800"
                   >
                     <Upload size={20} />
                     <span className="text-xs">上传图片</span>
                   </button>
-                )}
+                ) : null}
               </div>
-              {!isFormDisabled && images.length === 0 && (
-                <p className="text-sm text-red-500 mt-2">请上传至少1张凭证图</p>
-              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={handleImageUpload}
+              />
+              {!isFormDisabled && successfulImages.length === 0 ? (
+                <p className="mt-2 text-sm text-red-500">请上传至少1张成功的凭证图</p>
+              ) : null}
             </div>
 
-            {/* Submit Button */}
             <Button
-              className={`w-full h-12 rounded-xl text-xl font-medium mt-6 ${
-                isSubmitDisabled 
-                  ? 'bg-gray-200 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed' 
+              className={`mt-6 h-12 w-full rounded-xl text-xl font-medium ${
+                isSubmitDisabled
+                  ? 'cursor-not-allowed bg-gray-200 text-gray-400 dark:bg-gray-800 dark:text-gray-500'
                   : 'bg-gradient-to-r from-brand-start to-brand-end text-white shadow-lg shadow-red-500/30 active:scale-[0.98]'
               }`}
-              disabled={isSubmitDisabled || isSubmitting}
+              disabled={isSubmitDisabled}
               onClick={handleSubmit}
             >
               {isSubmitting ? (
                 <div className="flex items-center justify-center gap-2">
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <Loader2 size={18} className="animate-spin" />
                   <span>提交中...</span>
                 </div>
               ) : (
@@ -384,55 +522,141 @@ export function RightsPage() {
           </div>
         </Card>
 
-        {/* ClaimHistoryList */}
-        <Card className="p-4 bg-white dark:bg-bg-card border border-border-light shadow-sm rounded-2xl">
-          <div className="flex justify-between items-center mb-4">
+        <Card className="rounded-2xl border border-border-light bg-white p-4 shadow-sm dark:bg-bg-card">
+          <div className="mb-4 flex items-center justify-between">
             <h2 className="text-xl font-bold text-text-main">历史记录</h2>
-            <button onClick={handleGoHistory} className="text-base text-text-sub flex items-center">
+            <button
+              type="button"
+              onClick={() => goTo('rights_history')}
+              className="flex items-center text-base text-text-sub"
+            >
               查看全部 <ChevronRight size={14} />
             </button>
           </div>
-          
-          {data.history.length > 0 ? (
+
+          {history.length > 0 ? (
             <div className="space-y-3">
-              {data.history.map((record) => {
-                const statusInfo = STATUS_MAP[record.status as keyof typeof STATUS_MAP];
+              {history.map((record) => {
+                const statusInfo = STATUS_MAP[record.status];
                 return (
-                  <div key={record.id} className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl flex justify-between items-center active:bg-gray-100 dark:active:bg-gray-800 transition-colors cursor-pointer">
+                  <button
+                    key={record.id}
+                    type="button"
+                    onClick={() => goTo('rights_history')}
+                    className="flex w-full items-center justify-between rounded-xl bg-gray-50 p-3 text-left transition-colors active:bg-gray-100 dark:bg-gray-800/50 dark:active:bg-gray-800"
+                  >
                     <div>
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="mb-1 flex items-center gap-2">
                         <span className="text-md font-medium text-text-main">
-                          {VOUCHER_TYPES[record.type as keyof typeof VOUCHER_TYPES]}
+                          {record.voucherTypeText || VOUCHER_TYPES[record.voucherType]}
                         </span>
-                        <span className={`text-xs px-1.5 py-0.5 rounded ${statusInfo.bg} ${statusInfo.color}`}>
-                          {statusInfo.text}
+                        <span className={`rounded px-1.5 py-0.5 text-xs ${statusInfo.bg} ${statusInfo.color}`}>
+                          {record.statusText || statusInfo.text}
                         </span>
                       </div>
-                      <div className="text-sm text-text-sub">{record.time}</div>
+                      <div className="text-sm text-text-sub">{record.createTimeText}</div>
                     </div>
                     <div className="text-xl font-bold text-red-500">
                       ¥{record.amount.toLocaleString('zh-CN', { useGrouping: false })}
                     </div>
-                  </div>
+                  </button>
                 );
               })}
             </div>
           ) : (
-            <div className="py-8 flex flex-col items-center justify-center text-gray-400 dark:text-gray-500">
+            <div className="flex flex-col items-center justify-center py-8 text-gray-400 dark:text-gray-500">
               <FileText size={32} className="mb-2 opacity-50" />
               <p className="text-base">暂无历史记录</p>
             </div>
           )}
         </Card>
-          </div>
-        )}
+      </div>
+    );
+  };
 
-        {activeTab === 'unlock' && (
+  return (
+    <div className="flex flex-1 flex-col overflow-hidden bg-[#FDFBFB] dark:bg-bg-base">
+      <PageHeader
+        title="确权中心"
+        onBack={goBack}
+        className="border-b border-border-light bg-white/95 shadow-sm backdrop-blur-md dark:bg-bg-card/90"
+        contentClassName="h-12 px-4"
+        rightAction={
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => goTo('rights_history')}
+              className="text-text-main active:scale-95 transition-transform"
+            >
+              <FileText size={20} />
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                showToast({
+                  message: '提交凭证后将进入人工审核，待审核期间不可重复提交。',
+                  type: 'info',
+                  duration: 3000,
+                });
+              }}
+              className="text-text-main active:scale-95 transition-transform"
+            >
+              <Info size={20} />
+            </button>
+          </div>
+        }
+      />
+
+      <div className="sticky top-0 z-10 flex border-b border-border-light bg-white px-4 dark:bg-bg-card">
+        <button
+          type="button"
+          className={`relative flex-1 pb-3 text-lg font-bold transition-colors ${
+            activeTab === 'apply' ? 'text-text-main' : 'text-text-sub'
+          }`}
+          onClick={() => setActiveTab('apply')}
+        >
+          确权申请
+          {activeTab === 'apply' ? (
+            <div className="absolute bottom-0 left-1/2 h-[3px] w-8 -translate-x-1/2 rounded-full bg-red-500" />
+          ) : null}
+        </button>
+        <button
+          type="button"
+          className={`relative flex-1 pb-3 text-lg font-bold transition-colors ${
+            activeTab === 'unlock' ? 'text-text-main' : 'text-text-sub'
+          }`}
+          onClick={() => setActiveTab('unlock')}
+        >
+          旧资产解锁
+          {activeTab === 'unlock' ? (
+            <div className="absolute bottom-0 left-1/2 h-[3px] w-8 -translate-x-1/2 rounded-full bg-red-500" />
+          ) : null}
+        </button>
+        <button
+          type="button"
+          className={`relative flex-1 pb-3 text-lg font-bold transition-colors ${
+            activeTab === 'growth' ? 'text-text-main' : 'text-text-sub'
+          }`}
+          onClick={() => setActiveTab('growth')}
+        >
+          成长权益
+          {activeTab === 'growth' ? (
+            <div className="absolute bottom-0 left-1/2 h-[3px] w-8 -translate-x-1/2 rounded-full bg-red-500" />
+          ) : null}
+        </button>
+      </div>
+
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-4 pb-24 pt-4">
+        {activeTab === 'apply' ? renderApplyContent() : null}
+
+        {activeTab === 'unlock' ? (
           <div className="animate-in fade-in duration-300">
             {unlockStatusError ? (
               <ErrorState
                 message={getErrorMessage(unlockStatusError)}
-                onRetry={() => void reloadUnlockStatus().catch(() => undefined)}
+                onRetry={() => {
+                  void reloadUnlockStatus().catch(() => undefined);
+                }}
               />
             ) : (
               <UnlockPanel
@@ -442,15 +666,15 @@ export function RightsPage() {
               />
             )}
           </div>
-        )}
+        ) : null}
 
-        {activeTab === 'growth' && (
-          <div className="animate-in fade-in duration-300 -m-4">
+        {activeTab === 'growth' ? (
+          <div className="-m-4 animate-in fade-in duration-300">
             <GrowthRightsContent />
           </div>
-        )}
-
-        </div>
+        ) : null}
+      </div>
     </div>
   );
 }
+

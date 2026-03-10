@@ -100,9 +100,7 @@ interface AccountLogItemRaw {
   id?: number | string;
   image_snapshot?: string;
   memo?: string;
-  remark?: string;
   title_snapshot?: string;
-  type?: string;
 }
 
 interface AccountLogListRaw {
@@ -213,9 +211,7 @@ export interface AccountLogItem {
   id: number;
   imageSnapshot?: string;
   memo?: string;
-  remark?: string;
   titleSnapshot?: string;
-  type?: string;
 }
 
 export interface AccountLogList {
@@ -414,9 +410,7 @@ function normalizeLogItem(payload: AccountLogItemRaw): AccountLogItem {
     id: readNumber(payload.id),
     imageSnapshot: payload.image_snapshot ? resolveUploadUrl(payload.image_snapshot) : undefined,
     memo: readOptionalString(payload.memo),
-    remark: readOptionalString(payload.remark),
     titleSnapshot: readOptionalString(payload.title_snapshot),
-    type: readOptionalString(payload.type),
   };
 }
 

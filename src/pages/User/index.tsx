@@ -1,79 +1,26 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Bell,
-  CreditCard,
-  FileText,
-  HeadphonesIcon,
-  Heart,
-  HelpCircle,
-  Info,
-  Landmark,
-  Lock,
-  LogOut,
-  MapPin,
-  MessageSquare,
-  Package,
-  Settings,
-  ShieldCheck,
-  ShoppingBag,
-  Ticket,
-  Truck,
-  Users,
-  Wallet,
-  Zap,
-  Coins,
-  Banknote,
-  ChevronRight,
-  CircleDollarSign,
-} from 'lucide-react';
+﻿import { useCallback, useEffect, useRef, useState } from 'react';
+import { ChevronRight, HeadphonesIcon, LogOut, MessageSquare, Settings } from 'lucide-react';
 import { accountApi, userApi } from '../../api';
 import { messageApi } from '../../api/modules/message';
-
-import ProfileBalanceCard from './components/ProfileBalanceCard';
-import ProfileHeader from './components/ProfileHeader';
-import ProfileSectionGrid from './components/ProfileSectionGrid';
-import {
-  buildPointsOrder,
-  buildRightsManagement,
-  buildConvenientServices,
-  buildServiceManagement,
-} from './userProfileMenus';
 import { OfflineBanner } from '../../components/layout/OfflineBanner';
 import { ActionSheet } from '../../components/ui/ActionSheet';
 import { Card } from '../../components/ui/Card';
-import { Skeleton } from '../../components/ui/Skeleton';
 import { PullToRefreshContainer } from '../../components/ui/PullToRefreshContainer';
+import { Skeleton } from '../../components/ui/Skeleton';
 import { useAuthSession } from '../../hooks/useAuthSession';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 import { useRequest } from '../../hooks/useRequest';
 import { useRouteScrollRestoration } from '../../hooks/useRouteScrollRestoration';
-import { CURRENT_APP_VERSION, formatVersionLabel } from '../../lib/appVersion';
 import { useAppNavigate } from '../../lib/navigation';
-
-function formatMoney(value: number | string | undefined, fractionDigits = 2) {
-  const nextValue = typeof value === 'string' ? Number(value) : value;
-  if (typeof nextValue !== 'number' || !Number.isFinite(nextValue)) {
-    return '--';
-  }
-
-  return nextValue.toLocaleString('zh-CN', {
-    maximumFractionDigits: fractionDigits,
-    minimumFractionDigits: fractionDigits,
-    useGrouping: false,
-  });
-}
-
-function formatCount(value: number | string | undefined) {
-  const nextValue = typeof value === 'string' ? Number(value) : value;
-  if (typeof nextValue !== 'number' || !Number.isFinite(nextValue)) {
-    return '--';
-  }
-
-  return nextValue.toLocaleString('zh-CN', {
-    maximumFractionDigits: 0,
-    useGrouping: false,
-  });
-}
+import ProfileBalanceCard from './components/ProfileBalanceCard';
+import ProfileHeader from './components/ProfileHeader';
+import ProfileSectionGrid from './components/ProfileSectionGrid';
+import {
+  buildConvenientServices,
+  buildPointsOrder,
+  buildRightsManagement,
+  buildServiceManagement,
+} from './userProfileMenus';
 
 export const UserPage = () => {
   const { goTo } = useAppNavigate();
@@ -86,87 +33,42 @@ export const UserPage = () => {
 
   const isLoggedIn = isAuthenticated;
   const profileRequest = useRequest((signal) => accountApi.getProfile({ signal }), {
+    cacheKey: 'user:profile',
     deps: [isLoggedIn],
     manual: !isLoggedIn,
   });
+  const accountOverviewRequest = useRequest((signal) => accountApi.getAccountOverview({ signal }), {
+    cacheKey: 'user:account-overview',
+    deps: [isLoggedIn],
+    manual: !isLoggedIn,
+  });
+  const realNameRequest = useRequest((signal) => userApi.getRealNameStatus({ signal }), {
+    cacheKey: 'user:real-name-status',
+    deps: [isLoggedIn],
+    manual: !isLoggedIn,
+  });
+  const unreadRequest = useRequest((signal) => messageApi.unreadCount(signal), {
+    cacheKey: 'messages:unread',
+    deps: [isLoggedIn],
+    manual: !isLoggedIn,
+  });
+
   const profile = profileRequest.data;
   const profileLoading = profileRequest.loading;
-  const accountOverviewRequest = useRequest((signal) => accountApi.getAccountOverview({ signal }), {
-    deps: [isLoggedIn],
-    manual: !isLoggedIn,
-  });
-  const accountOverview = accountOverviewRequest.data;
   const accountOverviewLoading = accountOverviewRequest.loading;
-  const realNameRequest = useRequest((signal) => userApi.getRealNameStatus({ signal }), {
-    deps: [isLoggedIn],
-    manual: !isLoggedIn,
-  });
-  const realNameStatus = realNameRequest.data;
   const realNameLoading = realNameRequest.loading;
-  const unreadRequest = useRequest((signal) => messageApi.unreadCount(signal), {
-    deps: [isLoggedIn],
-    manual: !isLoggedIn,
-    cacheKey: 'messages:unread',
-  });
   const unreadTotal = unreadRequest.data?.total ?? 0;
+
   const profileUserInfo = profile?.userInfo ?? session?.userInfo;
   const userInfo = (profileUserInfo ?? {}) as Record<string, unknown>;
-  const displayName = String(
-    userInfo.nickname ?? userInfo.username ?? userInfo.mobile ?? '会员用户',
-  );
+  const displayName = String(userInfo.nickname ?? userInfo.username ?? userInfo.mobile ?? '会员用户');
   const displayUid = String(userInfo.uid ?? userInfo.id ?? '--');
-  const displayMobile =
-    typeof userInfo.mobile === 'string' && userInfo.mobile.trim()
-      ? userInfo.mobile.trim()
-      : typeof userInfo.username === 'string' && userInfo.username.trim()
-        ? userInfo.username.trim()
-        : '会员账号';
   const displayAvatar =
-    typeof userInfo.avatar === 'string' && userInfo.avatar.trim()
-      ? userInfo.avatar.trim()
-      : '';
+    typeof userInfo.avatar === 'string' && userInfo.avatar.trim() ? userInfo.avatar.trim() : '';
+
   const isHeaderLoading =
     loading || (isLoggedIn && (profileLoading || accountOverviewLoading || realNameLoading));
-
-  const assetItems = useMemo(
-    () => [
-      {
-        icon: Coins,
-        label: '专项金余额',
-        value: formatMoney(accountOverview?.balance?.balanceAvailable ?? profile?.userInfo?.balanceAvailable),
-      },
-      {
-        icon: Banknote,
-        label: '可提现余额',
-        value: formatMoney(
-          accountOverview?.balance?.withdrawableMoney ?? profile?.userInfo?.withdrawableMoney,
-        ),
-      },
-      {
-        icon: ShoppingBag,
-        label: '消费金',
-        value: formatCount(accountOverview?.balance?.score ?? profile?.userInfo?.score),
-      },
-      {
-        icon: Zap,
-        label: '算力',
-        value: formatMoney(accountOverview?.balance?.greenPower ?? profile?.userInfo?.greenPower),
-      },
-      {
-        icon: ShieldCheck,
-        label: '确权金',
-        value: formatMoney(
-          accountOverview?.balance?.serviceFeeBalance ?? profile?.userInfo?.serviceFeeBalance,
-        ),
-      },
-      {
-        icon: CircleDollarSign,
-        label: '待激活确权金',
-        value: formatMoney(profile?.userInfo?.pendingActivationGold),
-      },
-    ],
-    [accountOverview, profile?.userInfo],
-  );
+  const showContentSkeleton = isHeaderLoading;
 
   useEffect(() => {
     setLoading(true);
@@ -184,13 +86,13 @@ export const UserPage = () => {
     restoreWhen: !loading && !isHeaderLoading,
   });
 
-  /** 下拉刷新回调 */
   const handleRefresh = useCallback(
-    () => Promise.allSettled([
-      profileRequest.reload(),
-      accountOverviewRequest.reload(),
-      realNameRequest.reload(),
-    ]),
+    () =>
+      Promise.allSettled([
+        profileRequest.reload(),
+        accountOverviewRequest.reload(),
+        realNameRequest.reload(),
+      ]),
     [profileRequest, accountOverviewRequest, realNameRequest],
   );
 
@@ -207,17 +109,17 @@ export const UserPage = () => {
   const renderHeader = () => {
     if (isHeaderLoading) {
       return (
-        <div className="px-4 pt-4 pb-6 bg-gradient-to-b from-red-50 to-bg-base relative">
+        <div className="relative bg-gradient-to-b from-red-50 to-bg-base px-4 pt-4 pb-6">
           <div className="absolute top-4 right-4 flex space-x-4">
-            <Skeleton className="w-[22px] h-[22px] rounded-full" />
-            <Skeleton className="w-[22px] h-[22px] rounded-full" />
+            <Skeleton className="h-[22px] w-[22px] rounded-full" />
+            <Skeleton className="h-[22px] w-[22px] rounded-full" />
           </div>
           <div className="mt-4 flex items-center space-x-4">
-            <Skeleton className="w-16 h-16 rounded-full shrink-0" />
+            <Skeleton className="h-16 w-16 shrink-0 rounded-full" />
             <div className="flex flex-1 flex-col space-y-2">
-              <Skeleton className="w-32 h-6" />
-              <Skeleton className="w-24 h-4" />
-              <Skeleton className="w-16 h-4 rounded-full" />
+              <Skeleton className="h-6 w-32" />
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-4 w-16 rounded-full" />
             </div>
           </div>
         </div>
@@ -226,7 +128,7 @@ export const UserPage = () => {
 
     if (!isLoggedIn) {
       return (
-        <div className="px-4 pt-4 pb-2 relative">
+        <div className="relative px-4 pt-4 pb-2">
           <div className="absolute top-4 right-4 flex space-x-4 text-text-main">
             <Settings size={22} />
             <MessageSquare size={22} />
@@ -251,7 +153,7 @@ export const UserPage = () => {
     }
 
     return (
-      <div className="pt-4 pb-2 relative z-10">
+      <div className="relative z-10 pt-4 pb-2">
         <ProfileHeader
           userInfo={profileUserInfo ?? null}
           displayName={displayName}
@@ -265,80 +167,144 @@ export const UserPage = () => {
     );
   };
 
+  const renderGridSkeleton = () => (
+    <div className="grid grid-cols-4 gap-y-4">
+      {[0, 1, 2, 3].map((item) => (
+        <div key={item} className="flex flex-col items-center">
+          <Skeleton className="mb-2 h-10 w-10 rounded-xl" />
+          <Skeleton className="h-3 w-12" />
+        </div>
+      ))}
+    </div>
+  );
+
+  const renderAssetSkeleton = () => (
+    <div className="relative z-10 px-4 transition-transform">
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-red-600 to-red-500 p-4 text-white shadow-xl">
+        <div className="absolute inset-0 z-0 overflow-hidden">
+          <div className="absolute top-0 right-0 h-48 w-48 translate-x-1/2 -translate-y-1/2 rounded-full bg-white/10 blur-3xl"></div>
+          <div className="absolute bottom-0 left-0 h-40 w-40 -translate-x-1/4 translate-y-1/4 rounded-full bg-orange-300/20 blur-2xl"></div>
+        </div>
+
+        <div className="relative z-10">
+          <div className="mb-3 flex items-start justify-between">
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-28 rounded-full bg-white/20" />
+              <Skeleton className="h-5 w-20 rounded-full bg-white/20" />
+            </div>
+            <Skeleton className="h-4 w-14 rounded-full bg-white/20" />
+          </div>
+
+          <div className="mb-4 space-y-2">
+            <Skeleton className="h-3 w-12 rounded-full bg-white/20" />
+            <Skeleton className="h-10 w-40 rounded-full bg-white/20" />
+          </div>
+
+          <div className="grid grid-cols-4 gap-2 border-t border-white/20 pt-3">
+            {[0, 1, 2, 3].map((item) => (
+              <div key={item} className="space-y-2">
+                <Skeleton className="mx-auto h-3 w-12 rounded-full bg-white/20" />
+                <Skeleton className="mx-auto h-4 w-10 rounded-full bg-white/20" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderSectionSkeleton = (titleWidthClassName: string) => (
+    <Card className="p-4">
+      <Skeleton className={`mb-4 h-5 ${titleWidthClassName}`} />
+      {renderGridSkeleton()}
+    </Card>
+  );
+
+  const renderContent = () => {
+    if (showContentSkeleton) {
+      return (
+        <>
+          {renderAssetSkeleton()}
+
+          <div className="px-4 space-y-4">
+            {renderSectionSkeleton('w-28')}
+            {renderSectionSkeleton('w-28')}
+
+            <Card className="border-0 bg-transparent p-0 shadow-none">
+              <Skeleton className="mb-2 h-5 w-20" />
+              <div className="rounded-2xl border border-border-light bg-bg-card p-4 shadow-sm">
+                {renderGridSkeleton()}
+              </div>
+            </Card>
+          </div>
+        </>
+      );
+    }
+
+    return (
+      <>
+        <ProfileBalanceCard userInfo={profile?.userInfo} onNavigate={goTo} />
+
+        <div className="px-4 space-y-4">
+          <Card className="hidden">
+            <div
+              className="mb-4 flex cursor-pointer items-center justify-between"
+              onClick={() => goTo('order')}
+            >
+              <h3 className="text-base font-bold text-text-main">商城订单</h3>
+              <span className="flex items-center text-xs text-text-aux">
+                全部订单 <ChevronRight size={14} />
+              </span>
+            </div>
+            <ProfileSectionGrid items={buildPointsOrder(goTo, null)} columns={4} />
+          </Card>
+
+          <Card className="p-4">
+            <h3 className="mb-4 text-base font-bold text-text-main">资产与权益库</h3>
+            <ProfileSectionGrid items={buildRightsManagement(goTo)} columns={4} />
+          </Card>
+
+          <Card className="p-4">
+            <h3 className="mb-4 text-base font-bold text-text-main">便捷服务平台</h3>
+            <ProfileSectionGrid
+              items={buildConvenientServices({ navigate: goTo, hasSignedToday: false })}
+              columns={4}
+            />
+          </Card>
+
+          <Card className="p-4">
+            <h3 className="mb-4 text-base font-bold text-text-main">服务与帮助</h3>
+            <ProfileSectionGrid items={buildServiceManagement(goTo)} columns={4} />
+          </Card>
+        </div>
+
+        {isLoggedIn && !loading && (
+          <div className="px-4 pt-4 pb-8">
+            <button
+              onClick={() => setShowLogoutSheet(true)}
+              className="flex h-[44px] w-full items-center justify-center rounded-xl border border-border-light bg-bg-card text-base font-medium text-text-main shadow-sm transition-colors active:bg-bg-base"
+            >
+              退出登录
+            </button>
+          </div>
+        )}
+      </>
+    );
+  };
+
   return (
     <div className="relative flex flex-1 flex-col overflow-hidden bg-bg-base">
-      {isOffline && <OfflineBanner onAction={refreshStatus} className="absolute top-0 right-0 left-0 z-50" />}
+      {isOffline && (
+        <OfflineBanner onAction={refreshStatus} className="absolute top-0 right-0 left-0 z-50" />
+      )}
 
-      <PullToRefreshContainer
-        onRefresh={handleRefresh}
-        disabled={isOffline || !isLoggedIn}
-      >
-        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto no-scrollbar min-h-0">
-          {/* 背景装饰弧线 */}
-          <div className="absolute top-0 left-0 right-0 h-48 bg-gradient-to-b from-red-50 to-bg-base dark:from-red-950/20 pointer-events-none z-0 rounded-b-[40px] scale-x-110"></div>
+      <PullToRefreshContainer onRefresh={handleRefresh} disabled={isOffline || !isLoggedIn}>
+        <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-y-auto no-scrollbar">
+          <div className="pointer-events-none absolute top-0 left-0 right-0 z-0 h-48 scale-x-110 rounded-b-[40px] bg-gradient-to-b from-red-50 to-bg-base dark:from-red-950/20"></div>
 
           {renderHeader()}
 
-          <div className="relative z-10 space-y-4 pt-2">
-          <ProfileBalanceCard 
-            userInfo={profile?.userInfo}
-            onNavigate={goTo}
-          />
-          
-          <div className="px-4 space-y-4">
-            {/* 我的订单板块 */}
-            <Card className="p-4">
-              <div
-                className="flex items-center justify-between mb-4 cursor-pointer"
-                onClick={() => goTo('order')}
-              >
-                <h3 className="text-base font-bold text-text-main">商城订单</h3>
-                <span className="flex items-center text-xs text-text-aux">
-                  全部订单 <ChevronRight size={14} />
-                </span>
-              </div>
-              <ProfileSectionGrid 
-                items={buildPointsOrder(goTo, null)}
-                columns={4}
-              />
-            </Card>
-
-            {/* 权益管理与服务 */}
-            <Card className="p-4">
-              <h3 className="text-base font-bold text-text-main mb-4">资产与权益库</h3>
-              <ProfileSectionGrid 
-                items={buildRightsManagement(goTo)} 
-                columns={4}
-              />
-            </Card>
-
-            <Card className="p-4">
-              <h3 className="text-base font-bold text-text-main mb-4">便捷服务平台</h3>
-              <ProfileSectionGrid 
-                items={buildConvenientServices({ navigate: goTo, hasSignedToday: false })}
-                columns={4}
-              />
-            </Card>
-
-            <Card className="p-4 bg-transparent border-0 shadow-none !p-0">
-              <h3 className="text-base font-bold text-text-main mb-2">服务与帮助</h3>
-              <div className="bg-bg-card rounded-2xl p-4 shadow-sm border border-border-light">
-                <ProfileSectionGrid items={buildServiceManagement(goTo)} columns={4} />
-              </div>
-            </Card>
-          </div>
-
-          {isLoggedIn && !loading && (
-            <div className="px-4 pb-8 pt-4">
-              <button
-                onClick={() => setShowLogoutSheet(true)}
-                className="flex h-[44px] w-full items-center justify-center rounded-xl border border-border-light bg-bg-card text-base font-medium text-text-main shadow-sm transition-colors active:bg-bg-base"
-              >
-                退出登录
-              </button>
-            </div>
-          )}
-          </div>
+          <div className="relative z-10 space-y-4 pt-2">{renderContent()}</div>
         </div>
       </PullToRefreshContainer>
 
@@ -365,3 +331,4 @@ export const UserPage = () => {
 };
 
 export default UserPage;
+

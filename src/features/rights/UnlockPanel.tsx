@@ -13,162 +13,182 @@ export const UnlockPanel: React.FC<UnlockPanelProps> = ({
   unlockLoading,
   onUnlock,
 }) => {
+  const currentGoldText =
+    unlockStatus.currentGold != null
+      ? `¥ ${Number(unlockStatus.currentGold).toFixed(2)}`
+      : '--';
+  const transactionCount = unlockStatus.unlockConditions?.transaction_count;
+  const requiredTransactions = unlockStatus.requiredTransactions;
+  const activeReferrals = unlockStatus.activeReferrals;
+  const requiredReferrals =
+    unlockStatus.requiredReferrals ?? unlockStatus.referralTarget;
+  const referralCompleted =
+    activeReferrals != null &&
+    requiredReferrals != null &&
+    activeReferrals >= requiredReferrals;
+  const transactionProgressText =
+    transactionCount != null && requiredTransactions != null
+      ? `${transactionCount}/${requiredTransactions}`
+      : transactionCount != null
+        ? `${transactionCount}/--`
+        : requiredTransactions != null
+          ? `0/${requiredTransactions}`
+          : '--';
+  const referralProgressText =
+    activeReferrals != null && requiredReferrals != null
+      ? `${activeReferrals}/${requiredReferrals}`
+      : activeReferrals != null
+        ? `${activeReferrals}/--`
+        : requiredReferrals != null
+          ? `0/${requiredReferrals}`
+          : '--';
+  const rewardValueText =
+    unlockStatus.rewardValue != null ? `¥${unlockStatus.rewardValue}` : '--';
+  const requiredGoldText =
+    unlockStatus.requiredGold != null ? unlockStatus.requiredGold : '--';
+
   return (
     <div className="space-y-6 pt-4">
-      {/* 顶部余额卡片 - 优化渐变和质感 */}
-      <div className="bg-gradient-to-br from-[#FF8C42] via-[#FF6B6B] to-[#FF4757] rounded-3xl p-6 text-white shadow-xl shadow-orange-200/50 dark:shadow-orange-900/20 relative overflow-hidden ring-1 ring-white/20">
-        {/* 背景装饰 */}
-        <div className="absolute top-0 right-0 p-8 opacity-[0.08] transform rotate-12 scale-150 pointer-events-none">
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#FF8C42] via-[#FF6B6B] to-[#FF4757] p-6 text-white shadow-xl shadow-orange-200/50 ring-1 ring-white/20 dark:shadow-orange-900/20">
+        <div className="pointer-events-none absolute top-0 right-0 scale-150 rotate-12 p-8 opacity-[0.08]">
           <Lock size={140} />
         </div>
-        <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-white/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="pointer-events-none absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-white/10 blur-3xl" />
 
         <div className="relative z-10">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="bg-white/20 p-1.5 rounded-lg backdrop-blur-md">
+          <div className="mb-2 flex items-center gap-2">
+            <div className="rounded-lg bg-white/20 p-1.5 backdrop-blur-md">
               <Lock size={16} className="text-white" />
             </div>
-            <span className="text-white/90 text-sm font-medium tracking-wide">
+            <span className="text-sm font-medium tracking-wide text-white/90">
               待激活确权金余额
             </span>
           </div>
 
-          <div className="text-4xl font-bold font-[DINAlternate-Bold] tracking-tight mb-6 text-white text-shadow-sm">
-            ¥&nbsp;
-            {unlockStatus.currentGold != null
-              ? Number(unlockStatus.currentGold).toFixed(2)
-              : '0.00'}
+          <div className="mb-6 text-4xl font-bold tracking-tight text-white text-shadow-sm">
+            {currentGoldText}
           </div>
 
-          <div className="flex items-start gap-2.5 bg-black/10 px-4 py-3 rounded-xl border border-white/10 backdrop-blur-sm">
-            <AlertCircle size={16} className="text-white/90 shrink-0 mt-0.5" />
-            <span className="text-xs text-white/90 leading-relaxed font-light">
-              完成下方任务即可解锁旧资产，解锁后发放权益资产包。
+          <div className="flex items-start gap-2.5 rounded-xl border border-white/10 bg-black/10 px-4 py-3 backdrop-blur-sm">
+            <AlertCircle size={16} className="mt-0.5 shrink-0 text-white/90" />
+            <span className="text-xs font-light leading-relaxed text-white/90">
+              完成下方任务后即可解锁老资产，未返回的门槛以接口最新结果为准。
             </span>
           </div>
         </div>
       </div>
 
-      {/* 解锁条件检测 - 优化列表样式 */}
-      <div className="bg-white dark:bg-bg-card rounded-3xl p-5 shadow-sm border border-gray-100/80 dark:border-border-light">
-        <div className="flex items-center mb-5 pb-3 border-b border-gray-50 dark:border-border-light">
-          <div className="w-1.5 h-4 bg-gradient-to-b from-[#FF6B6B] to-[#FF4757] rounded-full mr-2.5" />
-          <h3 className="text-gray-800 dark:text-text-main font-bold text-[15px]">
+      <div className="rounded-3xl border border-gray-100/80 bg-white p-5 shadow-sm dark:border-border-light dark:bg-bg-card">
+        <div className="mb-5 flex items-center border-b border-gray-50 pb-3 dark:border-border-light">
+          <div className="mr-2.5 h-4 w-1.5 rounded-full bg-gradient-to-b from-[#FF6B6B] to-[#FF4757]" />
+          <h3 className="text-[15px] font-bold text-gray-800 dark:text-text-main">
             解锁条件检测
           </h3>
-          <span className="ml-auto text-[10px] text-gray-400 dark:text-text-sub font-normal">
+          <span className="ml-auto text-[10px] font-normal text-gray-400 dark:text-text-sub">
             需全部达成
           </span>
         </div>
 
         <div className="space-y-3">
-          {/* 条件1：自身交易 */}
           <div
-            className={`group flex items-center justify-between p-4 rounded-2xl transition-all border ${
+            className={`group flex items-center justify-between rounded-2xl border p-4 transition-all ${
               unlockStatus.hasSelfTrade
-                ? 'bg-[#F0F9FF] dark:bg-blue-500/10 border-blue-100/50 dark:border-blue-500/20'
-                : 'bg-white dark:bg-bg-base border-gray-100 dark:border-border-light shadow-sm'
+                ? 'border-blue-100/50 bg-[#F0F9FF] dark:border-blue-500/20 dark:bg-blue-500/10'
+                : 'border-gray-100 bg-white shadow-sm dark:border-border-light dark:bg-bg-base'
             }`}
           >
             <div className="flex items-center gap-4">
               <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+                className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors ${
                   unlockStatus.hasSelfTrade
-                    ? 'bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400'
-                    : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-text-sub'
+                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400'
+                    : 'bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-text-sub'
                 }`}
               >
                 <ShoppingBag size={20} strokeWidth={2.5} />
               </div>
               <div className="flex flex-col gap-0.5">
-                <div className="text-gray-800 dark:text-text-main font-bold text-sm">
+                <div className="text-sm font-bold text-gray-800 dark:text-text-main">
                   自身完成交易
                 </div>
                 <div className="text-xs text-gray-500 dark:text-text-sub">
-                  {unlockStatus.unlockConditions?.transaction_count ? (
-                    <span className="text-blue-600 dark:text-blue-400 font-medium">
-                      已完成 {unlockStatus.unlockConditions.transaction_count} 笔
+                  {transactionCount != null ? (
+                    <span className="font-medium text-blue-600 dark:text-blue-400">
+                      已完成 {transactionCount} 笔
                     </span>
+                  ) : requiredTransactions != null ? (
+                    `需至少完成 ${requiredTransactions} 笔任意交易`
                   ) : (
-                    `需至少完成 ${
-                      unlockStatus.requiredTransactions || 1
-                    } 笔任意交易`
+                    '等待接口返回解锁条件'
                   )}
                 </div>
               </div>
             </div>
             <div>
               {unlockStatus.isLoading ? (
-                <div className="w-4 h-4 border-2 border-gray-200 dark:border-gray-700 border-t-blue-500 rounded-full animate-spin" />
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-200 border-t-blue-500 dark:border-gray-700" />
               ) : unlockStatus.hasSelfTrade ? (
-                <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center shadow-md shadow-blue-200 dark:shadow-blue-900/30">
-                  <Check size={14} className="text-white font-bold" />
+                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 shadow-md shadow-blue-200 dark:shadow-blue-900/30">
+                  <Check size={14} className="text-white" />
                 </div>
               ) : (
-                <div className="w-6 h-6 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
-                  <span className="text-gray-400 dark:text-text-sub text-xs font-bold">
-                    0/1
+                <div className="flex h-6 min-w-10 items-center justify-center rounded-full bg-gray-100 px-2 dark:bg-gray-800">
+                  <span className="text-xs font-bold text-gray-400 dark:text-text-sub">
+                    {transactionProgressText}
                   </span>
                 </div>
               )}
             </div>
           </div>
 
-          {/* 条件2：直推用户 */}
           <div
-            className={`group flex items-center justify-between p-4 rounded-2xl transition-all border ${
-              (unlockStatus.activeReferrals ?? 0) >=
-              (unlockStatus.requiredReferrals ?? unlockStatus.referralTarget ?? 0)
-                ? 'bg-[#F0FDF4] dark:bg-green-500/10 border-green-100/50 dark:border-green-500/20'
-                : 'bg-white dark:bg-bg-base border-gray-100 dark:border-border-light shadow-sm'
+            className={`group flex items-center justify-between rounded-2xl border p-4 transition-all ${
+              referralCompleted
+                ? 'border-green-100/50 bg-[#F0FDF4] dark:border-green-500/20 dark:bg-green-500/10'
+                : 'border-gray-100 bg-white shadow-sm dark:border-border-light dark:bg-bg-base'
             }`}
           >
             <div className="flex items-center gap-4">
               <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
-                  (unlockStatus.activeReferrals ?? 0) >=
-                  (unlockStatus.requiredReferrals ?? unlockStatus.referralTarget ?? 0)
-                    ? 'bg-green-100 dark:bg-green-500/20 text-green-600 dark:text-green-400'
-                    : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-text-sub'
+                className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors ${
+                  referralCompleted
+                    ? 'bg-green-100 text-green-600 dark:bg-green-500/20 dark:text-green-400'
+                    : 'bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-text-sub'
                 }`}
               >
                 <Users size={20} strokeWidth={2.5} />
               </div>
               <div className="flex flex-col gap-0.5">
-                <div className="text-gray-800 dark:text-text-main font-bold text-sm">
+                <div className="text-sm font-bold text-gray-800 dark:text-text-main">
                   直推有效用户
                 </div>
                 <div className="text-xs text-gray-500 dark:text-text-sub">
-                  <span
-                    className={
-                      (unlockStatus.activeReferrals ?? 0) >=
-                      (unlockStatus.requiredReferrals ?? unlockStatus.referralTarget ?? 0)
-                        ? 'text-green-600 dark:text-green-400 font-medium'
-                        : ''
-                    }
-                  >
-                    {unlockStatus.activeReferrals ?? 0}
-                  </span>
-                  <span className="mx-1">/</span>
-                  <span>
-                    {unlockStatus.requiredReferrals ?? unlockStatus.referralTarget ?? 0}{' '}
-                    (需有交易记录)
-                  </span>
+                  {requiredReferrals != null ? (
+                    <>
+                      <span
+                        className={referralCompleted ? 'font-medium text-green-600 dark:text-green-400' : ''}
+                      >
+                        {activeReferrals ?? 0}
+                      </span>
+                      <span className="mx-1">/</span>
+                      <span>{requiredReferrals}（需有交易记录）</span>
+                    </>
+                  ) : (
+                    '等待接口返回解锁条件'
+                  )}
                 </div>
               </div>
             </div>
             <div>
               {unlockStatus.isLoading ? (
-                <div className="w-4 h-4 border-2 border-gray-200 dark:border-gray-700 border-t-green-500 rounded-full animate-spin" />
-              ) : (unlockStatus.activeReferrals ?? 0) >=
-                (unlockStatus.requiredReferrals ?? unlockStatus.referralTarget ?? 0) ? (
-                <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center shadow-md shadow-green-200 dark:shadow-green-900/30">
-                  <Check size={14} className="text-white font-bold" />
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-200 border-t-green-500 dark:border-gray-700" />
+              ) : referralCompleted ? (
+                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-green-500 shadow-md shadow-green-200 dark:shadow-green-900/30">
+                  <Check size={14} className="text-white" />
                 </div>
               ) : (
-                <span className="text-xs font-bold text-gray-400 dark:text-text-sub bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-md">
-                  {unlockStatus.activeReferrals ?? 0}/
-                  {unlockStatus.requiredReferrals ?? unlockStatus.referralTarget ?? 0}
+                <span className="rounded-md bg-gray-100 px-2 py-1 text-xs font-bold text-gray-400 dark:bg-gray-800 dark:text-text-sub">
+                  {referralProgressText}
                 </span>
               )}
             </div>
@@ -176,57 +196,52 @@ export const UnlockPanel: React.FC<UnlockPanelProps> = ({
         </div>
       </div>
 
-      {/* 解锁权益 - 优化资产卡片 */}
-      <div className="bg-white dark:bg-bg-card rounded-3xl p-5 shadow-sm border border-gray-100/80 dark:border-border-light">
-        <div className="flex items-center mb-5 pb-3 border-b border-gray-50 dark:border-border-light">
-          <div className="w-1.5 h-4 bg-gradient-to-b from-[#FF6B6B] to-[#FF4757] rounded-full mr-2.5" />
-          <h3 className="text-gray-800 dark:text-text-main font-bold text-[15px]">
-            解锁将获得
+      <div className="rounded-3xl border border-gray-100/80 bg-white p-5 shadow-sm dark:border-border-light dark:bg-bg-card">
+        <div className="mb-5 flex items-center border-b border-gray-50 pb-3 dark:border-border-light">
+          <div className="mr-2.5 h-4 w-1.5 rounded-full bg-gradient-to-b from-[#FF6B6B] to-[#FF4757]" />
+          <h3 className="text-[15px] font-bold text-gray-800 dark:text-text-main">
+            解锁后将获得
           </h3>
         </div>
 
-        <div className="flex items-center gap-3 mb-6">
-          {/* 资产 1 */}
-          <div className="flex-1 bg-gradient-to-br from-[#FFF8F0] to-[#FFFBF5] dark:from-orange-500/5 dark:to-orange-500/10 p-4 rounded-2xl border border-[#FFEDD5] dark:border-orange-500/20 flex flex-col items-center justify-center text-center shadow-sm relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-8 h-8 bg-[#FFEDD5] dark:bg-orange-500/20 rounded-bl-2xl -mr-4 -mt-4 group-hover:bg-orange-200 dark:group-hover:bg-orange-500/30 transition-colors" />
-            <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-xl bg-[#FFEDD5] dark:bg-orange-500/20 text-[#E65100] dark:text-orange-400">
+        <div className="mb-6 flex items-center gap-3">
+          <div className="group relative flex flex-1 flex-col items-center justify-center overflow-hidden rounded-2xl border border-[#FFEDD5] bg-gradient-to-br from-[#FFF8F0] to-[#FFFBF5] p-4 text-center shadow-sm dark:border-orange-500/20 dark:from-orange-500/5 dark:to-orange-500/10">
+            <div className="absolute top-0 right-0 -mt-4 -mr-4 h-8 w-8 rounded-bl-2xl bg-[#FFEDD5] transition-colors group-hover:bg-orange-200 dark:bg-orange-500/20 dark:group-hover:bg-orange-500/30" />
+            <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-xl bg-[#FFEDD5] text-[#E65100] dark:bg-orange-500/20 dark:text-orange-400">
               <Gift size={22} strokeWidth={2} />
             </div>
-            <div className="text-[#E65100] dark:text-orange-400 font-bold text-[15px] mb-1.5 tracking-tight group-hover:scale-105 transition-transform">
+            <div className="mb-1.5 text-[15px] font-bold tracking-tight text-[#E65100] transition-transform group-hover:scale-105 dark:text-orange-400">
               权益资产包
             </div>
-            <div className="text-[10px] font-medium text-[#9A3412] dark:text-orange-400/80 bg-[#FFEDD5] dark:bg-orange-500/20 px-2 py-0.5 rounded-full">
-              价值 ≈ ¥{unlockStatus.rewardValue ?? 1000}
+            <div className="rounded-full bg-[#FFEDD5] px-2 py-0.5 text-[10px] font-medium text-[#9A3412] dark:bg-orange-500/20 dark:text-orange-400/80">
+              价值 ≈ {rewardValueText}
             </div>
           </div>
 
-          <div className="text-[#FFCCAA] dark:text-orange-400/60 font-light text-xl">
-            +
-          </div>
+          <div className="text-xl font-light text-[#FFCCAA] dark:text-orange-400/60">+</div>
 
-          {/* 资产 2 */}
-          <div className="flex-1 bg-gradient-to-br from-[#FFF0F0] to-[#FFFAFA] dark:from-red-500/5 dark:to-red-500/10 p-4 rounded-2xl border border-[#FFDCDC] dark:border-red-500/20 flex flex-col items-center justify-center text-center shadow-sm relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-8 h-8 bg-[#FFDCDC] dark:bg-red-500/20 rounded-bl-2xl -mr-4 -mt-4 group-hover:bg-red-200 dark:group-hover:bg-red-500/30 transition-colors" />
-            <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-xl bg-[#FFDCDC] dark:bg-red-500/20 text-[#D32F2F] dark:text-red-400">
+          <div className="group relative flex flex-1 flex-col items-center justify-center overflow-hidden rounded-2xl border border-[#FFDCDC] bg-gradient-to-br from-[#FFF0F0] to-[#FFFAFA] p-4 text-center shadow-sm dark:border-red-500/20 dark:from-red-500/5 dark:to-red-500/10">
+            <div className="absolute top-0 right-0 -mt-4 -mr-4 h-8 w-8 rounded-bl-2xl bg-[#FFDCDC] transition-colors group-hover:bg-red-200 dark:bg-red-500/20 dark:group-hover:bg-red-500/30" />
+            <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-xl bg-[#FFDCDC] text-[#D32F2F] dark:bg-red-500/20 dark:text-red-400">
               <Ticket size={22} strokeWidth={2} />
             </div>
-            <div className="text-[#D32F2F] dark:text-red-400 font-bold text-[15px] mb-1.5 tracking-tight group-hover:scale-105 transition-transform">
+            <div className="mb-1.5 text-[15px] font-bold tracking-tight text-[#D32F2F] transition-transform group-hover:scale-105 dark:text-red-400">
               寄售券 x1
             </div>
-            <div className="text-[10px] font-medium text-[#B71C1C] dark:text-red-400/80 bg-[#FFDCDC] dark:bg-red-500/20 px-2 py-0.5 rounded-full">
+            <div className="rounded-full bg-[#FFDCDC] px-2 py-0.5 text-[10px] font-medium text-[#B71C1C] dark:bg-red-500/20 dark:text-red-400/80">
               解锁赠送
             </div>
           </div>
         </div>
 
-        <div className="mb-6 bg-gray-50 dark:bg-bg-base rounded-xl p-3 border border-gray-100 dark:border-border-light">
-          <div className="flex justify-between items-center text-sm mb-2">
-            <span className="text-gray-500 dark:text-text-sub font-medium">
+        <div className="mb-6 rounded-xl border border-gray-100 bg-gray-50 p-3 dark:border-border-light dark:bg-bg-base">
+          <div className="mb-2 flex items-center justify-between text-sm">
+            <span className="font-medium text-gray-500 dark:text-text-sub">
               本次消耗
             </span>
-            <span className="font-bold text-[#FF4500] dark:text-primary-start text-base font-[DINAlternate-Bold]">
-              {unlockStatus.requiredGold ?? 1000}
-              <span className="text-xs font-normal text-gray-500 dark:text-text-sub ml-1">
+            <span className="font-[DINAlternate-Bold] text-base font-bold text-[#FF4500] dark:text-primary-start">
+              {requiredGoldText}
+              <span className="ml-1 text-xs font-normal text-gray-500 dark:text-text-sub">
                 待激活确权金
               </span>
             </span>
@@ -235,20 +250,21 @@ export const UnlockPanel: React.FC<UnlockPanelProps> = ({
           {(unlockStatus.unlockedCount !== undefined ||
             (unlockStatus.availableQuota !== undefined &&
               unlockStatus.availableQuota > 0)) && (
-            <div className="w-full h-[1px] bg-gray-200 dark:bg-border-light my-2" />
+            <div className="my-2 h-[1px] w-full bg-gray-200 dark:bg-border-light" />
           )}
 
           {unlockStatus.unlockedCount !== undefined && (
-            <div className="flex justify-between items-center text-xs text-gray-400 dark:text-text-sub pt-1">
+            <div className="flex items-center justify-between pt-1 text-xs text-gray-400 dark:text-text-sub">
               <span>已成功解锁</span>
               <span className="font-medium text-gray-800 dark:text-text-main">
                 {unlockStatus.unlockedCount} 次
               </span>
             </div>
           )}
+
           {unlockStatus.availableQuota !== undefined &&
             unlockStatus.availableQuota > 0 && (
-              <div className="flex justify-between items-center text-xs text-gray-400 dark:text-text-sub pt-1">
+              <div className="flex items-center justify-between pt-1 text-xs text-gray-400 dark:text-text-sub">
                 <span>剩余可解锁</span>
                 <span className="font-bold text-orange-500 dark:text-primary-start">
                   {unlockStatus.availableQuota} 次
@@ -261,7 +277,7 @@ export const UnlockPanel: React.FC<UnlockPanelProps> = ({
         (unlockStatus.availableQuota === 0 ||
           unlockStatus.availableQuota === undefined) &&
         unlockStatus.alreadyUnlocked ? (
-          <div className="w-full py-4 rounded-full text-base font-bold text-white bg-green-500/90 shadow-lg shadow-green-200 dark:shadow-green-900/30 text-center flex items-center justify-center gap-2 cursor-default">
+          <div className="flex cursor-default items-center justify-center gap-2 rounded-full bg-green-500/90 py-4 text-center text-base font-bold text-white shadow-lg shadow-green-200 dark:shadow-green-900/30">
             <Check size={20} strokeWidth={3} />
             已全部解锁
           </div>
@@ -273,21 +289,19 @@ export const UnlockPanel: React.FC<UnlockPanelProps> = ({
               unlockStatus.isLoading ||
               !unlockStatus.canUnlock
             }
-            className={`w-full py-4 rounded-full text-base font-bold text-white shadow-xl transition-all active:scale-[0.98] relative overflow-hidden group
-              ${
-                unlockLoading ||
-                unlockStatus.isLoading ||
-                !unlockStatus.canUnlock
-                  ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-text-sub shadow-none cursor-not-allowed'
-                  : 'bg-gradient-to-r from-[#FF6B00] via-[#FF5E62] to-[#FF4500] shadow-orange-500/30 hover:shadow-orange-500/40'
-              }`}
+            className={`group relative w-full overflow-hidden rounded-full py-4 text-base font-bold text-white shadow-xl transition-all active:scale-[0.98] ${
+              unlockLoading ||
+              unlockStatus.isLoading ||
+              !unlockStatus.canUnlock
+                ? 'cursor-not-allowed bg-gray-200 text-gray-400 shadow-none dark:bg-gray-700 dark:text-text-sub'
+                : 'bg-gradient-to-r from-[#FF6B00] via-[#FF5E62] to-[#FF4500] shadow-orange-500/30 hover:shadow-orange-500/40'
+            }`}
           >
-            {/* Button Highlight Effect */}
-            <div className="absolute top-0 left-0 w-full h-full bg-white/20 -translate-x-full group-hover:animate-[shimmer_1s_infinite] pointer-events-none" />
+            <div className="pointer-events-none absolute top-0 left-0 h-full w-full -translate-x-full bg-white/20 group-hover:animate-[shimmer_1s_infinite]" />
 
             {unlockLoading ? (
               <span className="flex items-center justify-center gap-2">
-                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
                 <span>正在解锁...</span>
               </span>
             ) : unlockStatus.unlockedCount && unlockStatus.unlockedCount > 0 ? (
@@ -301,7 +315,7 @@ export const UnlockPanel: React.FC<UnlockPanelProps> = ({
         {!unlockStatus.canUnlock &&
           !unlockStatus.isLoading &&
           !unlockStatus.alreadyUnlocked && (
-            <div className="text-center mt-3 text-[10px] text-gray-400 dark:text-text-sub">
+            <div className="mt-3 text-center text-[10px] text-gray-400 dark:text-text-sub">
               请先完成所有解锁条件
             </div>
           )}

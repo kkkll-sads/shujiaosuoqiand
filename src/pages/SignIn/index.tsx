@@ -21,6 +21,7 @@ export const SignInPage: React.FC = () => {
     currentDate,
     currentBalance,
     canWithdraw,
+    withdrawMinAmount,
     setShowRedPacket,
     setShowCalendar,
     goPrevMonth,
@@ -33,19 +34,16 @@ export const SignInPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-red-50 pb-safe flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-2 border-red-500 border-t-transparent rounded-full" />
+      <div className="min-h-screen bg-bg-base pb-safe flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 rounded-full border-2 border-red-500 border-t-transparent" />
       </div>
     );
   }
 
-  const minAmount =
-    activityInfo?.activity?.withdraw_min_amount ?? 10;
-
   return (
-    <div className="min-h-screen bg-red-50 pb-safe">
+    <div className="min-h-screen bg-bg-base pb-safe">
       <SignInPageHeader
-        activityName={activityInfo?.activity?.name || '共识建设与通道测试活动'}
+        activityName={activityInfo?.activity?.name}
         startTime={activityInfo?.activity?.start_time}
         endTime={activityInfo?.activity?.end_time}
         onBack={handleBack}
@@ -65,7 +63,11 @@ export const SignInPage: React.FC = () => {
         <SignInWithdrawCard
           currentBalance={currentBalance}
           canWithdraw={canWithdraw}
-          deficitAmount={Math.max(0, minAmount - currentBalance)}
+          deficitAmount={
+            withdrawMinAmount != null
+              ? Math.max(0, withdrawMinAmount - currentBalance)
+              : 0
+          }
           onWithdraw={handleWithdrawClick}
         />
 

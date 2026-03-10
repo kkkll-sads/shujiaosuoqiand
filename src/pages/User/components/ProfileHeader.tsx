@@ -29,20 +29,23 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   unreadCount,
   onNavigate,
 }) => {
-  const userType = typeof (userInfo as Record<string, unknown>)?.userType === 'number'
-    ? (userInfo as Record<string, unknown>).userType
-    : typeof (userInfo as Record<string, unknown>)?.user_type === 'number'
-      ? (userInfo as Record<string, unknown>).user_type
-      : typeof (userInfo as Record<string, unknown>)?.user_type === 'string'
-        ? parseInt(String((userInfo as Record<string, unknown>).user_type), 10)
-        : -1;
-  const agentReviewStatus = typeof (userInfo as Record<string, unknown>)?.agentReviewStatus === 'number'
-    ? (userInfo as Record<string, unknown>).agentReviewStatus
-    : typeof (userInfo as Record<string, unknown>)?.agent_review_status === 'number'
-      ? (userInfo as Record<string, unknown>).agent_review_status
-      : typeof (userInfo as Record<string, unknown>)?.agent_review_status === 'string'
-        ? parseInt(String((userInfo as Record<string, unknown>).agent_review_status), 10)
-        : -1;
+  const userInfoRecord = (userInfo ?? {}) as Record<string, unknown>;
+  const readNumericValue = (value: unknown) => {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value;
+    }
+
+    if (typeof value === 'string') {
+      const nextValue = Number.parseInt(value, 10);
+      return Number.isFinite(nextValue) ? nextValue : -1;
+    }
+
+    return -1;
+  };
+  const userType = readNumericValue(userInfoRecord.userType ?? userInfoRecord.user_type);
+  const agentReviewStatus = readNumericValue(
+    userInfoRecord.agentReviewStatus ?? userInfoRecord.agent_review_status,
+  );
 
   const statusConfig: Record<number, { icon: React.ComponentType<{ size?: number; className?: string }> }> = {
     0: { icon: Sprout },

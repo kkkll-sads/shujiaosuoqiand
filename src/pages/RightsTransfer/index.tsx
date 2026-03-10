@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { ChevronLeft, AlertCircle, ArrowRight, XCircle, ChevronDown, X, ShieldCheck, Eye, EyeOff, CheckCircle2, Info } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { useAppNavigate } from '../../lib/navigation';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { useFeedback } from '../../components/ui/FeedbackProvider';
+import { PullToRefreshContainer } from '../../components/ui/PullToRefreshContainer';
 
 // Mock Data
 const MOCK_DATA = {
@@ -60,6 +61,18 @@ export function RightsTransferPage() {
 
   const handleGoBack = () => {
     goBack();
+  };
+
+  const handleRefresh = async () => {
+    setError(null);
+    setIsLoading(true);
+
+    await new Promise((resolve) => {
+      window.setTimeout(() => {
+        setIsLoading(false);
+        resolve(undefined);
+      }, 300);
+    });
   };
 
   const handleGoHistory = () => {
@@ -397,3 +410,4 @@ export function RightsTransferPage() {
     </div>
   );
 }
+

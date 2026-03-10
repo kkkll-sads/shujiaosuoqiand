@@ -234,7 +234,7 @@ export const PreOrderPage = () => {
                     <h2 className="text-xl font-bold text-text-main leading-tight mb-2">
                        {detailData?.package_name || '资产申购'}
                     </h2>
-                    {(detailData?.session as any)?.is_mixed_pay_available === true && (
+                    {detailData?.session?.is_mixed_pay_available === true && (
                       <div className="flex items-center space-x-1.5 flex-wrap gap-y-1">
                         <span className="text-xs text-orange-500 border border-orange-500/30 px-2 py-0.5 rounded-sm bg-orange-50/50">
                           支持混合支付

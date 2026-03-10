@@ -1,12 +1,13 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { ChevronLeft, WifiOff, MapPin, Truck, ChevronRight, Copy, Package, Clock, CreditCard, CheckCircle2, XCircle, ShoppingBag, RotateCcw } from 'lucide-react';
 import { copyToClipboard } from '../../lib/clipboard';
 import { useAppNavigate } from '../../lib/navigation';
 import { ErrorState } from '../../components/ui/ErrorState';
+import { PullToRefreshContainer } from '../../components/ui/PullToRefreshContainer';
 import { shopOrderApi } from '../../api/modules/shopOrder';
 import type { ShopOrderDetailResponse, ShopOrderItemDetail } from '../../api/modules/shopOrder';
-import { getErrorMessage } from '../../api/core/errors';
+import { ApiError, getErrorMessage } from '../../api/core/errors';
 import { useFeedback } from '../../components/ui/FeedbackProvider';
 import { buildShopProductPath, resolveShopProductImageUrl } from '../../features/shop-product/utils';
 
@@ -90,12 +91,17 @@ export const OrderDetailPage = () => {
     try {
       const data = await shopOrderApi.detail(orderId);
       setOrder(data);
-    } catch {
+    } catch (error) {
+      if (error instanceof ApiError && error.message !== 'Network request failed.' && error.message !== 'Request timed out.') {
+        showToast({ message: error.message || '订单状态已变更，正在返回订单列表', type: 'warning' });
+        navigate('/order', { replace: true });
+        return;
+      }
       setError(true);
     } finally {
       setLoading(false);
     }
-  }, [orderId]);
+  }, [navigate, orderId, showToast]);
 
   useEffect(() => {
     fetchData();
@@ -133,7 +139,7 @@ export const OrderDetailPage = () => {
     try {
       await shopOrderApi.cancel({ order_id: orderId });
       showToast({ message: '订单已取消', type: 'success' });
-      await fetchData();
+      navigate('/order', { replace: true });
     } catch (e) {
       showToast({ message: getErrorMessage(e) || '取消订单失败', type: 'error' });
     } finally {
@@ -442,3 +448,6 @@ export const OrderDetailPage = () => {
     </div>
   );
 };
+
+
+

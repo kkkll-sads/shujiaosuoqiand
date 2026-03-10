@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+﻿import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useAppNavigate } from '../../lib/navigation';
 import { Search, Headset, Store, ShieldCheck, FileText, Volume2, Wallet, Package, Truck, WifiOff, RefreshCcw, ArrowRight, User } from 'lucide-react';
 import { Skeleton } from '../../components/ui/Skeleton';
@@ -292,7 +292,7 @@ export const HomePage = () => {
             className="flex flex-col items-center cursor-pointer active:opacity-70"
             onClick={() => goTo('store')}
           >
-            <div className="w-11 h-11 rounded-[14px] bg-white dark:bg-gray-800 shadow-sm flex items-center justify-center text-[#FF4142] mb-1.5">
+            <div className="w-11 h-11 rounded-[14px] bg-white dark:bg-gray-800 shadow-sm flex items-center justify-center text-[#FF4142] dark:text-red-300 mb-1.5">
               <Store size={22} strokeWidth={1.5} />
             </div>
             <span className="text-[12px] text-gray-900 dark:text-gray-100">商城</span>
@@ -301,7 +301,7 @@ export const HomePage = () => {
             className="flex flex-col items-center cursor-pointer active:opacity-70"
             onClick={() => goTo('shield')}
           >
-            <div className="w-11 h-11 rounded-[14px] bg-white dark:bg-gray-800 shadow-sm flex items-center justify-center text-[#FF4142] mb-1.5">
+            <div className="w-11 h-11 rounded-[14px] bg-white dark:bg-gray-800 shadow-sm flex items-center justify-center text-[#FF4142] dark:text-red-300 mb-1.5">
               <ShieldCheck size={22} strokeWidth={1.5} />
             </div>
             <span className="text-[12px] text-gray-900 dark:text-gray-100">确权中心</span>
@@ -310,7 +310,7 @@ export const HomePage = () => {
             className="flex flex-col items-center cursor-pointer active:opacity-70"
             onClick={() => goTo('order')}
           >
-            <div className="w-11 h-11 rounded-[14px] bg-white dark:bg-gray-800 shadow-sm flex items-center justify-center text-[#FF4142] mb-1.5">
+            <div className="w-11 h-11 rounded-[14px] bg-white dark:bg-gray-800 shadow-sm flex items-center justify-center text-[#FF4142] dark:text-red-300 mb-1.5">
               <FileText size={22} strokeWidth={1.5} />
             </div>
             <span className="text-[12px] text-gray-900 dark:text-gray-100">订单</span>
@@ -319,7 +319,7 @@ export const HomePage = () => {
             className="flex flex-col items-center cursor-pointer active:opacity-70"
             onClick={() => goTo('live')}
           >
-            <div className="w-11 h-11 rounded-[14px] bg-white dark:bg-gray-800 shadow-sm flex items-center justify-center text-[#FF4142] mb-1.5">
+            <div className="w-11 h-11 rounded-[14px] bg-white dark:bg-gray-800 shadow-sm flex items-center justify-center text-[#FF4142] dark:text-red-300 mb-1.5">
               <Volume2 size={22} strokeWidth={1.5} />
             </div>
             <span className="text-[12px] text-gray-900 dark:text-gray-100">直播</span>
@@ -328,7 +328,7 @@ export const HomePage = () => {
             className="flex flex-col items-center cursor-pointer active:opacity-70"
             onClick={() => goTo('help_center')}
           >
-            <div className="w-11 h-11 rounded-[14px] bg-white dark:bg-gray-800 shadow-sm flex items-center justify-center text-[#FF4142] mb-1.5">
+            <div className="w-11 h-11 rounded-[14px] bg-white dark:bg-gray-800 shadow-sm flex items-center justify-center text-[#FF4142] dark:text-red-300 mb-1.5">
               <Headset size={22} strokeWidth={1.5} />
             </div>
             <span className="text-[12px] text-gray-900 dark:text-gray-100">客服</span>
@@ -341,7 +341,7 @@ export const HomePage = () => {
             className="mx-4 mb-4 h-9 bg-white dark:bg-gray-800 rounded-full flex items-center px-3 shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden cursor-pointer active:opacity-80"
             onClick={() => goTo('announcement')}
           >
-            <Volume2 size={16} className="text-[#FF4142] mr-2 shrink-0" />
+            <Volume2 size={16} className="text-[#FF4142] dark:text-red-300 mr-2 shrink-0" />
             <div className="flex-1 overflow-hidden relative h-full flex items-center">
               <div className="absolute whitespace-nowrap text-[12px] text-gray-900 dark:text-gray-100 animate-marquee">
                 {scrollAnnouncements.map((a) => a.title).join('　　　')}
@@ -364,7 +364,7 @@ export const HomePage = () => {
           </div>
           
           <div className="relative z-10 w-10 h-10 rounded-full bg-white dark:bg-gray-900/20 backdrop-blur-sm flex items-center justify-center border border-white/30 shrink-0">
-            <ArrowRight size={20} className="text-[#FF4142] dark:text-white" />
+            <ArrowRight size={20} className="text-[#FF4142] dark:text-red-100" />
           </div>
         </div>
 
@@ -455,12 +455,12 @@ export const HomePage = () => {
     <div className="flex-1 flex flex-col bg-[#F7F8FA] dark:bg-gray-950 relative overflow-hidden">
       {/* Offline Banner */}
       {offline && (
-        <div className="bg-red-50 dark:bg-red-900/30 text-[#FF4142] dark:text-red-400 px-4 py-2 flex items-center justify-between text-[12px] z-50 absolute top-0 left-0 right-0">
+        <div className="bg-red-50 dark:bg-red-900/30 text-[#FF4142] dark:text-red-300 px-4 py-2 flex items-center justify-between text-[12px] z-50 absolute top-0 left-0 right-0">
           <div className="flex items-center">
             <WifiOff size={14} className="mr-2" />
             <span>网络不稳定，请检查网络设置</span>
           </div>
-          <button onClick={() => setOffline(false)} className="font-medium px-2 py-1 bg-white dark:bg-gray-800 rounded shadow-sm">刷新</button>
+          <button onClick={() => setOffline(false)} className="font-medium px-2 py-1 bg-white dark:bg-gray-800 rounded shadow-sm dark:text-gray-100">刷新</button>
         </div>
       )}
 
@@ -489,3 +489,4 @@ export const HomePage = () => {
     </div>
   );
 };
+

@@ -323,23 +323,32 @@ export const LoginPage = () => {
           />
           <div className="ml-2 text-[12px] leading-tight text-text-sub">
             登录即代表你已同意
-            <a href="#" className="mx-1 text-primary-start">
+            <button
+              type="button"
+              className="mx-1 text-primary-start"
+              onClick={() => navigate('/user_agreement')}
+            >
               用户协议
-            </a>
+            </button>
             和
-            <a href="#" className="mx-1 text-primary-start">
+            <button
+              type="button"
+              className="mx-1 text-primary-start"
+              onClick={() => navigate('/privacy_policy')}
+            >
               隐私政策
-            </a>
+            </button>
           </div>
         </div>
 
         <div className="mt-12 text-center">
           <button
             type="button"
-            className="text-[15px] font-medium text-text-main"
+            className="text-[15px] font-medium text-text-main active:opacity-70"
             onClick={() => goTo('register')}
           >
-            没有账户？点击注册
+            <span>没有账户？</span>
+            <span className="text-primary-start">点击注册</span>
           </button>
         </div>
       </div>

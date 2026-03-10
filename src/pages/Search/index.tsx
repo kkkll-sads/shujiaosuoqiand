@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+﻿import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, Clock, Flame, Search as SearchIcon, Trash2, XCircle } from 'lucide-react';
 import { shopProductApi } from '../../api';
 import { OfflineBanner } from '../../components/layout/OfflineBanner';
 import { Card } from '../../components/ui/Card';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { ErrorState } from '../../components/ui/ErrorState';
+import { PullToRefreshContainer } from '../../components/ui/PullToRefreshContainer';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { buildShopProductSearchResultPath } from '../../features/shop-product/utils';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
@@ -190,6 +191,11 @@ export const SearchPage = () => {
     );
   };
 
+  const handleRefresh = async () => {
+    refreshStatus();
+    await latestRequest.reload().catch(() => undefined);
+  };
+
   const renderSuggestions = () => {
     if (!query.trim() || !isFocused) {
       return null;
@@ -299,3 +305,4 @@ export const SearchPage = () => {
     </div>
   );
 };
+

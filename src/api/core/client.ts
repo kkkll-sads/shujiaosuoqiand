@@ -92,6 +92,72 @@ function isEnvelope<TData>(payload: unknown): payload is ApiEnvelope<TData> {
   return isPlainObject(payload) && 'code' in payload && 'data' in payload;
 }
 
+const responseListFieldKeys = new Set([
+  'list',
+  'rows',
+  'items',
+  'menus',
+  'children',
+  'sessions',
+  'packages',
+  'zones',
+  'package_zones',
+  'session_options',
+  'records',
+  'resources',
+  'hotNews',
+  'hotVideos',
+  'loginTabs',
+  'cards',
+  'collections',
+  'consignments',
+  'controllers',
+  'columns',
+  'databases',
+  'ips',
+  'related_users',
+  'errors',
+  'skus',
+  'specs',
+  'stages',
+  'top_winners',
+]);
+
+function normalizeArrayField(value: unknown): unknown[] {
+  if (Array.isArray(value)) {
+    return value.map((item) => normalizeListPayload(item));
+  }
+
+  if (isPlainObject(value)) {
+    return Object.values(value).map((item) => normalizeListPayload(item));
+  }
+
+  return [];
+}
+
+function normalizeListPayload<T>(payload: T): T {
+  if (Array.isArray(payload)) {
+    return payload.map((item) => normalizeListPayload(item)) as T;
+  }
+
+  if (!isPlainObject(payload)) {
+    return payload;
+  }
+
+  const normalized = payload as Record<string, unknown>;
+  Object.keys(normalized).forEach((key) => {
+    const value = normalized[key];
+    if (responseListFieldKeys.has(key)) {
+      normalized[key] = normalizeArrayField(value);
+      return;
+    }
+
+    normalized[key] = normalizeListPayload(value);
+  });
+
+  return payload;
+}
+
 function buildMockKey(method: HttpMethod, url: URL): string {
   return `${method} ${url.pathname}`;
 }
@@ -350,9 +416,9 @@ export class HttpClient {
         });
       }
 
-      return payload.data;
+      return normalizeListPayload(payload.data);
     }
 
-    return payload as TResponse;
+    return normalizeListPayload(payload as TResponse);
   }
 }

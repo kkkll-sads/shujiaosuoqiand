@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { TrendingUp, Calendar, Award, Activity, CheckCircle2, XCircle, Gift } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { useRequest } from '../../hooks/useRequest';
-import { accountApi } from '../../api/modules/account';
+import { accountApi, type GrowthRightsModeProgressItemRaw } from '../../api/modules/account';
 
 /** 成长权益内容区（无顶部返回栏），用于确权中心 Tab 内嵌 */
 export const GrowthRightsContent = () => {
@@ -38,6 +38,9 @@ export const GrowthRightsContent = () => {
     mode_progress: {},
   };
   const dailyGrowthLogs = data?.daily_growth_logs ?? [];
+  const modeProgressEntries = Object.entries(cycle.mode_progress ?? {}) as Array<
+    [string, GrowthRightsModeProgressItemRaw]
+  >;
 
   if (loading && !data) {
     return (
@@ -126,7 +129,7 @@ export const GrowthRightsContent = () => {
                     <div className="text-[12px] text-text-sub mb-1">待激活金</div>
                     <div className="text-[20px] font-bold text-primary-start">¥{pendingGold.toLocaleString('zh-CN', { useGrouping: false })}</div>
                   </div>
-                  <div className="w-10 h-10 rounded-full bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center text-orange-500">
+                  <div className="w-10 h-10 rounded-full bg-orange-50 dark:bg-orange-500/15 flex items-center justify-center text-orange-500 dark:text-orange-300">
                     <Award size={20} />
                   </div>
                 </Card>
@@ -137,12 +140,12 @@ export const GrowthRightsContent = () => {
                 <h3 className="text-[15px] font-bold text-text-main mb-4 flex items-center">
                   <Calendar size={16} className="mr-1.5 text-primary-start" /> 周期进度
                   {status.is_accelerated_mode && (
-                    <span className="ml-2 bg-red-50 text-primary-start text-[10px] px-2 py-0.5 rounded-full font-medium border border-red-100">加速模式</span>
+                    <span className="ml-2 bg-red-50 text-primary-start text-[10px] px-2 py-0.5 rounded-full font-medium border border-red-100 dark:border-red-500/20 dark:bg-red-500/12 dark:text-red-300">加速模式</span>
                   )}
                 </h3>
 
                 <div className="space-y-4">
-                  {Object.entries(cycle.mode_progress ?? {}).map(([modeKey, mode]) => {
+                  {modeProgressEntries.map(([modeKey, mode]) => {
                     const isActive = cycle.active_mode === modeKey;
                     const progress =
                       (mode.required_days ?? 0) > 0
@@ -183,7 +186,7 @@ export const GrowthRightsContent = () => {
 
                     return (
                       <div key={s.key} className="relative">
-                        <div className={`absolute -left-[21px] top-1 w-3 h-3 rounded-full border-2 bg-white dark:bg-gray-900 ${isCurrent ? 'border-primary-start ring-4 ring-red-50 dark:ring-red-900/20' : isPast ? 'border-green-500' : 'border-gray-300 dark:border-gray-600'}`}></div>
+                        <div className={`absolute -left-[21px] top-1 w-3 h-3 rounded-full border-2 bg-white dark:bg-gray-900 ${isCurrent ? 'border-primary-start ring-4 ring-red-50 dark:ring-red-500/15' : isPast ? 'border-green-500' : 'border-gray-300 dark:border-gray-600'}`}></div>
                         <div className="flex justify-between items-start">
                           <div>
                             <div className={`text-[14px] font-bold mb-1 ${isCurrent ? 'text-primary-start' : isPast ? 'text-text-main' : 'text-text-sub'}`}>
@@ -245,9 +248,9 @@ export const GrowthRightsContent = () => {
 
                   <div className="flex items-start mt-2">
                     {log.is_activity_bonus ? (
-                      <Gift size={16} className="text-orange-500 mr-2 shrink-0 mt-0.5" />
+                      <Gift size={16} className="mr-2 shrink-0 mt-0.5 text-orange-500 dark:text-orange-300" />
                     ) : (
-                      <Activity size={16} className="text-blue-500 mr-2 shrink-0 mt-0.5" />
+                      <Activity size={16} className="mr-2 shrink-0 mt-0.5 text-blue-500 dark:text-blue-300" />
                     )}
                     <div className="text-[13px] text-text-sub leading-relaxed">
                       {log.reason}
@@ -271,3 +274,4 @@ export const GrowthRightsContent = () => {
       </div>
   );
 };
+

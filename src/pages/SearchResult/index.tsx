@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ChevronDown,
   ChevronLeft,
@@ -18,6 +18,7 @@ import { OfflineBanner } from '../../components/layout/OfflineBanner';
 import { Card } from '../../components/ui/Card';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { ErrorState } from '../../components/ui/ErrorState';
+import { PullToRefreshContainer } from '../../components/ui/PullToRefreshContainer';
 import { Skeleton } from '../../components/ui/Skeleton';
 import {
   buildShopProductPath,
@@ -301,6 +302,20 @@ export const SearchResultPage = () => {
     setMinPrice('');
     setMaxPrice('');
   };
+
+  const handleRefresh = useCallback(async () => {
+    refreshStatus();
+    queryVersionRef.current += 1;
+    productsRef.current = [];
+    pageRef.current = 1;
+    loadingMoreRef.current = false;
+    setProducts([]);
+    setPage(1);
+    setHasMore(false);
+    setLoadingMore(false);
+    setLoadMoreError(null);
+    await Promise.allSettled([categoriesRequest.reload(), resultRequest.reload()]);
+  }, [categoriesRequest, refreshStatus, resultRequest]);
 
   const renderSkeleton = () => {
     if (isGrid) {
@@ -721,3 +736,4 @@ export const SearchResultPage = () => {
     </div>
   );
 };
+

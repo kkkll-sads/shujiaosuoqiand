@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef } from 'react';
+﻿import { useCallback, useMemo, useRef } from 'react';
 import { CheckCircle2 } from 'lucide-react';
 import { getErrorMessage } from '../../api/core/errors';
 import { messageApi, type MessageCategory, type MessageItem } from '../../api/modules/message';
@@ -7,6 +7,7 @@ import { PageHeader } from '../../components/layout/PageHeader';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { ErrorState } from '../../components/ui/ErrorState';
 import { useFeedback } from '../../components/ui/FeedbackProvider';
+import { PullToRefreshContainer } from '../../components/ui/PullToRefreshContainer';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 import { useRequest } from '../../hooks/useRequest';
 import { useRouteScrollRestoration } from '../../hooks/useRouteScrollRestoration';
@@ -68,6 +69,11 @@ export const MessageCenterPage = () => {
 
   const retry = () => {
     void reload().catch(() => undefined);
+  };
+
+  const handleRefresh = async () => {
+    const tasks = [reload(), reloadUnread()];
+    await Promise.allSettled(tasks);
   };
 
   const markAllAsRead = useCallback(async () => {
@@ -219,9 +225,19 @@ export const MessageCenterPage = () => {
       />
       {renderTabs()}
 
-      <div ref={scrollContainerRef} className="relative flex-1 overflow-y-auto no-scrollbar">
-        {renderContent()}
-      </div>
+      <PullToRefreshContainer
+        className="relative flex-1 overflow-y-auto no-scrollbar"
+        onRefresh={handleRefresh}
+        disabled={isOffline}
+      >
+        <div ref={scrollContainerRef}>
+          {renderContent()}
+        </div>
+      </PullToRefreshContainer>
     </div>
   );
 };
+
+
+
+

@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { ChevronLeft, WifiOff, RefreshCcw, Copy, Package, MapPin, Phone, HeadphonesIcon, CheckCircle2, Truck } from 'lucide-react';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { useAppNavigate } from '../../lib/navigation';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { useFeedback } from '../../components/ui/FeedbackProvider';
 import { copyToClipboard } from '../../lib/clipboard';
+import { PullToRefreshContainer } from '../../components/ui/PullToRefreshContainer';
 
 export const LogisticsPage = () => {
   const { goTo, goBack } = useAppNavigate();
@@ -47,6 +48,17 @@ export const LogisticsPage = () => {
 
   const handleBack = () => {
     goBack();
+  };
+
+  const handleRefresh = async () => {
+    setModuleError(false);
+    setLoading(true);
+    await new Promise((resolve) => {
+      window.setTimeout(() => {
+        setLoading(false);
+        resolve(undefined);
+      }, 300);
+    });
   };
 
   const handleCopy = async (text: string) => {
@@ -244,3 +256,4 @@ export const LogisticsPage = () => {
     </div>
   );
 };
+

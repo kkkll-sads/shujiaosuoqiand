@@ -213,13 +213,21 @@ export const RegisterPage = () => {
           />
           <div className="ml-2 text-[12px] leading-tight text-text-sub">
             注册即代表你已同意
-            <a href="#" className="mx-1 text-primary-start">
+            <button
+              type="button"
+              className="mx-1 text-primary-start"
+              onClick={() => navigate('/user_agreement')}
+            >
               用户协议
-            </a>
+            </button>
             和
-            <a href="#" className="mx-1 text-primary-start">
+            <button
+              type="button"
+              className="mx-1 text-primary-start"
+              onClick={() => navigate('/privacy_policy')}
+            >
               隐私政策
-            </a>
+            </button>
           </div>
         </div>
 

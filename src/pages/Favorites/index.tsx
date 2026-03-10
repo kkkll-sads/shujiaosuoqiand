@@ -1,10 +1,11 @@
-import React, { useRef, useState, useEffect } from 'react';
+﻿import React, { useRef, useState, useEffect } from 'react';
 import { ChevronLeft, WifiOff, AlertCircle, ShoppingCart, CheckCircle2, Circle, Trash2, HeartOff, RefreshCcw } from 'lucide-react';
 import { useAppNavigate } from '../../lib/navigation';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { useFeedback } from '../../components/ui/FeedbackProvider';
 import { ErrorState } from '../../components/ui/ErrorState';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { PullToRefreshContainer } from '../../components/ui/PullToRefreshContainer';
 import { useRouteScrollRestoration } from '../../hooks/useRouteScrollRestoration';
 
 export const FavoritesPage = () => {
@@ -256,3 +257,4 @@ export const FavoritesPage = () => {
     </div>
   );
 };
+

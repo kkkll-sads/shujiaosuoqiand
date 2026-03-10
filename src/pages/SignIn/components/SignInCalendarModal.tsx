@@ -75,10 +75,10 @@ const SignInCalendarModal: React.FC<SignInCalendarModalProps> = ({
         <div
           className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
             signed
-              ? 'bg-red-500 text-white shadow-md'
+              ? 'bg-gradient-to-br from-red-500 to-red-600 text-white shadow-md'
               : isToday
-                ? 'border border-red-500 text-red-500'
-                : 'text-gray-700'
+                ? 'border border-red-500 text-red-500 dark:border-red-400 dark:text-red-300'
+                : 'text-text-main'
           }`}
         >
           {day}
@@ -94,48 +94,48 @@ const SignInCalendarModal: React.FC<SignInCalendarModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 animate-in fade-in duration-200 p-4">
-      <div className="bg-white w-full max-w-sm rounded-2xl p-4 relative shadow-2xl animate-in zoom-in-95 duration-200">
+      <div className="relative w-full max-w-sm rounded-2xl border border-border-light bg-bg-card p-4 shadow-2xl animate-in zoom-in-95 duration-200">
         <button
           onClick={onClose}
-          className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 z-10"
+          className="absolute top-2 right-2 z-10 rounded-full p-1 text-text-aux transition-colors hover:bg-bg-hover hover:text-text-main"
         >
           <X size={24} />
         </button>
-        <h3 className="text-center font-bold text-lg mb-2">签到记录</h3>
+        <h3 className="mb-2 text-center text-lg font-bold text-text-main">签到记录</h3>
 
-        <div className="bg-white rounded-xl p-4">
+        <div className="rounded-xl bg-bg-base p-4">
           <div className="flex items-center justify-between mb-4">
             <button
               onClick={onPrevMonth}
-              className="p-1 hover:bg-gray-100 rounded"
+              className="rounded p-1 transition-colors hover:bg-bg-hover"
             >
-              <ChevronLeft size={20} className="text-gray-500" />
+              <ChevronLeft size={20} className="text-text-sub" />
             </button>
-            <div className="font-bold text-lg text-gray-800">
+            <div className="text-lg font-bold text-text-main">
               {year}年 {MONTH_NAMES[month]}
             </div>
             <button
               onClick={onNextMonth}
-              className="p-1 hover:bg-gray-100 rounded"
+              className="rounded p-1 transition-colors hover:bg-bg-hover"
             >
-              <ChevronRight size={20} className="text-gray-500" />
+              <ChevronRight size={20} className="text-text-sub" />
             </button>
           </div>
 
-          <div className="grid grid-cols-7 gap-1 mb-2 text-center text-xs text-gray-400 font-medium">
+          <div className="mb-2 grid grid-cols-7 gap-1 text-center text-xs font-medium text-text-aux">
             {WEEK_DAYS.map((w) => (
               <div key={w}>{w}</div>
             ))}
           </div>
           <div className="grid grid-cols-7 gap-1">{cells}</div>
 
-          <div className="mt-4 flex items-center justify-center gap-4 text-xs text-gray-500">
+          <div className="mt-4 flex items-center justify-center gap-4 text-xs text-text-sub">
             <div className="flex items-center gap-1">
               <div className="w-3 h-3 rounded-full bg-red-500" />
               <span>已签到</span>
             </div>
             <div className="flex items-center gap-1">
-              <div className="w-3 h-3 rounded-full border border-red-500" />
+              <div className="h-3 w-3 rounded-full border border-red-500 dark:border-red-400" />
               <span>今天</span>
             </div>
           </div>

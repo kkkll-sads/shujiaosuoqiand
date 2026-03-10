@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { getErrorMessage } from '../../api/core/errors';
 import { addressApi, shopCartApi, shopOrderApi, shopProductApi } from '../../api';
 import { OfflineBanner } from '../../components/layout/OfflineBanner';
 import { useFeedback } from '../../components/ui/FeedbackProvider';
 import { ErrorState } from '../../components/ui/ErrorState';
+import { PullToRefreshContainer } from '../../components/ui/PullToRefreshContainer';
 import { ProductDetailHeader } from '../../features/product-detail/components/ProductDetailHeader';
 import { ProductOverviewSection } from '../../features/product-detail/components/ProductOverviewSection';
 import { ProductPurchaseBar } from '../../features/product-detail/components/ProductPurchaseBar';
@@ -307,3 +308,4 @@ export const ProductDetailPage = () => {
     </div>
   );
 };
+

@@ -1,4 +1,4 @@
-import type { ChangeEvent } from 'react';
+﻿import type { ChangeEvent } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -22,6 +22,7 @@ import { useFeedback } from '../../components/ui/FeedbackProvider';
 import { Input } from '../../components/ui/Input';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { PageHeader } from '../../components/layout/PageHeader';
+import { PullToRefreshContainer } from '../../components/ui/PullToRefreshContainer';
 import { useAuthSession } from '../../hooks/useAuthSession';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 import { useRequest } from '../../hooks/useRequest';
@@ -112,6 +113,7 @@ export const WithdrawPage = () => {
     loading: accountOverviewLoading,
     reload: reloadAccountOverview,
   } = useRequest((signal) => accountApi.getAccountOverview({ signal }), {
+    cacheKey: 'withdraw:account-overview',
     deps: [isAuthenticated],
     manual: !isAuthenticated,
   });
@@ -121,20 +123,22 @@ export const WithdrawPage = () => {
     loading: paymentAccountsLoading,
     reload: reloadPaymentAccounts,
   } = useRequest((signal) => userApi.getPaymentAccountList({ signal }), {
+    cacheKey: 'withdraw:payment-accounts',
     deps: [isAuthenticated],
     manual: !isAuthenticated,
   });
+  const paymentAccountList = Array.isArray(paymentAccounts) ? paymentAccounts : [];
 
   const paymentMethods = useMemo(
     () =>
-      (paymentAccounts ?? []).map((account) => ({
+      paymentAccountList.map((account) => ({
         ...account,
         color: getPaymentColor(account.type),
         iconComponent: getPaymentIcon(account.type),
         subtitle: buildPaymentSubtitle(account),
         title: account.accountName || account.typeText || '收款账户',
       })),
-    [paymentAccounts],
+    [paymentAccountList],
   );
 
   useEffect(() => {
@@ -164,7 +168,7 @@ export const WithdrawPage = () => {
   const hasBlockingError =
     isAuthenticated &&
     !accountOverview &&
-    !paymentAccounts &&
+    paymentAccountList.length === 0 &&
     (Boolean(accountOverviewError) || Boolean(paymentAccountsError));
   const isLoading = isAuthenticated && (accountOverviewLoading || paymentAccountsLoading);
   const isAmountValid = numAmount >= MIN_WITHDRAW_AMOUNT && numAmount <= withdrawableBalance;
@@ -261,7 +265,7 @@ export const WithdrawPage = () => {
 
   if (!isAuthenticated) {
     return (
-      <div className="flex h-full flex-1 flex-col bg-red-50/30">
+      <div className="flex h-full flex-1 flex-col bg-bg-base">
         {renderHeader()}
         <div ref={scrollContainerRef} className="flex-1 overflow-y-auto no-scrollbar px-4 pb-10">
           <EmptyState
@@ -277,7 +281,7 @@ export const WithdrawPage = () => {
 
   if (hasBlockingError) {
     return (
-      <div className="flex h-full flex-1 flex-col bg-red-50/30">
+      <div className="flex h-full flex-1 flex-col bg-bg-base">
         {renderHeader()}
         <div ref={scrollContainerRef} className="flex-1 overflow-y-auto no-scrollbar">
           <ErrorState
@@ -290,16 +294,16 @@ export const WithdrawPage = () => {
   }
 
   return (
-    <div className="relative flex h-full flex-1 flex-col bg-red-50/30">
+    <div className="relative flex h-full flex-1 flex-col bg-bg-base">
       {isOffline && (
-        <div className="absolute top-12 right-0 left-0 z-50 flex items-center justify-between bg-red-50 px-4 py-2 text-sm text-primary-start">
+        <div className="absolute top-12 right-0 left-0 z-50 flex items-center justify-between border-b border-red-100 bg-red-50 px-4 py-2 text-sm text-primary-start dark:border-red-500/15 dark:bg-red-500/12 dark:text-red-300">
           <div className="flex items-center">
             <WifiOff size={14} className="mr-2" />
             <span>网络不稳定，请检查网络设置</span>
           </div>
           <button
             onClick={handleReload}
-            className="rounded bg-white px-2 py-1 font-medium shadow-sm"
+            className="rounded bg-bg-card px-2 py-1 font-medium text-text-main shadow-soft"
           >
             刷新
           </button>
@@ -308,8 +312,15 @@ export const WithdrawPage = () => {
 
       {renderHeader()}
 
-      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto no-scrollbar pb-[112px]">
-        <div className="space-y-3 px-4 py-4">
+      <PullToRefreshContainer
+        className="flex-1 overflow-y-auto no-scrollbar"
+        onRefresh={async () => {
+          handleReload();
+        }}
+        disabled={isOffline}
+      >
+        <div ref={scrollContainerRef} className="pb-[112px]">
+          <div className="space-y-3 px-4 py-4">
           <Card className="relative overflow-hidden p-4">
             <div className="pointer-events-none absolute top-0 right-0 h-24 w-24 rounded-bl-full bg-gradient-to-bl from-primary-start/5 to-transparent" />
             {isLoading ? (
@@ -388,8 +399,8 @@ export const WithdrawPage = () => {
               <div className="p-4">
                 <EmptyState
                   message="暂无收款账户"
-                  actionText="稍后再试"
-                  onAction={handleReload}
+                  actionText="去添加账户"
+                  onAction={() => goTo('payment_accounts')}
                 />
               </div>
             )}
@@ -484,7 +495,8 @@ export const WithdrawPage = () => {
             </p>
           </div>
         </div>
-      </div>
+        </div>
+      </PullToRefreshContainer>
 
       <div className="fixed right-0 bottom-0 left-0 z-40 border-t border-border-light bg-bg-card pb-safe">
         <div className="mx-auto flex w-full items-center justify-between px-4 py-3 sm:max-w-[430px]">
@@ -613,3 +625,7 @@ export const WithdrawPage = () => {
     </div>
   );
 };
+
+
+
+

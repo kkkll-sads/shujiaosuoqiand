@@ -61,6 +61,11 @@ export const ProductReviewsSection = ({
 
   const preview = summary?.preview?.[0];
   const previewImages = preview ? getShopProductReviewImages(preview) : [];
+  const totalReviews = summary?.total ?? 0;
+  const summaryText =
+    totalReviews > 0 && summary?.good_rate != null
+      ? `好评率 ${summary.good_rate}% · 共 ${totalReviews} 条`
+      : `暂无评价 · 共 ${totalReviews} 条`;
 
   return (
     <Card className="m-4 p-4">
@@ -70,9 +75,7 @@ export const ProductReviewsSection = ({
       >
         <div className="flex items-center">
           <h3 className="mr-2 text-lg font-bold text-text-main">用户评价</h3>
-          <span className="text-sm text-text-sub">
-            好评率 {summary?.good_rate ?? 100}% · 共 {summary?.total ?? 0} 条
-          </span>
+          <span className="text-sm text-text-sub">{summaryText}</span>
         </div>
         <div className="flex items-center text-sm text-text-sub">
           查看全部
@@ -91,7 +94,9 @@ export const ProductReviewsSection = ({
                   className="h-6 w-6 rounded-full object-cover"
                   referrerPolicy="no-referrer"
                 />
-                <span className="text-sm text-text-main">{getShopProductReviewUser(preview)}</span>
+                <span className="text-sm text-text-main">
+                  {getShopProductReviewUser(preview)}
+                </span>
                 <div className="flex text-primary-start">
                   {Array.from({ length: preview.rating ?? 5 }).map((_, index) => (
                     <Star key={index} size={10} fill="currentColor" />

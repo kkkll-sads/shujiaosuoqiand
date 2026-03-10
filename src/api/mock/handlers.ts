@@ -1,7 +1,7 @@
 import type { MockHandlerMap } from '../core/client';
 import type { MessageItem, MessageTab } from '../modules/message';
 
-const messagesByType: Record<MessageTab, MessageItem[]> = {
+const messagesByType = {
   system: [
     {
       id: 's1',
@@ -43,7 +43,7 @@ const messagesByType: Record<MessageTab, MessageItem[]> = {
       isRead: false,
     },
   ],
-};
+} as unknown as Record<MessageTab, MessageItem[]>;
 
 interface MockAuthUser {
   id: string;

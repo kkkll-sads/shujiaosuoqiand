@@ -1,52 +1,91 @@
-/**
- * @file AppLayout - 应用根布局组件
- * @description 从 App.tsx 中提取的布局骨架，包含：
- *   - 外层容器（全屏高度、背景色）
- *   - FeedbackProvider（全局反馈 UI）
- *   - 暗色模式切换按钮
- *   - React Router <Outlet /> 渲染子路由
- *   - 底部 Tab 导航栏（仅在 Tab 页显示）
- */
-
-import React from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+﻿import React, { useEffect, useRef } from 'react';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Moon, Sun } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { BottomTab } from './BottomTab';
-import { FeedbackProvider } from '../ui/FeedbackProvider';
+import { FeedbackProvider, useFeedback } from '../ui/FeedbackProvider';
 import { isTabPage, PATH_TO_TAB } from '../../lib/navigation';
+import { useAuthSession } from '../../hooks/useAuthSession';
 
-export const AppLayout = () => {
-  const { theme, setTheme, isDark } = useTheme();
+const PUBLIC_EXACT_PATHS = new Set([
+  '/store',
+  '/category',
+  '/search',
+  '/search/result',
+  '/service-description',
+  '/flash-sale',
+  '/login',
+  '/register',
+  '/forgot-password',
+  '/user_agreement',
+  '/privacy_policy',
+]);
+
+const PUBLIC_PATH_PATTERNS = [
+  /^\/product\/[^/]+$/,
+  /^\/product\/[^/]+\/qa$/,
+  /^\/product\/[^/]+\/reviews$/,
+];
+
+function isPublicPath(pathname: string) {
+  if (PUBLIC_EXACT_PATHS.has(pathname)) {
+    return true;
+  }
+
+  return PUBLIC_PATH_PATTERNS.some((pattern) => pattern.test(pathname));
+}
+
+function AppLayoutContent() {
+  const { setTheme, isDark } = useTheme();
+  const { isAuthenticated } = useAuthSession();
+  const { showToast } = useFeedback();
   const location = useLocation();
-  
-  // 根据当前路径判断是否显示底部 Tab
-  const showBottomTab = isTabPage(location.pathname);
-  // 获取当前 Tab 的 ID（用于高亮）
+  const navigate = useNavigate();
+  const blockedPathRef = useRef<string | null>(null);
+
+  const isBlocked = !isAuthenticated && !isPublicPath(location.pathname);
+  const showBottomTab = isTabPage(location.pathname) && !isBlocked;
   const activeTab = PATH_TO_TAB[location.pathname] || 'home';
 
+  useEffect(() => {
+    if (!isBlocked) {
+      blockedPathRef.current = null;
+      return;
+    }
+
+    if (blockedPathRef.current === location.pathname) {
+      return;
+    }
+
+    blockedPathRef.current = location.pathname;
+    showToast({ message: '请先登录后再进入该页面', type: 'warning' });
+    navigate('/login', { replace: true });
+  }, [isBlocked, location.pathname, navigate, showToast]);
+
+  return (
+    <div className="app-viewport-height flex w-full flex-col overflow-hidden bg-bg-base">
+      <button
+        className={`fixed ${showBottomTab ? 'bottom-24' : 'bottom-6'} right-4 z-50 rounded-full border border-border-light bg-bg-card p-3 text-text-main shadow-lg transition-all`}
+        onClick={() => setTheme(isDark ? 'light' : 'dark')}
+      >
+        {isDark ? <Sun size={20} /> : <Moon size={20} />}
+      </button>
+
+      <div className="relative flex w-full flex-1 flex-col overflow-hidden bg-bg-base sm:mx-auto sm:max-w-[430px] sm:shadow-2xl">
+        <div className="relative flex flex-1 flex-col overflow-hidden">
+          {!isBlocked ? <Outlet /> : null}
+        </div>
+
+        {showBottomTab && <BottomTab active={activeTab} />}
+      </div>
+    </div>
+  );
+}
+
+export const AppLayout = () => {
   return (
     <FeedbackProvider>
-      <div className="h-[100dvh] w-full bg-bg-base flex flex-col overflow-hidden">
-        {/* 悬浮暗色模式切换按钮 */}
-        <button
-          className={`fixed ${showBottomTab ? 'bottom-24' : 'bottom-6'} right-4 z-50 p-3 rounded-full bg-bg-card shadow-lg border border-border-light text-text-main transition-all`}
-          onClick={() => setTheme(isDark ? 'light' : 'dark')}
-        >
-          {isDark ? <Sun size={20} /> : <Moon size={20} />}
-        </button>
-
-        {/* 主内容区域 */}
-        <div className="relative flex flex-1 w-full flex-col overflow-hidden bg-bg-base sm:mx-auto sm:max-w-[430px] sm:shadow-2xl">
-          <div className="flex-1 relative flex flex-col overflow-hidden">
-            {/* React Router 子路由出口 */}
-            <Outlet />
-          </div>
-          
-          {/* 底部 Tab 导航栏 - 仅在 Tab 页显示 */}
-          {showBottomTab && <BottomTab active={activeTab} />}
-        </div>
-      </div>
+      <AppLayoutContent />
     </FeedbackProvider>
   );
 };

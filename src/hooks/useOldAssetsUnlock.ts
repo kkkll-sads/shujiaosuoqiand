@@ -7,38 +7,38 @@ import { useAuthSession } from './useAuthSession';
 function mapStatusToUnlockState(raw: OldAssetsUnlockStatusRaw | null): UnlockStatusState {
   if (!raw) {
     return {
-      currentGold: 0,
+      currentGold: undefined,
       canUnlock: false,
       alreadyUnlocked: false,
-      unlockedCount: 0,
-      availableQuota: 0,
-      requiredGold: 1000,
-      rewardValue: 1000,
+      unlockedCount: undefined,
+      availableQuota: undefined,
+      requiredGold: undefined,
+      rewardValue: undefined,
       isLoading: false,
       hasSelfTrade: false,
-      requiredTransactions: 1,
-      activeReferrals: 0,
-      requiredReferrals: 0,
-      referralTarget: 0,
+      requiredTransactions: undefined,
+      activeReferrals: undefined,
+      requiredReferrals: undefined,
+      referralTarget: undefined,
     };
   }
 
   const cond = raw.unlock_conditions;
   const hasSelfTrade = cond?.has_transaction ?? false;
-  const qualifiedCount = cond?.qualified_referrals ?? 0;
-  const requiredRef = raw.required_referrals ?? 0;
+  const qualifiedCount = cond?.qualified_referrals;
+  const requiredRef = raw.required_referrals;
 
   return {
-    currentGold: raw.current_gold ?? 0,
+    currentGold: raw.current_gold,
     canUnlock: raw.can_unlock ?? false,
     alreadyUnlocked: raw.unlock_status === 1,
     unlockedCount: raw.unlock_status === 1 ? 1 : 0,
     availableQuota: raw.can_unlock ? 1 : 0,
-    requiredGold: raw.required_gold ?? 1000,
-    rewardValue: raw.reward_value ?? 1000,
+    requiredGold: raw.required_gold,
+    rewardValue: raw.reward_value,
     isLoading: false,
     hasSelfTrade,
-    requiredTransactions: raw.required_transactions ?? 1,
+    requiredTransactions: raw.required_transactions,
     activeReferrals: qualifiedCount,
     requiredReferrals: requiredRef,
     referralTarget: requiredRef,
