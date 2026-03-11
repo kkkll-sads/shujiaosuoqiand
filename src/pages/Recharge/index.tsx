@@ -4,7 +4,6 @@ import type { LucideIcon } from 'lucide-react';
 import {
   CheckCircle2,
   Copy,
-  CreditCard,
   Eye,
   EyeOff,
   FileText,
@@ -141,11 +140,11 @@ export function RechargePage() {
 
   const [showBalance, setShowBalance] = useState(true);
   const [amount, setAmount] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<RechargePaymentMethod>('offline');
   const [selectedPaymentType, setSelectedPaymentType] = useState<string>('');
   const [matchStep, setMatchStep] = useState<MatchStep>('select');
   const [matchedAccount, setMatchedAccount] = useState<CompanyAccount | null>(null);
   const [matchedAccountId, setMatchedAccountId] = useState<number>(0);
+  const [matchedPaymentMethod, setMatchedPaymentMethod] = useState<RechargePaymentMethod>('offline');
   const [remark, setRemark] = useState('');
   const [paymentScreenshot, setPaymentScreenshot] = useState<UploadedFile | null>(null);
   const [uploadingScreenshot, setUploadingScreenshot] = useState(false);
@@ -243,7 +242,7 @@ export function RechargePage() {
     Boolean(matchedAccount) &&
     matchedAccountId > 0 &&
     numAmount > 0 &&
-    (paymentMethod === 'online' || Boolean(paymentScreenshot));
+    (matchedPaymentMethod === 'online' || Boolean(paymentScreenshot));
 
   useRouteScrollRestoration({
     containerRef: scrollContainerRef,
@@ -262,6 +261,7 @@ export function RechargePage() {
     setMatchStep('select');
     setMatchedAccount(null);
     setMatchedAccountId(0);
+    setMatchedPaymentMethod('offline');
     setPaymentScreenshot(null);
     setRemark('');
   };
@@ -319,6 +319,7 @@ export function RechargePage() {
 
       setMatchedAccount(result.account);
       setMatchedAccountId(result.matchedAccountId);
+      setMatchedPaymentMethod(result.paymentMethod ?? 'offline');
       setMatchStep('matched');
     } catch (error) {
       setMatchStep('select');
@@ -370,9 +371,9 @@ export function RechargePage() {
       const result = await rechargeApi.submitOrder({
         amount: numAmount,
         matchedAccountId,
-        paymentMethod,
-        paymentScreenshotId: paymentMethod === 'offline' ? paymentScreenshot?.id : undefined,
-        paymentScreenshotUrl: paymentMethod === 'offline' ? paymentScreenshot?.url : undefined,
+        paymentMethod: matchedPaymentMethod,
+        paymentScreenshotId: matchedPaymentMethod === 'offline' ? paymentScreenshot?.id : undefined,
+        paymentScreenshotUrl: matchedPaymentMethod === 'offline' ? paymentScreenshot?.url : undefined,
         paymentType: matchedAccount.type,
         userRemark: remark.trim() || undefined,
       });
@@ -457,13 +458,13 @@ export function RechargePage() {
       {renderHeader()}
 
       <PullToRefreshContainer
-        className="flex-1 overflow-y-auto no-scrollbar"
+        className="flex-1"
         onRefresh={async () => {
           handleReload();
         }}
         disabled={isOffline}
       >
-        <div ref={scrollContainerRef} className="pb-[112px]">
+        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto no-scrollbar pb-[112px]">
           <div className="space-y-3 px-4 py-4">
           <Card className="relative overflow-hidden p-4">
             <div className="pointer-events-none absolute top-0 right-0 h-24 w-24 rounded-bl-full bg-gradient-to-bl from-primary-start/5 to-transparent" />
@@ -553,60 +554,8 @@ export function RechargePage() {
             <div className="flex items-start text-sm text-text-sub">
               <Info size={14} className="mt-0.5 mr-1.5 shrink-0 text-text-aux" />
               <span>
-                {paymentMethod === 'online'
-                  ? '在线支付提交后会跳转到后端返回的三方支付链接。'
-                  : '完成转账后请上传付款截图，审核通过后充值金额会进入账户余额。'}
+                选择支付方式后，系统会自动匹配线上或线下充值通道；若为线下转账，匹配成功后再上传付款截图。
               </span>
-            </div>
-          </Card>
-
-          <Card className="overflow-hidden p-0">
-            <div className="border-b border-border-light px-4 py-3">
-              <div className="text-lg font-medium text-text-main">支付渠道</div>
-            </div>
-            <div className="divide-y divide-border-light">
-              {[
-                {
-                  key: 'offline' as RechargePaymentMethod,
-                  title: '离线转账',
-                  desc: '匹配收款账户后手动转账并上传截图',
-                },
-                {
-                  key: 'online' as RechargePaymentMethod,
-                  title: '在线支付',
-                  desc: '提交后跳转后端返回的三方支付链接',
-                },
-              ].map((option) => {
-                const active = paymentMethod === option.key;
-
-                return (
-                  <button
-                    key={option.key}
-                    type="button"
-                    onClick={() => {
-                      if (paymentMethod !== option.key && matchStep !== 'select') {
-                        resetMatchState();
-                      }
-                      setPaymentMethod(option.key);
-                    }}
-                    className="flex w-full items-center justify-between px-4 py-3 text-left transition-colors active:bg-bg-base"
-                  >
-                    <div>
-                      <div className="text-md font-medium text-text-main">{option.title}</div>
-                      <div className="mt-0.5 text-sm text-text-sub">{option.desc}</div>
-                    </div>
-                    <span
-                      className={`flex h-5 w-5 items-center justify-center rounded-full border ${
-                        active
-                          ? 'border-primary-start bg-primary-start text-white'
-                          : 'border-border-main text-transparent'
-                      }`}
-                    >
-                      <CheckCircle2 size={12} />
-                    </span>
-                  </button>
-                );
-              })}
             </div>
           </Card>
 
@@ -705,7 +654,7 @@ export function RechargePage() {
                 <div className="mt-2 text-sm leading-6 text-text-sub">
                   正在为你匹配可用的
                   {selectedPaymentOption?.typeText || '支付'}
-                  {paymentMethod === 'online' ? '支付通道' : '收款账户'}，请稍候。
+                  充值通道，请稍候。
                 </div>
               </div>
             </Card>
@@ -717,7 +666,7 @@ export function RechargePage() {
                 <div className="border-b border-border-light px-4 py-3">
                   <div className="flex items-center justify-between">
                     <div className="text-lg font-medium text-text-main">
-                      {paymentMethod === 'online' ? '已匹配支付通道' : '已匹配收款账户'}
+                      {matchedPaymentMethod === 'online' ? '已匹配支付通道' : '已匹配收款账户'}
                     </div>
                     <button
                       type="button"
@@ -733,6 +682,12 @@ export function RechargePage() {
                     <div className="mb-1 text-sm text-text-sub">支付方式</div>
                     <div className="text-lg font-semibold text-text-main">
                       {matchedAccount.typeText || selectedPaymentOption?.typeText || '收款账户'}
+                    </div>
+                  </div>
+                  <div className="rounded-2xl bg-bg-base p-4">
+                    <div className="mb-1 text-sm text-text-sub">充值通道</div>
+                    <div className="text-lg font-semibold text-text-main">
+                      {matchedPaymentMethod === 'online' ? '线上支付' : '线下转账'}
                     </div>
                   </div>
                   <div className="rounded-2xl bg-bg-base p-4">
@@ -773,7 +728,7 @@ export function RechargePage() {
                       {matchedAccount.remark}
                     </div>
                   ) : null}
-                  {paymentMethod === 'online' ? (
+                  {matchedPaymentMethod === 'online' ? (
                     <div className="rounded-2xl bg-red-50/60 p-4 text-sm leading-6 text-text-sub dark:bg-red-500/10">
                       在线支付提交后将直接跳转到后端返回的三方支付链接，无需上传付款截图。
                     </div>
@@ -781,7 +736,7 @@ export function RechargePage() {
                 </div>
               </Card>
 
-              {paymentMethod === 'offline' ? (
+              {matchedPaymentMethod === 'offline' ? (
                 <Card className="p-4">
                 <div className="mb-3 flex items-center justify-between">
                   <div className="text-lg font-medium text-text-main">付款截图</div>
@@ -983,7 +938,7 @@ export function RechargePage() {
               </>
             ) : (
               matchStep === 'matched'
-                ? paymentMethod === 'online'
+                ? matchedPaymentMethod === 'online'
                   ? '前往支付'
                   : '确认已转账并提交'
                 : matchStep === 'matching'

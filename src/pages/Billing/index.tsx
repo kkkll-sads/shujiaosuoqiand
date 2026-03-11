@@ -558,7 +558,7 @@ export function BillingPage() {
           </div>
           <button
             type="submit"
-            className="h-11 rounded-2xl bg-primary-start px-4 text-sm font-medium text-white"
+            className="h-11 shrink-0 whitespace-nowrap rounded-2xl bg-primary-start px-4 text-sm font-medium text-white"
           >
             搜索
           </button>
@@ -570,7 +570,7 @@ export function BillingPage() {
               key={option.key}
               type="button"
               onClick={() => setAccountType(option.key)}
-              className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+              className={`shrink-0 whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-colors ${
                 accountType === option.key
                   ? 'bg-primary-start text-white'
                   : 'bg-bg-base text-text-sub'
@@ -581,13 +581,13 @@ export function BillingPage() {
           ))}
         </div>
 
-        <div className="mt-3 flex gap-2">
+        <div className="mt-3 flex gap-2 overflow-x-auto no-scrollbar">
           {FLOW_OPTIONS.map((option) => (
             <button
               key={option.key}
               type="button"
               onClick={() => setFlowFilter(option.key)}
-              className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+              className={`shrink-0 whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-colors ${
                 flowFilter === option.key
                   ? 'bg-red-50 text-primary-start ring-1 ring-primary-start/20 dark:bg-red-500/12 dark:text-red-300'
                   : 'bg-bg-base text-text-sub'

@@ -36,6 +36,7 @@ interface SubmitOrderRaw {
 interface MatchAccountRaw {
   account?: CompanyAccountRaw;
   matched_account_id?: number | string;
+  payment_method?: RechargePaymentMethod;
 }
 
 interface RechargeOrderRecordRaw {
@@ -107,6 +108,7 @@ export interface MatchAccountPayload {
 export interface MatchAccountResult {
   account: CompanyAccount;
   matchedAccountId: number;
+  paymentMethod?: RechargePaymentMethod;
 }
 
 export interface SubmitOrderResult {
@@ -299,6 +301,9 @@ export const rechargeApi = {
     return {
       account: normalizeCompanyAccount(response.account || {}),
       matchedAccountId: readNumber(response.matched_account_id),
+      paymentMethod: response.payment_method === 'online' || response.payment_method === 'offline'
+        ? response.payment_method
+        : undefined,
     };
   },
 
