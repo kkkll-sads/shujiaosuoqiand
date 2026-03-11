@@ -317,16 +317,23 @@ export function RechargePage() {
         paymentType: selectedPaymentOption.type,
       });
 
-      const resolvedPaymentMethod = result.paymentMethod ?? 'offline';
+      const resolvedPaymentMethod = result.paymentMethod ?? 'online';
 
-      if (resolvedPaymentMethod === 'online') {
-        await submitMatchedOrder({
-          account: result.account,
-          matchedId: result.matchedAccountId,
-          paymentMethod: resolvedPaymentMethod,
-          successMessage: '支付订单已创建，正在打开支付页面',
-        });
-        return;
+      if (resolvedPaymentMethod !== 'offline') {
+        try {
+          const submitResult = await submitMatchedOrder({
+            account: result.account,
+            matchedId: result.matchedAccountId,
+            paymentMethod: 'online',
+            successMessage: '支付订单已创建，正在打开支付页面',
+          });
+
+          if (submitResult?.payUrl) {
+            return;
+          }
+        } catch {
+          // Fall back to manual flow below when auto-submit fails.
+        }
       }
 
       setMatchedAccount(result.account);
