@@ -67,30 +67,46 @@ const ACCOUNT_TYPE_LABELS: Record<string, string> = {
 };
 
 const BIZ_TYPE_LABELS: Record<string, string> = {
+  balance_transfer: '余额划转',
   blind_box_diff_refund: '差价退款',
   blind_box_refund: '未中签退款',
   blind_box_reserve: '确权申请',
+  consign_apply_fee: '寄售申请费',
+  consign_buy: '寄售购买',
+  consign_settle: '寄售结算',
+  consign_settle_score: '寄售消费金结算',
   consignment_income: '寄售收益',
   first_trade_reward: '首单奖励',
+  growth_rights_unlock: '成长权益解锁',
   matching_buy: '匹配购买',
+  matching_commission: '撮合佣金',
   matching_fail_refund: '失败返还',
+  matching_refund: '撮合退款',
   matching_seller_income: '寄售结算',
   membership_card_buy: '卡包购买',
   mining_dividend: '矿机分红',
+  mixed_payment_cancel_compensation: '混合支付补偿',
+  mixed_payment_cancel_power_refund: '混合支付算力退款',
+  mixed_payment_cancel_refund: '混合支付退款',
+  old_assets_unlock: '老资产解锁',
   questionnaire_reward: '问卷奖励',
   recharge: '充值',
   recharge_reward: '充值奖励',
   register_reward: '注册奖励',
+  reservation_refund: '预约退款',
+  rights_declaration_reward: '确权奖励',
   score_exchange: '消费金兑换',
   score_exchange_green_power: '消费金兑换算力',
   service_fee_recharge: '确权金充值',
+  shop_order: '商城订单',
+  shop_order_cancel_review: '商城订单取消退款',
+  shop_order_pay: '商城订单支付',
   sign_in: '签到奖励',
   subordinate_first_trade_reward: '下级首单奖励',
   transfer: '余额划转',
   withdraw: '提现',
+  withdraw_reject: '提现驳回退款',
 };
-
-BIZ_TYPE_LABELS.balance_transfer = '鍙彁鐜拌浆鍙敤';
 
 const BREAKDOWN_LABELS: Record<string, string> = {
   consume_amount: '消费金分配',

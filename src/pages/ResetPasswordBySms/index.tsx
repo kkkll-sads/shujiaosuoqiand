@@ -1,10 +1,15 @@
-ï»¿import { useState } from 'react';
-import { Eye, EyeOff } from 'lucide-react';
+import { useState } from 'react';
 import { authApi } from '../../api';
 import { getErrorMessage } from '../../api/core/errors';
+import {
+  AuthFormSection,
+  AuthPasswordToggle,
+  AuthSmsField,
+  AuthTopBar,
+} from '../../components/biz/auth';
 import { Button } from '../../components/ui/Button';
-import { useFeedback } from '../../components/ui/FeedbackProvider';
 import { Input } from '../../components/ui/Input';
+import { useFeedback } from '../../components/ui/FeedbackProvider';
 import { useSmsCode } from '../../hooks/useSmsCode';
 import { MOBILE_PATTERN, PASSWORD_PATTERN } from '../../lib/auth';
 import { useAppNavigate } from '../../lib/navigation';
@@ -20,7 +25,7 @@ export const ResetPasswordBySmsPage = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  const { buttonText, canSend, message, sendCode } = useSmsCode({
+  const { buttonText, canSend, message, sendCode, sending } = useSmsCode({
     event: 'user_retrieve_pwd',
   });
 
@@ -31,22 +36,22 @@ export const ResetPasswordBySmsPage = () => {
     const normalizedConfirmPassword = confirmPassword.trim();
 
     if (!MOBILE_PATTERN.test(normalizedMobile)) {
-      showToast({ message: 'è¯·è¾“å…¥æ­£ç¡®çš„æ‰‹æœºå·', type: 'warning' });
+      showToast({ message: 'ÇëÊäÈëÕıÈ·µÄÊÖ»úºÅ', type: 'warning' });
       return;
     }
 
     if (!normalizedCode) {
-      showToast({ message: 'è¯·è¾“å…¥çŸ­ä¿¡éªŒè¯ç ', type: 'warning' });
+      showToast({ message: 'ÇëÊäÈë¶ÌĞÅÑéÖ¤Âë', type: 'warning' });
       return;
     }
 
     if (!PASSWORD_PATTERN.test(normalizedPassword)) {
-      showToast({ message: 'æ–°å¯†ç éœ€ä¸º 6-32 ä½å­—æ¯æˆ–æ•°å­—', type: 'warning' });
+      showToast({ message: 'ĞÂÃÜÂëĞèÎª 6-32 Î»×ÖÄ¸»òÊı×Ö', type: 'warning' });
       return;
     }
 
     if (normalizedPassword !== normalizedConfirmPassword) {
-      showToast({ message: 'ä¸¤æ¬¡è¾“å…¥çš„æ–°å¯†ç ä¸ä¸€è‡´', type: 'warning' });
+      showToast({ message: 'Á½´ÎÊäÈëµÄĞÂÃÜÂë²»Ò»ÖÂ', type: 'warning' });
       return;
     }
 
@@ -58,7 +63,7 @@ export const ResetPasswordBySmsPage = () => {
         captcha: normalizedCode,
         password: normalizedPassword,
       });
-      showToast({ message: 'ç™»å½•å¯†ç å·²é‡ç½®ï¼Œè¯·ä½¿ç”¨æ–°å¯†ç ç™»å½•', type: 'success' });
+      showToast({ message: 'µÇÂ¼ÃÜÂëÒÑÖØÖÃ£¬ÇëÊ¹ÓÃĞÂÃÜÂëµÇÂ¼', type: 'success' });
       goTo('login');
     } catch (error) {
       showToast({ message: getErrorMessage(error), type: 'error' });
@@ -70,64 +75,49 @@ export const ResetPasswordBySmsPage = () => {
   return (
     <div className="flex h-full flex-1 flex-col overflow-hidden bg-bg-base">
       <div className="relative z-10 flex flex-1 flex-col overflow-y-auto px-4 pb-8 pt-4 no-scrollbar">
-        <div className="mb-6">
-          <button
-            type="button"
-            className="-ml-2 p-2 text-text-main active:opacity-70"
-            onClick={() => goBackOr('login')}
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="m15 18-6-6 6-6" />
-            </svg>
-          </button>
-        </div>
+        <AuthTopBar onBack={() => goBackOr('login')} />
 
-        <div className="mb-10">
-          <h1 className="mb-2 text-[28px] font-bold text-text-main">éªŒè¯ç é‡ç½®ç™»å½•å¯†ç </h1>
-          <p className="text-[15px] text-text-sub">é€šè¿‡æ‰‹æœºéªŒè¯ç é‡æ–°è®¾ç½®æ–°çš„ç™»å½•å¯†ç </p>
-        </div>
-
-        <div className="space-y-4">
-          <Input placeholder="è¯·è¾“å…¥æ‰‹æœºå·" type="tel" value={mobile} onChange={(event) => setMobile(event.target.value)} />
-
-          <div className="space-y-2">
-            <div className="flex space-x-3">
-              <Input placeholder="è¯·è¾“å…¥éªŒè¯ç " className="flex-1" value={verifyCode} onChange={(event) => setVerifyCode(event.target.value)} />
-              <button
-                type="button"
-                disabled={!canSend}
-                onClick={() => void sendCode(mobile)}
-                className="h-[48px] whitespace-nowrap rounded-[20px] border border-border-light bg-bg-card px-4 text-[15px] font-medium text-primary-start shadow-soft disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {buttonText}
-              </button>
-            </div>
-            {message ? <p className="px-1 text-[12px] text-primary-start">{message}</p> : null}
-          </div>
+        <AuthFormSection
+          className="mt-16"
+          title="ÑéÖ¤ÂëÖØÖÃµÇÂ¼ÃÜÂë"
+          description="Í¨¹ıÊÖ»úÑéÖ¤ÂëÖØĞÂÉèÖÃĞÂµÄµÇÂ¼ÃÜÂë"
+          actions={(
+            <Button loading={submitting} onClick={handleSubmit}>
+              ÖØÖÃµÇÂ¼ÃÜÂë
+            </Button>
+          )}
+        >
+          <Input placeholder="ÇëÊäÈëÊÖ»úºÅ" type="tel" value={mobile} onChange={(event) => setMobile(event.target.value)} />
+          <AuthSmsField
+            value={verifyCode}
+            onChange={(event) => setVerifyCode(event.target.value)}
+            buttonText={buttonText}
+            canSend={canSend}
+            message={message}
+            sending={sending}
+            onSend={() => void sendCode(mobile)}
+          />
 
           <Input
-            placeholder="è¯·è¾“å…¥æ–°ç™»å½•å¯†ç "
+            placeholder="ÇëÊäÈëĞÂµÇÂ¼ÃÜÂë"
             type={showPassword ? 'text' : 'password'}
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            rightIcon={<button type="button" onClick={() => setShowPassword((value) => !value)}>{showPassword ? <Eye size={18} /> : <EyeOff size={18} />}</button>}
+            rightIcon={<AuthPasswordToggle visible={showPassword} onToggle={() => setShowPassword((value) => !value)} />}
           />
 
           <Input
-            placeholder="è¯·å†æ¬¡è¾“å…¥æ–°ç™»å½•å¯†ç "
+            placeholder="ÇëÔÙ´ÎÊäÈëĞÂµÇÂ¼ÃÜÂë"
             type={showConfirmPassword ? 'text' : 'password'}
             value={confirmPassword}
             onChange={(event) => setConfirmPassword(event.target.value)}
-            rightIcon={<button type="button" onClick={() => setShowConfirmPassword((value) => !value)}>{showConfirmPassword ? <Eye size={18} /> : <EyeOff size={18} />}</button>}
+            rightIcon={<AuthPasswordToggle visible={showConfirmPassword} onToggle={() => setShowConfirmPassword((value) => !value)} />}
           />
-        </div>
-
-        <Button className="mt-6" disabled={submitting} onClick={handleSubmit}>
-          {submitting ? 'æäº¤ä¸­...' : 'é‡ç½®ç™»å½•å¯†ç '}
-        </Button>
+        </AuthFormSection>
       </div>
     </div>
   );
 };
 
 export default ResetPasswordBySmsPage;
+

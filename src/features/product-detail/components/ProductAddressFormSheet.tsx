@@ -1,4 +1,4 @@
-import { ChevronRight, X } from 'lucide-react';
+import { ChevronRight, Trash2, X } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 
 export interface ProductAddressFormValue {
@@ -10,22 +10,30 @@ export interface ProductAddressFormValue {
 }
 
 interface ProductAddressFormSheetProps {
+  editingAddressName?: string;
   errors: Partial<Record<keyof ProductAddressFormValue, string>>;
   isOpen: boolean;
+  isEditing?: boolean;
+  isDeleting?: boolean;
   isSaving: boolean;
   onChange: (patch: Partial<ProductAddressFormValue>) => void;
   onClose: () => void;
+  onDelete?: () => void;
   onOpenRegionPicker: () => void;
   onSubmit: () => void;
   value: ProductAddressFormValue;
 }
 
 export const ProductAddressFormSheet = ({
+  editingAddressName,
   errors,
   isOpen,
+  isEditing = false,
+  isDeleting = false,
   isSaving,
   onChange,
   onClose,
+  onDelete,
   onOpenRegionPicker,
   onSubmit,
   value,
@@ -42,7 +50,12 @@ export const ProductAddressFormSheet = ({
 
   return (
     <div className="fixed inset-0 z-[70] flex items-end">
-      <button type="button" aria-label="关闭新增地址" className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <button
+        type="button"
+        aria-label={isEditing ? '关闭编辑地址' : '关闭新增地址'}
+        className="absolute inset-0 bg-black/50"
+        onClick={onClose}
+      />
       <div className="relative z-10 w-full rounded-t-[24px] bg-white dark:bg-gray-900">
         <button
           type="button"
@@ -53,8 +66,12 @@ export const ProductAddressFormSheet = ({
         </button>
 
         <div className="border-b border-border-light px-4 py-4">
-          <div className="text-lg font-semibold text-text-main">新增收货地址</div>
-          <div className="mt-1 text-sm text-text-sub">下单前先补充收货信息</div>
+          <div className="text-lg font-semibold text-text-main">
+            {isEditing ? '编辑收货地址' : '新增收货地址'}
+          </div>
+          <div className="mt-1 text-sm text-text-sub">
+            {isEditing ? `正在修改${editingAddressName || '当前'}地址信息` : '下单前先补充收货信息'}
+          </div>
         </div>
 
         <div className="space-y-4 px-4 py-4">
@@ -130,11 +147,23 @@ export const ProductAddressFormSheet = ({
               />
             </div>
           </button>
+
+          {isEditing && onDelete ? (
+            <Button
+              variant="outline"
+              className="rounded-full border-red-200 text-red-600 dark:border-red-900/50 dark:text-red-400"
+              disabled={isDeleting}
+              leftIcon={<Trash2 size={16} />}
+              onClick={onDelete}
+            >
+              {isDeleting ? '删除中...' : '删除地址'}
+            </Button>
+          ) : null}
         </div>
 
         <div className="border-t border-border-light bg-white p-4 pb-safe dark:bg-gray-900">
           <Button className="w-full rounded-full" disabled={!isFormValid || isSaving} onClick={onSubmit}>
-            {isSaving ? '保存中...' : '保存并使用'}
+            {isSaving ? '保存中...' : isEditing ? '保存修改' : '保存并使用'}
           </Button>
         </div>
       </div>

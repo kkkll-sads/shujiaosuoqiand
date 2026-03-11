@@ -1,7 +1,13 @@
 ﻿import { useState } from 'react';
-import { Eye, EyeOff } from 'lucide-react';
+import { KeyRound, ShieldAlert } from 'lucide-react';
 import { getErrorMessage } from '../../api/core/errors';
 import { userApi } from '../../api/modules/user';
+import { AuthPasswordToggle } from '../../components/biz/auth/AuthPasswordToggle';
+import {
+  SettingsActionItem,
+  SettingsNotice,
+  SettingsSection,
+} from '../../components/biz/settings/SettingsSection';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { Button } from '../../components/ui/Button';
 import { useFeedback } from '../../components/ui/FeedbackProvider';
@@ -64,55 +70,57 @@ export const ChangePayPasswordPage = () => {
     <div className="flex h-full flex-1 flex-col overflow-hidden bg-bg-base">
       <PageHeader title="修改支付密码" onBack={() => goBackOr('settings')} />
       <div className="flex-1 overflow-y-auto p-4 pb-8">
-        <div className="rounded-[24px] bg-bg-card p-4 shadow-soft">
-          <div className="space-y-4">
-            <Input
-              placeholder="请输入当前支付密码"
-              type={showOldPassword ? 'text' : 'password'}
-              value={oldPassword}
-              onChange={(event) => setOldPassword(event.target.value)}
-              rightIcon={
-                <button type="button" onClick={() => setShowOldPassword((value) => !value)}>
-                  {showOldPassword ? <Eye size={18} /> : <EyeOff size={18} />}
-                </button>
-              }
-            />
-            <Input
-              placeholder="请输入新支付密码"
-              type={showNewPassword ? 'text' : 'password'}
-              value={newPassword}
-              onChange={(event) => setNewPassword(event.target.value)}
-              rightIcon={
-                <button type="button" onClick={() => setShowNewPassword((value) => !value)}>
-                  {showNewPassword ? <Eye size={18} /> : <EyeOff size={18} />}
-                </button>
-              }
-            />
-            <Input
-              placeholder="请再次输入新支付密码"
-              type={showConfirmPassword ? 'text' : 'password'}
-              value={confirmPassword}
-              onChange={(event) => setConfirmPassword(event.target.value)}
-              rightIcon={
-                <button type="button" onClick={() => setShowConfirmPassword((value) => !value)}>
-                  {showConfirmPassword ? <Eye size={18} /> : <EyeOff size={18} />}
-                </button>
-              }
-            />
-          </div>
+        <div className="space-y-4">
+          <SettingsSection title="支付验证" description="用于支付和资金验证，请设置独立密码。">
+            <div className="space-y-4 px-4 py-4">
+              <Input
+                placeholder="请输入当前支付密码"
+                type={showOldPassword ? 'text' : 'password'}
+                value={oldPassword}
+                onChange={(event) => setOldPassword(event.target.value)}
+                rightIcon={<AuthPasswordToggle visible={showOldPassword} onToggle={() => setShowOldPassword((value) => !value)} />}
+              />
+              <Input
+                placeholder="请输入新支付密码"
+                type={showNewPassword ? 'text' : 'password'}
+                value={newPassword}
+                onChange={(event) => setNewPassword(event.target.value)}
+                rightIcon={<AuthPasswordToggle visible={showNewPassword} onToggle={() => setShowNewPassword((value) => !value)} />}
+              />
+              <Input
+                placeholder="请再次输入新支付密码"
+                type={showConfirmPassword ? 'text' : 'password'}
+                value={confirmPassword}
+                onChange={(event) => setConfirmPassword(event.target.value)}
+                rightIcon={
+                  <AuthPasswordToggle visible={showConfirmPassword} onToggle={() => setShowConfirmPassword((value) => !value)} />
+                }
+              />
+            </div>
+          </SettingsSection>
 
-          <button
-            type="button"
-            className="mt-4 text-[13px] font-medium text-primary-start"
-            onClick={() => navigate('/reset-pay-password')}
-          >
-            忘记支付密码？使用验证码重置
-          </button>
+          <SettingsNotice tone="warning" title="安全提示">
+            <div className="flex items-start gap-2">
+              <ShieldAlert size={16} className="mt-0.5 shrink-0" />
+              <span>支付密码建议与登录密码区分使用，避免复用同一组口令。</span>
+            </div>
+          </SettingsNotice>
+
+          <SettingsSection>
+            <SettingsActionItem
+              label="忘记支付密码？"
+              description="通过短信验证码重置支付密码"
+              icon={<KeyRound size={18} />}
+              variant="secondary"
+              borderless
+              onClick={() => navigate('/reset-pay-password')}
+            />
+          </SettingsSection>
+
+          <Button className="mt-2" loading={submitting} onClick={handleSubmit}>
+            确认修改
+          </Button>
         </div>
-
-        <Button className="mt-6" disabled={submitting} onClick={handleSubmit}>
-          {submitting ? '提交中...' : '确认修改'}
-        </Button>
       </div>
     </div>
   );

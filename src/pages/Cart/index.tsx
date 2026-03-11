@@ -1,12 +1,12 @@
 ﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronLeft, CheckCircle2, Circle, Minus, Plus, Trash2, Heart, Store, ChevronRight, WifiOff, RefreshCcw, ShoppingCart, ChevronDown } from 'lucide-react';
+import { ChevronLeft, CheckCircle2, Circle, Minus, Plus, Heart, Store, ChevronRight, WifiOff, RefreshCcw, ShoppingCart, ChevronDown } from 'lucide-react';
+import { getErrorMessage } from '../../api/core/errors';
 import { Skeleton } from '../../components/ui/Skeleton';
+import { useFeedback } from '../../components/ui/FeedbackProvider';
 import { useAppNavigate } from '../../lib/navigation';
-import { PageHeader } from '../../components/layout/PageHeader';
 import { useRouteScrollRestoration } from '../../hooks/useRouteScrollRestoration';
 import { useRequest } from '../../hooks/useRequest';
 import { shopCartApi, type ShopCartListItem } from '../../api/modules/shopCart';
-import { PullToRefreshContainer } from '../../components/ui/PullToRefreshContainer';
 
 interface CartItem {
   id: string;
@@ -58,10 +58,13 @@ function mapCartListToStores(list: ShopCartListItem[]): CartStore[] {
 
 export const CartPage = () => {
   const { goTo, goBack, navigate } = useAppNavigate();
+  const { showToast } = useFeedback();
 
   const [isEditMode, setIsEditMode] = useState(false);
   const [offline, setOffline] = useState(false);
   const [emptyResult, setEmptyResult] = useState(false);
+  const [updatingItemIds, setUpdatingItemIds] = useState<Set<string>>(new Set());
+  const [deleting, setDeleting] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
   const { data: listResponse, loading, error: requestError, reload: refetch } = useRequest(
@@ -95,6 +98,18 @@ export const CartPage = () => {
       hasInitedSelection.current = false;
     }
   }, [list.length]);
+
+  useEffect(() => {
+    const validIds = new Set(cartData.flatMap((store) => store.items.map((item) => item.id)));
+    setSelectedItems((prev) => {
+      const next = new Set(Array.from(prev).filter((id) => validIds.has(id)));
+      return next.size === prev.size ? prev : next;
+    });
+  }, [cartData]);
+
+  useEffect(() => {
+    setEmptyResult(!loading && list.length === 0);
+  }, [list.length, loading]);
 
   const moduleError = !!requestError;
   const loadingState = loading;
@@ -149,34 +164,49 @@ export const CartPage = () => {
     }
   };
 
-  const updateQuantity = (storeId: string, itemId: string, delta: number) => {
-    setCartData(prev => prev.map(store => {
-      if (store.storeId !== storeId) return store;
-      return {
-        ...store,
-        items: store.items.map(item => {
-          if (item.id !== itemId) return item;
-          const newQuantity = Math.max(1, item.quantity + delta);
-          return { ...item, quantity: newQuantity };
-        })
-      };
-    }));
+  const updateQuantity = async (itemId: string, delta: number) => {
+    if (updatingItemIds.has(itemId)) return;
+
+    const target = list.find((row) => String(row.id) === itemId);
+    if (!target) return;
+
+    const quantity = Math.max(1, target.quantity + delta);
+    if (quantity === target.quantity) return;
+
+    setUpdatingItemIds((prev) => new Set(prev).add(itemId));
+
+    try {
+      await shopCartApi.update({ id: target.id, quantity });
+      await refetch();
+    } catch (error) {
+      showToast({ message: getErrorMessage(error) || '更新数量失败', type: 'error' });
+    } finally {
+      setUpdatingItemIds((prev) => {
+        const next = new Set(prev);
+        next.delete(itemId);
+        return next;
+      });
+    }
   };
 
-  const handleDeleteSelected = () => {
-    setCartData(prev => {
-      const newData = prev.map(store => ({
-        ...store,
-        items: store.items.filter(item => !selectedItems.has(item.id))
-      })).filter(store => store.items.length > 0);
-      
-      if (newData.length === 0) {
-        setEmptyResult(true);
-      }
-      return newData;
-    });
-    setSelectedItems(new Set());
-    setIsEditMode(false);
+  const handleDeleteSelected = async () => {
+    const ids = Array.from(selectedItems)
+      .map((id) => Number(id))
+      .filter((id) => Number.isInteger(id) && id > 0);
+    if (ids.length === 0 || deleting) return;
+
+    setDeleting(true);
+    try {
+      await shopCartApi.remove({ ids });
+      setSelectedItems(new Set());
+      setIsEditMode(false);
+      await refetch();
+      showToast({ message: '删除成功', type: 'success' });
+    } catch (error) {
+      showToast({ message: getErrorMessage(error) || '删除失败', type: 'error' });
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const allItemIds = cartData.flatMap(store => store.items.map(item => item.id));
@@ -390,8 +420,8 @@ export const CartPage = () => {
                             <div className="flex items-center border border-border-light rounded overflow-hidden h-6">
                               <button 
                                 className="w-6 h-full flex items-center justify-center bg-bg-base text-text-main active:bg-border-light disabled:opacity-30"
-                                onClick={() => updateQuantity(store.storeId, item.id, -1)}
-                                disabled={item.quantity <= 1}
+                                onClick={() => void updateQuantity(item.id, -1)}
+                                disabled={item.quantity <= 1 || updatingItemIds.has(item.id)}
                               >
                                 <Minus size={12} />
                               </button>
@@ -400,7 +430,8 @@ export const CartPage = () => {
                               </div>
                               <button 
                                 className="w-6 h-full flex items-center justify-center bg-bg-base text-text-main active:bg-border-light"
-                                onClick={() => updateQuantity(store.storeId, item.id, 1)}
+                                onClick={() => void updateQuantity(item.id, 1)}
+                                disabled={updatingItemIds.has(item.id)}
                               >
                                 <Plus size={12} />
                               </button>
@@ -444,11 +475,11 @@ export const CartPage = () => {
               移入收藏
             </button>
             <button 
-              onClick={handleDeleteSelected}
-              disabled={selectedItems.size === 0}
+              onClick={() => void handleDeleteSelected()}
+              disabled={selectedItems.size === 0 || deleting}
               className="px-4 h-8 rounded-full border border-primary-start text-primary-start text-base font-medium active:bg-red-50 disabled:opacity-50 disabled:border-border-light disabled:text-text-aux"
             >
-              删除
+              {deleting ? '删除中...' : '删除'}
             </button>
           </div>
         ) : (

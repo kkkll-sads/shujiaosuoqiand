@@ -51,6 +51,10 @@ export const ProductSkuSheet = ({
     return null;
   }
 
+  const otherAddresses = selectedAddress
+    ? addresses.filter((address) => address.id !== selectedAddress.id)
+    : addresses;
+
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
@@ -96,7 +100,13 @@ export const ProductSkuSheet = ({
               </div>
 
               {selectedAddress ? (
-                <div className="rounded-2xl border border-border-light bg-bg-base p-3">
+                <div className="rounded-2xl border border-primary-start/15 bg-gradient-to-r from-red-50 to-white p-3 shadow-[0_8px_24px_rgba(242,39,28,0.06)] dark:from-red-500/10 dark:to-gray-900">
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="inline-flex rounded-full bg-primary-start px-2 py-0.5 text-xs font-medium text-white">当前收货地址</span>
+                    {selectedAddress.is_default ? (
+                      <span className="rounded-full border border-primary-start/20 bg-white px-2 py-0.5 text-xs text-primary-start dark:bg-gray-900">默认</span>
+                    ) : null}
+                  </div>
                   <div className="flex items-start gap-3">
                     <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-start/10 text-primary-start">
                       <MapPin size={15} />
@@ -105,9 +115,6 @@ export const ProductSkuSheet = ({
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-semibold text-text-main">{selectedAddress.name}</span>
                         <span className="text-sm text-text-main">{selectedAddress.phone}</span>
-                        {selectedAddress.is_default ? (
-                          <span className="rounded bg-primary-start px-1.5 py-0.5 text-xs text-white">默认</span>
-                        ) : null}
                       </div>
                       <div className="mt-1 text-sm leading-5 text-text-sub">
                         {selectedAddress.region} {selectedAddress.detail}
@@ -129,31 +136,30 @@ export const ProductSkuSheet = ({
                 </button>
               )}
 
-              {addresses.length > 1 ? (
-                <div className="mt-3 space-y-2">
-                  {addresses.map((address) => {
-                    const active = selectedAddress?.id === address.id;
-                    return (
+              {otherAddresses.length > 0 ? (
+                <div className="mt-3">
+                  <div className="mb-2 text-xs font-medium tracking-wide text-text-aux">切换地址</div>
+                  <div className="space-y-2">
+                    {otherAddresses.map((address) => (
                       <button
                         key={address.id}
                         type="button"
                         onClick={() => setSelectedAddress(address)}
-                        className={`w-full rounded-2xl border p-3 text-left transition-colors ${
-                          active
-                            ? 'border-primary-start/30 bg-red-50 text-primary-start dark:bg-red-500/10'
-                            : 'border-border-light bg-white text-text-main dark:bg-gray-900'
-                        }`}
+                        className="w-full rounded-2xl border border-border-light bg-white p-3 text-left transition-colors active:bg-bg-hover dark:bg-gray-900"
                       >
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium">{address.name}</span>
-                          <span className="text-sm">{address.phone}</span>
+                          <span className="text-sm font-medium text-text-main">{address.name}</span>
+                          <span className="text-sm text-text-main">{address.phone}</span>
+                          {address.is_default ? (
+                            <span className="rounded bg-bg-base px-1.5 py-0.5 text-[11px] text-text-sub">默认</span>
+                          ) : null}
                         </div>
-                        <div className={`mt-1 text-sm ${active ? 'text-primary-start/90 dark:text-red-300' : 'text-text-sub'}`}>
+                        <div className="mt-1 text-sm text-text-sub">
                           {address.region} {address.detail}
                         </div>
                       </button>
-                    );
-                  })}
+                    ))}
+                  </div>
                 </div>
               ) : null}
             </div>

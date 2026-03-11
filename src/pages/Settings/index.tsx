@@ -1,11 +1,16 @@
-﻿import { useMemo, useState, type ReactNode } from 'react';
-import { ChevronRight, LogOut, Shield, Trash2 } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Info, LogOut, Shield, Trash2 } from 'lucide-react';
+import {
+  SettingsActionItem,
+  SettingsNotice,
+  SettingsSection,
+} from '../../components/biz/settings/SettingsSection';
 import { PageHeader } from '../../components/layout/PageHeader';
-import { useTheme } from '../../contexts/ThemeContext';
-import { useAppNavigate } from '../../lib/navigation';
 import { useFeedback } from '../../components/ui/FeedbackProvider';
-import { CURRENT_APP_VERSION, formatVersionLabel } from '../../lib/appVersion';
+import { useTheme } from '../../contexts/ThemeContext';
 import { clearAuthSession } from '../../lib/auth';
+import { CURRENT_APP_VERSION, formatVersionLabel } from '../../lib/appVersion';
+import { useAppNavigate } from '../../lib/navigation';
 
 function readCacheSizeLabel() {
   try {
@@ -57,36 +62,13 @@ export const SettingsPage = () => {
     showToast({ message: '缓存清理成功', type: 'success' });
   };
 
-  const renderRow = (
-    label: string,
-    action: () => void,
-    description?: string,
-    icon?: ReactNode,
-  ) => (
-    <button
-      type="button"
-      onClick={action}
-      className="flex w-full items-center justify-between px-4 py-4 text-left active:bg-bg-hover"
-    >
-      <div className="flex items-center gap-3">
-        {icon ? <div className="text-text-sub">{icon}</div> : null}
-        <div>
-          <div className="text-[16px] text-text-main">{label}</div>
-          {description ? <div className="mt-1 text-[12px] text-text-sub">{description}</div> : null}
-        </div>
-      </div>
-      <ChevronRight size={16} className="text-text-aux" />
-    </button>
-  );
-
   return (
     <div className="flex h-full flex-1 flex-col overflow-hidden bg-bg-base">
       <PageHeader title="设置" onBack={goBack} />
       <div className="flex-1 overflow-y-auto p-4 pb-8">
         <div className="space-y-4">
-          <section className="overflow-hidden rounded-[24px] bg-bg-card shadow-soft">
-            <div className="px-4 py-4 text-[16px] font-medium text-text-main">外观设置</div>
-            <div className="px-4 pb-4">
+          <SettingsSection title="外观设置" description="统一当前设备内的主题显示方式。">
+            <div className="px-4 pb-4 pt-4">
               <div className="flex gap-2 rounded-full bg-bg-base p-1">
                 {themeOptions.map((option) => {
                   const active = theme === option.key;
@@ -95,7 +77,9 @@ export const SettingsPage = () => {
                       key={option.key}
                       type="button"
                       onClick={() => setTheme(option.key)}
-                      className={`flex-1 rounded-full px-3 py-2 text-[14px] ${active ? 'bg-bg-card text-text-main shadow-soft' : 'text-text-sub'}`}
+                      className={`flex-1 rounded-full px-3 py-2 text-[14px] ${
+                        active ? 'bg-bg-card text-text-main shadow-soft' : 'text-text-sub'
+                      }`}
                     >
                       {option.label}
                     </button>
@@ -103,32 +87,66 @@ export const SettingsPage = () => {
                 })}
               </div>
             </div>
-          </section>
+          </SettingsSection>
 
-          <section className="overflow-hidden rounded-[24px] bg-bg-card shadow-soft">
-            <div className="px-4 py-4 text-[16px] font-medium text-text-main">账号安全</div>
-            {renderRow('修改登录密码', () => goTo('change_password'), '修改后需要重新登录', <Shield size={18} />)}
-            <div className="border-t border-border-light" />
-            {renderRow('修改支付密码', () => goTo('change_pay_password'), '修改支付验证密码', <Shield size={18} />)}
-            <div className="border-t border-border-light" />
-            {renderRow('验证码重置登录密码', () => goTo('reset_password'), '通过短信验证码重置登录密码', <Shield size={18} />)}
-          </section>
+          <SettingsSection title="账号安全" description="密码、支付验证和账号恢复入口统一放在这里。">
+            <SettingsActionItem
+              label="修改登录密码"
+              description="校验旧密码后修改，成功后需重新登录"
+              icon={<Shield size={18} />}
+              onClick={() => goTo('change_password')}
+            />
+            <SettingsActionItem
+              label="修改支付密码"
+              description="用于支付和资金验证"
+              icon={<Shield size={18} />}
+              onClick={() => goTo('change_pay_password')}
+            />
+            <SettingsActionItem
+              label="验证码重置登录密码"
+              description="通过短信验证码快速重置登录密码"
+              icon={<Info size={18} />}
+              onClick={() => goTo('reset_password')}
+            />
+          </SettingsSection>
 
-          <section className="overflow-hidden rounded-[24px] bg-bg-card shadow-soft">
-            {renderRow('账号与安全', () => goTo('security'), '查看绑定手机和密码入口', <Shield size={18} />)}
-            <div className="border-t border-border-light" />
-            {renderRow('清理缓存', clearCache, `当前缓存 ${cacheSize}`, <Trash2 size={18} />)}
-            <div className="border-t border-border-light" />
-            {renderRow('关于我们', () => goTo('about'), formatVersionLabel(CURRENT_APP_VERSION))}
-          </section>
+          <SettingsSection>
+            <SettingsActionItem
+              label="账号与安全"
+              description="查看绑定手机号、密码和安全说明"
+              icon={<Shield size={18} />}
+              onClick={() => goTo('security')}
+            />
+            <SettingsActionItem
+              label="清理缓存"
+              description="清理本地缓存，不影响登录状态"
+              icon={<Trash2 size={18} />}
+              value={cacheSize}
+              variant="secondary"
+              onClick={clearCache}
+            />
+            <SettingsActionItem
+              label="关于我们"
+              description="当前应用版本"
+              value={formatVersionLabel(CURRENT_APP_VERSION)}
+              onClick={() => goTo('about')}
+            />
+          </SettingsSection>
 
-          <button
-            type="button"
-            onClick={() => setShowLogoutModal(true)}
-            className="flex h-[48px] w-full items-center justify-center rounded-[24px] bg-bg-card text-[16px] font-medium text-text-main shadow-soft"
-          >
-            退出登录
-          </button>
+          <SettingsNotice title="说明">
+            清理缓存仅会移除本地临时数据。修改登录密码后，系统会要求重新登录。
+          </SettingsNotice>
+
+          <SettingsSection>
+            <SettingsActionItem
+              label="退出登录"
+              description="退出当前账号，需要重新登录后才能继续查看订单与账户信息"
+              icon={<LogOut size={18} />}
+              variant="danger"
+              borderless
+              onClick={() => setShowLogoutModal(true)}
+            />
+          </SettingsSection>
         </div>
       </div>
 
@@ -167,4 +185,3 @@ export const SettingsPage = () => {
     </div>
   );
 };
-

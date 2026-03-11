@@ -1,11 +1,17 @@
 import { useState } from 'react';
-import { Eye, EyeOff, Headset } from 'lucide-react';
 import { getErrorMessage } from '../../api/core/errors';
 import { authApi } from '../../api/modules/auth';
+import {
+  AuthAgreement,
+  AuthFooterLink,
+  AuthFormSection,
+  AuthPasswordToggle,
+  AuthSmsField,
+  AuthTopBar,
+} from '../../components/biz/auth';
 import { Button } from '../../components/ui/Button';
-import { Checkbox } from '../../components/ui/Checkbox';
-import { useFeedback } from '../../components/ui/FeedbackProvider';
 import { Input } from '../../components/ui/Input';
+import { useFeedback } from '../../components/ui/FeedbackProvider';
 import { useSmsCode } from '../../hooks/useSmsCode';
 import {
   MOBILE_PATTERN,
@@ -30,13 +36,9 @@ export const RegisterPage = () => {
   const [verifyCode, setVerifyCode] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const { buttonText, canSend, message, sendCode } = useSmsCode({
+  const { buttonText, canSend, message, sendCode, sending } = useSmsCode({
     event: 'user_register',
   });
-
-  const handleSendCode = async () => {
-    await sendCode(mobile);
-  };
 
   const handleSubmit = async () => {
     const normalizedMobile = mobile.trim();
@@ -46,27 +48,27 @@ export const RegisterPage = () => {
     const normalizedInviteCode = inviteCode.trim();
 
     if (!MOBILE_PATTERN.test(normalizedMobile)) {
-      showToast({ message: 'è¯·è¾“å…¥æ­£ç¡®çš„æ‰‹æœºå·', type: 'warning' });
+      showToast({ message: 'ÇëÊäÈëÕıÈ·µÄÊÖ»úºÅ', type: 'warning' });
       return;
     }
 
     if (!PASSWORD_PATTERN.test(normalizedPassword)) {
-      showToast({ message: 'ç™»å½•å¯†ç éœ€ä¸º 6-32 ä½å­—æ¯æˆ–æ•°å­—', type: 'warning' });
+      showToast({ message: 'µÇÂ¼ÃÜÂëĞèÎª 6-32 Î»×ÖÄ¸»òÊı×Ö', type: 'warning' });
       return;
     }
 
     if (!PASSWORD_PATTERN.test(normalizedPayPassword)) {
-      showToast({ message: 'æ”¯ä»˜å¯†ç éœ€ä¸º 6-32 ä½å­—æ¯æˆ–æ•°å­—', type: 'warning' });
+      showToast({ message: 'Ö§¸¶ÃÜÂëĞèÎª 6-32 Î»×ÖÄ¸»òÊı×Ö', type: 'warning' });
       return;
     }
 
     if (!normalizedCode) {
-      showToast({ message: 'è¯·è¾“å…¥çŸ­ä¿¡éªŒè¯ç ', type: 'warning' });
+      showToast({ message: 'ÇëÊäÈë¶ÌĞÅÑéÖ¤Âë', type: 'warning' });
       return;
     }
 
     if (!agree) {
-      showToast({ message: 'è¯·å…ˆå‹¾é€‰ç”¨æˆ·åè®®ä¸éšç§æ”¿ç­–', type: 'warning' });
+      showToast({ message: 'ÇëÏÈ¹´Ñ¡ÓÃ»§Ğ­ÒéÓëÒşË½Õş²ß', type: 'warning' });
       return;
     }
 
@@ -90,7 +92,7 @@ export const RegisterPage = () => {
         persistent: true,
       });
 
-      showToast({ message: 'æ³¨å†ŒæˆåŠŸ', type: 'success' });
+      showToast({ message: '×¢²á³É¹¦', type: 'success' });
       navigate(resolveAuthRedirectPath(session.routePath), { replace: true });
     } catch (error) {
       showToast({ message: getErrorMessage(error), type: 'error' });
@@ -102,145 +104,67 @@ export const RegisterPage = () => {
   return (
     <div className="relative flex h-full flex-1 flex-col overflow-y-auto bg-bg-base no-scrollbar">
       <div className="relative z-10 flex flex-1 flex-col overflow-y-auto px-4 pb-8 pt-12 no-scrollbar">
-        <div className="absolute left-4 right-4 top-4 z-20 flex justify-between">
-          <button
-            type="button"
-            className="-ml-2 p-2 text-text-main active:opacity-70"
-            onClick={goBack}
-          >
-            <svg
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="m15 18-6-6 6-6" />
-            </svg>
-          </button>
-          <button
-            type="button"
-            className="flex items-center rounded-full border border-border-light bg-bg-card/60 px-3 py-1.5 text-[12px] text-text-main shadow-sm backdrop-blur-md"
-          >
-            <Headset size={14} className="mr-1" />
-            å®¢æœ
-          </button>
-        </div>
+        <AuthTopBar onBack={goBack} />
 
-        <div className="mb-10 mt-16">
-          <h1 className="mb-2 text-[28px] font-bold text-text-main">Welcome!</h1>
-          <p className="text-[18px] text-text-sub">æ¬¢è¿æ³¨å†Œæ ‘äº¤æ‰€</p>
-        </div>
-
-        <div className="mb-4 space-y-4">
+        <AuthFormSection
+          className="mt-16"
+          title="Welcome!"
+          description="»¶Ó­×¢²áÊ÷½»Ëù"
+          actions={(
+            <Button loading={submitting} onClick={handleSubmit}>
+              ×¢²á
+            </Button>
+          )}
+          footer={(
+            <>
+              <AuthAgreement
+                checked={agree}
+                onChange={() => setAgree((current) => !current)}
+                onOpenAgreement={() => navigate('/user_agreement')}
+                onOpenPrivacy={() => navigate('/privacy_policy')}
+                mode="register"
+              />
+              <AuthFooterLink text="ÒÑÓĞÕË»§£¿" accentText="È¥µÇÂ¼" onClick={() => goTo('login')} />
+            </>
+          )}
+        >
           <Input
-            placeholder="è¯·è¾“å…¥é‚€è¯·ç "
+            placeholder="ÇëÊäÈëÑûÇëÂë"
             value={inviteCode}
             onChange={(event) => setInviteCode(event.target.value)}
           />
           <Input
-            placeholder="è¯·è¾“å…¥æ‰‹æœºå·"
+            placeholder="ÇëÊäÈëÊÖ»úºÅ"
             type="tel"
             value={mobile}
             onChange={(event) => setMobile(event.target.value)}
           />
           <Input
-            placeholder="è¯·è®¾ç½®ç™»å½•å¯†ç "
+            placeholder="ÇëÉèÖÃµÇÂ¼ÃÜÂë"
             type={showLoginPassword ? 'text' : 'password'}
             value={loginPassword}
             onChange={(event) => setLoginPassword(event.target.value)}
-            rightIcon={
-              <button
-                type="button"
-                className="focus:outline-none"
-                onClick={() => setShowLoginPassword((current) => !current)}
-              >
-                {showLoginPassword ? <Eye size={18} /> : <EyeOff size={18} />}
-              </button>
-            }
+            rightIcon={<AuthPasswordToggle visible={showLoginPassword} onToggle={() => setShowLoginPassword((current) => !current)} />}
           />
           <Input
-            placeholder="è¯·è®¾ç½®æ”¯ä»˜å¯†ç "
+            placeholder="ÇëÉèÖÃÖ§¸¶ÃÜÂë"
             type={showPayPassword ? 'text' : 'password'}
             value={payPassword}
             onChange={(event) => setPayPassword(event.target.value)}
-            rightIcon={
-              <button
-                type="button"
-                className="focus:outline-none"
-                onClick={() => setShowPayPassword((current) => !current)}
-              >
-                {showPayPassword ? <Eye size={18} /> : <EyeOff size={18} />}
-              </button>
-            }
+            rightIcon={<AuthPasswordToggle visible={showPayPassword} onToggle={() => setShowPayPassword((current) => !current)} />}
           />
-
-          <div className="space-y-2">
-            <div className="flex space-x-3">
-              <Input
-                placeholder="è¯·è¾“å…¥éªŒè¯ç "
-                className="flex-1"
-                value={verifyCode}
-                onChange={(event) => setVerifyCode(event.target.value)}
-              />
-              <button
-                type="button"
-                disabled={!canSend}
-                onClick={handleSendCode}
-                className="h-[48px] whitespace-nowrap rounded-[20px] border border-border-light bg-bg-card px-4 text-[15px] font-medium text-primary-start shadow-soft disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {buttonText}
-              </button>
-            </div>
-            {message && <p className="px-1 text-[12px] text-primary-start">{message}</p>}
-          </div>
-        </div>
-
-
-
-        <Button className="mb-4" disabled={submitting} onClick={handleSubmit}>
-          {submitting ? 'æ³¨å†Œä¸­...' : 'æ³¨å†Œ'}
-        </Button>
-
-        <div className="mb-auto flex items-start justify-center">
-          <Checkbox
-            checked={agree}
-            onChange={() => setAgree((current) => !current)}
-            className="mt-0.5"
+          <AuthSmsField
+            value={verifyCode}
+            onChange={(event) => setVerifyCode(event.target.value)}
+            buttonText={buttonText}
+            canSend={canSend}
+            message={message}
+            sending={sending}
+            onSend={() => void sendCode(mobile)}
           />
-          <div className="ml-2 text-[12px] leading-tight text-text-sub">
-            æ³¨å†Œå³ä»£è¡¨ä½ å·²åŒæ„
-            <button
-              type="button"
-              className="mx-1 text-primary-start"
-              onClick={() => navigate('/user_agreement')}
-            >
-              ç”¨æˆ·åè®®
-            </button>
-            å’Œ
-            <button
-              type="button"
-              className="mx-1 text-primary-start"
-              onClick={() => navigate('/privacy_policy')}
-            >
-              éšç§æ”¿ç­–
-            </button>
-          </div>
-        </div>
-
-        <div className="mt-12 text-center">
-          <button
-            type="button"
-            className="text-[15px] font-medium text-text-main"
-            onClick={() => goTo('login')}
-          >
-            å·²æœ‰è´¦æˆ·ï¼Ÿå»ç™»å½•
-          </button>
-        </div>
+        </AuthFormSection>
       </div>
     </div>
   );
 };
+

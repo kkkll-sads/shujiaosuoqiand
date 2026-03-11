@@ -243,6 +243,10 @@ export const router = createHashRouter([
       { path: 'login', element: <Lazy><LoginPage /></Lazy> },
       { path: 'register', element: <Lazy><RegisterPage /></Lazy> },
       { path: 'forgot-password', element: <Lazy><ForgotPasswordPage /></Lazy> },
+      { path: 'change-password', element: <Lazy><ChangePasswordPage /></Lazy> },
+      { path: 'change-pay-password', element: <Lazy><ChangePayPasswordPage /></Lazy> },
+      { path: 'reset-password', element: <Lazy><ResetPasswordBySmsPage /></Lazy> },
+      { path: 'reset-pay-password', element: <Lazy><ResetPayPasswordBySmsPage /></Lazy> },
       { path: 'user_agreement', element: <Lazy><CommonPage pageType="user_agreement" /></Lazy> },
       { path: 'privacy_policy', element: <Lazy><CommonPage pageType="privacy_policy" /></Lazy> },
 

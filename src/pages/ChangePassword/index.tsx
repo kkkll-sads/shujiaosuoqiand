@@ -1,7 +1,9 @@
 ﻿import { useState } from 'react';
-import { Eye, EyeOff } from 'lucide-react';
+import { ShieldAlert } from 'lucide-react';
 import { accountApi } from '../../api';
 import { getErrorMessage } from '../../api/core/errors';
+import { AuthPasswordToggle } from '../../components/biz/auth/AuthPasswordToggle';
+import { SettingsNotice, SettingsSection } from '../../components/biz/settings/SettingsSection';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { Button } from '../../components/ui/Button';
 import { useFeedback } from '../../components/ui/FeedbackProvider';
@@ -65,51 +67,46 @@ export const ChangePasswordPage = () => {
     <div className="flex h-full flex-1 flex-col overflow-hidden bg-bg-base">
       <PageHeader title="修改登录密码" onBack={() => goBackOr('settings')} />
       <div className="flex-1 overflow-y-auto p-4 pb-8">
-        <div className="rounded-[24px] bg-bg-card p-4 shadow-soft">
-          <div className="space-y-4">
-            <Input
-              placeholder="请输入当前登录密码"
-              type={showOldPassword ? 'text' : 'password'}
-              value={oldPassword}
-              onChange={(event) => setOldPassword(event.target.value)}
-              rightIcon={
-                <button type="button" onClick={() => setShowOldPassword((value) => !value)}>
-                  {showOldPassword ? <Eye size={18} /> : <EyeOff size={18} />}
-                </button>
-              }
-            />
-            <Input
-              placeholder="请输入新登录密码"
-              type={showNewPassword ? 'text' : 'password'}
-              value={newPassword}
-              onChange={(event) => setNewPassword(event.target.value)}
-              rightIcon={
-                <button type="button" onClick={() => setShowNewPassword((value) => !value)}>
-                  {showNewPassword ? <Eye size={18} /> : <EyeOff size={18} />}
-                </button>
-              }
-            />
-            <Input
-              placeholder="请再次输入新登录密码"
-              type={showConfirmPassword ? 'text' : 'password'}
-              value={confirmPassword}
-              onChange={(event) => setConfirmPassword(event.target.value)}
-              rightIcon={
-                <button type="button" onClick={() => setShowConfirmPassword((value) => !value)}>
-                  {showConfirmPassword ? <Eye size={18} /> : <EyeOff size={18} />}
-                </button>
-              }
-            />
-          </div>
+        <div className="space-y-4">
+          <SettingsSection title="身份校验" description="请先输入旧密码，再设置新的登录密码。">
+            <div className="space-y-4 px-4 py-4">
+              <Input
+                placeholder="请输入当前登录密码"
+                type={showOldPassword ? 'text' : 'password'}
+                value={oldPassword}
+                onChange={(event) => setOldPassword(event.target.value)}
+                rightIcon={<AuthPasswordToggle visible={showOldPassword} onToggle={() => setShowOldPassword((value) => !value)} />}
+              />
+              <Input
+                placeholder="请输入新登录密码"
+                type={showNewPassword ? 'text' : 'password'}
+                value={newPassword}
+                onChange={(event) => setNewPassword(event.target.value)}
+                rightIcon={<AuthPasswordToggle visible={showNewPassword} onToggle={() => setShowNewPassword((value) => !value)} />}
+              />
+              <Input
+                placeholder="请再次输入新登录密码"
+                type={showConfirmPassword ? 'text' : 'password'}
+                value={confirmPassword}
+                onChange={(event) => setConfirmPassword(event.target.value)}
+                rightIcon={
+                  <AuthPasswordToggle visible={showConfirmPassword} onToggle={() => setShowConfirmPassword((value) => !value)} />
+                }
+              />
+            </div>
+          </SettingsSection>
 
-          <div className="mt-5 text-[12px] leading-5 text-text-sub">
-            修改成功后当前登录态会失效，需要使用新密码重新登录。
-          </div>
+          <SettingsNotice tone="warning" title="修改后影响">
+            <div className="flex items-start gap-2">
+              <ShieldAlert size={16} className="mt-0.5 shrink-0" />
+              <span>修改成功后当前登录态会失效，需要使用新密码重新登录。</span>
+            </div>
+          </SettingsNotice>
+
+          <Button className="mt-2" loading={submitting} onClick={handleSubmit}>
+            确认修改
+          </Button>
         </div>
-
-        <Button className="mt-6" disabled={submitting} onClick={handleSubmit}>
-          {submitting ? '提交中...' : '确认修改'}
-        </Button>
       </div>
     </div>
   );

@@ -1,11 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Eye, EyeOff, Headset } from 'lucide-react';
 import { getErrorMessage } from '../../api/core/errors';
 import { authApi, type CheckInConfig, type LoginTab } from '../../api/modules/auth';
+import {
+  AuthAgreement,
+  AuthFooterLink,
+  AuthFormSection,
+  AuthPasswordToggle,
+  AuthSmsField,
+  AuthTabs,
+  AuthTopBar,
+} from '../../components/biz/auth';
 import { Button } from '../../components/ui/Button';
 import { Checkbox } from '../../components/ui/Checkbox';
-import { useFeedback } from '../../components/ui/FeedbackProvider';
 import { Input } from '../../components/ui/Input';
+import { useFeedback } from '../../components/ui/FeedbackProvider';
 import { useSmsCode } from '../../hooks/useSmsCode';
 import {
   MOBILE_PATTERN,
@@ -17,8 +25,8 @@ import {
 import { useAppNavigate } from '../../lib/navigation';
 
 const TAB_LABELS: Record<LoginTab, string> = {
-  login: 'ÂØÜÁ†ÅÁôªÂΩï',
-  sms_login: 'È™åËØÅÁ†ÅÁôªÂΩï',
+  login: '√‹¬Îµ«¬º',
+  sms_login: '—È÷§¬Îµ«¬º',
 };
 
 function isLoginTab(value: string): value is LoginTab {
@@ -59,11 +67,15 @@ export const LoginPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [config, setConfig] = useState<CheckInConfig | null>(null);
 
-  const { buttonText, canSend, message, sendCode } = useSmsCode({
+  const { buttonText, canSend, message, sendCode, sending } = useSmsCode({
     event: 'user_login',
   });
 
   const availableTabs = useMemo(() => resolveLoginTabs(config?.loginTabs), [config?.loginTabs]);
+  const tabItems = useMemo(
+    () => availableTabs.map((tab) => ({ key: tab, label: TAB_LABELS[tab] })),
+    [availableTabs],
+  );
 
   useEffect(() => {
     let active = true;
@@ -104,13 +116,18 @@ export const LoginPage = () => {
     });
   }, [availableTabs, config?.defaultTab]);
 
-  const handleSendCode = async () => {
-    await sendCode(mobile);
+  const handleTabChange = (tab: LoginTab) => {
+    if (tab === 'sms_login' && MOBILE_PATTERN.test(username.trim())) {
+      setMobile(username.trim());
+    } else if (tab === 'login' && mobile.trim()) {
+      setUsername(mobile.trim());
+    }
+    setCurrentTab(tab);
   };
 
   const handleSubmit = async () => {
     if (!agree) {
-      showToast({ message: 'ËØ∑ÂÖàÂãæÈÄâÁî®Êà∑ÂçèËÆÆ‰∏éÈöêÁßÅÊîøÁ≠ñ', type: 'warning' });
+      showToast({ message: '«Îœ»π¥—°”√ªß–≠“È”Î“˛ÀΩ’˛≤ﬂ', type: 'warning' });
       return;
     }
 
@@ -125,12 +142,12 @@ export const LoginPage = () => {
         const normalizedPassword = password.trim();
 
         if (!normalizedUsername) {
-          showToast({ message: 'ËØ∑ËæìÂÖ•Áî®Êà∑ÂêçÊàñÊâãÊú∫Âè∑', type: 'warning' });
+          showToast({ message: '«Î ‰»Î”√ªß√˚ªÚ ÷ª˙∫≈', type: 'warning' });
           return;
         }
 
         if (!PASSWORD_PATTERN.test(normalizedPassword)) {
-          showToast({ message: 'ÁôªÂΩïÂØÜÁ†ÅÈúÄ‰∏∫ 6-32 ‰ΩçÂ≠óÊØçÊàñÊï∞Â≠ó', type: 'warning' });
+          showToast({ message: 'µ«¬º√‹¬Î–ËŒ™ 6-32 Œª◊÷ƒ∏ªÚ ˝◊÷', type: 'warning' });
           return;
         }
 
@@ -149,12 +166,12 @@ export const LoginPage = () => {
         const normalizedCode = verifyCode.trim();
 
         if (!MOBILE_PATTERN.test(normalizedMobile)) {
-          showToast({ message: 'ËØ∑ËæìÂÖ•Ê≠£Á°ÆÁöÑÊâãÊú∫Âè∑', type: 'warning' });
+          showToast({ message: '«Î ‰»Î’˝»∑µƒ ÷ª˙∫≈', type: 'warning' });
           return;
         }
 
         if (!normalizedCode) {
-          showToast({ message: 'ËØ∑ËæìÂÖ•Áü≠‰ø°È™åËØÅÁ†Å', type: 'warning' });
+          showToast({ message: '«Î ‰»Î∂Ã–≈—È÷§¬Î', type: 'warning' });
           return;
         }
 
@@ -176,7 +193,7 @@ export const LoginPage = () => {
         persistent: remember,
       });
 
-      showToast({ message: 'ÁôªÂΩïÊàêÂäü', type: 'success' });
+      showToast({ message: 'µ«¬º≥…π¶', type: 'success' });
       navigate(resolveAuthRedirectPath(session.routePath), { replace: true });
     } catch (error) {
       showToast({ message: getErrorMessage(error), type: 'error' });
@@ -188,170 +205,76 @@ export const LoginPage = () => {
   return (
     <div className="relative flex h-full flex-1 flex-col overflow-y-auto bg-bg-base no-scrollbar">
       <div className="relative z-10 flex flex-1 flex-col overflow-y-auto px-4 pb-8 pt-12 no-scrollbar">
-        <div className="absolute left-4 right-4 top-4 z-20 flex justify-between">
-          <button
-            type="button"
-            className="-ml-2 p-2 text-text-main active:opacity-70"
-            onClick={goBack}
-          >
-            <svg
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="m15 18-6-6 6-6" />
-            </svg>
-          </button>
-          <button
-            type="button"
-            className="flex items-center rounded-full border border-border-light bg-bg-card/60 px-3 py-1.5 text-[12px] text-text-main shadow-sm backdrop-blur-md"
-          >
-            <Headset size={14} className="mr-1" />
-            ÂÆ¢Êúç
-          </button>
-        </div>
+        <AuthTopBar onBack={goBack} />
 
-        <div className="mb-10 mt-16">
-          <h1 className="mb-2 text-[28px] font-bold text-text-main">Hello!</h1>
-          <p className="text-[18px] text-text-sub">Ê¨¢ËøéÁôªÂΩïÊ†ë‰∫§ÊâÄ</p>
-        </div>
-
-        {availableTabs.length > 0 && (
-          <div className="mb-6 flex space-x-6">
-            {availableTabs.map((tab) => (
-              <button
-                key={tab}
-                type="button"
-                className={`relative pb-1 text-[18px] font-medium ${
-                  currentTab === tab ? 'text-text-main' : 'text-text-aux'
-                }`}
-                onClick={() => {
-                  /* ÂàáÊç¢ tab Êó∂‰øùÁïôÊâãÊú∫Âè∑ÔºöÂØÜÁ†ÅÁôªÂΩï ‚Üî È™åËØÅÁ†ÅÁôªÂΩï */
-                  if (tab === 'sms_login' && MOBILE_PATTERN.test(username.trim())) {
-                    setMobile(username.trim());
-                  } else if (tab === 'login' && mobile.trim()) {
-                    setUsername(mobile.trim());
-                  }
-                  setCurrentTab(tab);
-                }}
-              >
-                {TAB_LABELS[tab]}
-                {currentTab === tab && (
-                  <div className="absolute bottom-0 left-1/2 h-1 w-4 -translate-x-1/2 rounded-full bg-primary-start" />
-                )}
-              </button>
-            ))}
-          </div>
-        )}
-
-        <div className="mb-4 space-y-4">
+        <AuthFormSection
+          className="mt-16"
+          title="Hello!"
+          description="ª∂”≠µ«¬º ˜ΩªÀ˘"
+          headerExtra={tabItems.length > 0 ? <AuthTabs items={tabItems} value={currentTab} onChange={handleTabChange} /> : null}
+          auxiliary={(
+            <div className="flex items-center justify-between">
+              <Checkbox checked={remember} onChange={() => setRemember((current) => !current)} label="º«◊°√‹¬Î" />
+              <Button type="button" variant="ghost" size="sm" fullWidth={false} className="px-0 text-[12px] text-text-sub" onClick={() => navigate('/forgot-password')}>
+                Õ¸º«√‹¬Î
+              </Button>
+            </div>
+          )}
+          actions={(
+            <Button loading={submitting} onClick={handleSubmit}>
+              µ«¬º
+            </Button>
+          )}
+          footer={(
+            <>
+              <AuthAgreement
+                checked={agree}
+                onChange={() => setAgree((current) => !current)}
+                onOpenAgreement={() => navigate('/user_agreement')}
+                onOpenPrivacy={() => navigate('/privacy_policy')}
+                mode="login"
+              />
+              <AuthFooterLink text="√ª”–’Àªß£ø" accentText="µ„ª˜◊¢≤·" onClick={() => goTo('register')} />
+            </>
+          )}
+        >
           {currentTab === 'login' ? (
             <>
               <Input
-                placeholder="ËØ∑ËæìÂÖ•Áî®Êà∑ÂêçÊàñÊâãÊú∫Âè∑"
+                placeholder="«Î ‰»Î”√ªß√˚ªÚ ÷ª˙∫≈"
                 value={username}
                 onChange={(event) => setUsername(event.target.value)}
               />
               <Input
-                placeholder="ËØ∑ËæìÂÖ•ÁôªÂΩïÂØÜÁ†Å"
+                placeholder="«Î ‰»Îµ«¬º√‹¬Î"
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                rightIcon={
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((current) => !current)}
-                    className="focus:outline-none"
-                  >
-                    {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
-                  </button>
-                }
+                rightIcon={<AuthPasswordToggle visible={showPassword} onToggle={() => setShowPassword((current) => !current)} />}
               />
             </>
           ) : (
             <>
               <Input
-                placeholder="ËØ∑ËæìÂÖ•ÊâãÊú∫Âè∑"
+                placeholder="«Î ‰»Î ÷ª˙∫≈"
                 type="tel"
                 value={mobile}
                 onChange={(event) => setMobile(event.target.value)}
               />
-              <div className="space-y-2">
-                <div className="flex space-x-3">
-                  <Input
-                    placeholder="ËØ∑ËæìÂÖ•È™åËØÅÁ†Å"
-                    className="flex-1"
-                    value={verifyCode}
-                    onChange={(event) => setVerifyCode(event.target.value)}
-                  />
-                  <button
-                    type="button"
-                    disabled={!canSend}
-                    onClick={handleSendCode}
-                    className="h-[48px] whitespace-nowrap rounded-[20px] border border-border-light bg-bg-card px-4 text-[15px] font-medium text-primary-start shadow-soft disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {buttonText}
-                  </button>
-                </div>
-                {message && <p className="px-1 text-[12px] text-primary-start">{message}</p>}
-              </div>
+              <AuthSmsField
+                value={verifyCode}
+                onChange={(event) => setVerifyCode(event.target.value)}
+                buttonText={buttonText}
+                canSend={canSend}
+                message={message}
+                sending={sending}
+                onSend={() => void sendCode(mobile)}
+              />
             </>
           )}
-        </div>
-
-        <div className="mb-8 flex items-center justify-between">
-          <Checkbox checked={remember} onChange={() => setRemember((current) => !current)} label="ËÆ∞‰ΩèÂØÜÁ†Å" />
-          <button type="button" className="text-[12px] text-text-sub" onClick={() => navigate('/forgot-password')}>
-            ÂøòËÆ∞ÂØÜÁ†Å
-          </button>
-        </div>
-
-        <Button className="mb-4" disabled={submitting} onClick={handleSubmit}>
-          {submitting ? 'ÁôªÂΩï‰∏≠...' : 'ÁôªÂΩï'}
-        </Button>
-
-        <div className="mb-auto flex items-start justify-center">
-          <Checkbox
-            checked={agree}
-            onChange={() => setAgree((current) => !current)}
-            className="mt-0.5"
-          />
-          <div className="ml-2 text-[12px] leading-tight text-text-sub">
-            ÁôªÂΩïÂç≥‰ª£Ë°®‰Ω†Â∑≤ÂêåÊÑè
-            <button
-              type="button"
-              className="mx-1 text-primary-start"
-              onClick={() => navigate('/user_agreement')}
-            >
-              Áî®Êà∑ÂçèËÆÆ
-            </button>
-            Âíå
-            <button
-              type="button"
-              className="mx-1 text-primary-start"
-              onClick={() => navigate('/privacy_policy')}
-            >
-              ÈöêÁßÅÊîøÁ≠ñ
-            </button>
-          </div>
-        </div>
-
-        <div className="mt-12 text-center">
-          <button
-            type="button"
-            className="text-[15px] font-medium text-text-main active:opacity-70"
-            onClick={() => goTo('register')}
-          >
-            <span>Ê≤°ÊúâË¥¶Êà∑Ôºü</span>
-            <span className="text-primary-start">ÁÇπÂáªÊ≥®ÂÜå</span>
-          </button>
-        </div>
+        </AuthFormSection>
       </div>
     </div>
   );
 };
+

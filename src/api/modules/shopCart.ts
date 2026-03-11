@@ -26,6 +26,24 @@ export interface ShopCartAddResponse {
   quantity: number;
 }
 
+export interface ShopCartUpdateParams {
+  id: number;
+  quantity: number;
+}
+
+export interface ShopCartUpdateResponse {
+  id: number;
+  quantity: number;
+}
+
+export interface ShopCartRemoveParams {
+  ids: number[];
+}
+
+export interface ShopCartRemoveResponse {
+  count: number;
+}
+
 /** 购物车单项（含商品与秒杀信息） */
 export interface ShopCartListItem {
   /** 购物车项 ID */
@@ -116,6 +134,22 @@ export const shopCartApi = {
     options?: { signal?: AbortSignal },
   ) {
     return http.post<ShopCartAddResponse>('/api/shopCart/add', params, {
+      signal: options?.signal,
+    });
+  },
+  update(
+    params: ShopCartUpdateParams,
+    options?: { signal?: AbortSignal },
+  ) {
+    return http.post<ShopCartUpdateResponse>('/api/shopCart/update', params, {
+      signal: options?.signal,
+    });
+  },
+  remove(
+    params: ShopCartRemoveParams,
+    options?: { signal?: AbortSignal },
+  ) {
+    return http.post<ShopCartRemoveResponse>('/api/shopCart/remove', params, {
       signal: options?.signal,
     });
   },

@@ -7,6 +7,7 @@ import { OfflineBanner } from '../../components/layout/OfflineBanner';
 import { useFeedback } from '../../components/ui/FeedbackProvider';
 import { ErrorState } from '../../components/ui/ErrorState';
 import { PullToRefreshContainer } from '../../components/ui/PullToRefreshContainer';
+import { ProductAddressManageSheet } from '../../features/product-detail/components/ProductAddressManageSheet';
 import { ProductDetailHeader } from '../../features/product-detail/components/ProductDetailHeader';
 import { ProductAddressFormSheet, type ProductAddressFormValue } from '../../features/product-detail/components/ProductAddressFormSheet';
 import { ProductOverviewSection } from '../../features/product-detail/components/ProductOverviewSection';
@@ -64,11 +65,15 @@ export const ProductDetailPage = () => {
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
   const [addresses, setAddresses] = useState<AddressItem[]>([]);
   const [selectedAddress, setSelectedAddress] = useState<AddressItem | null>(null);
+  const [showAddressManageSheet, setShowAddressManageSheet] = useState(false);
   const [showAddressFormSheet, setShowAddressFormSheet] = useState(false);
   const [showRegionPicker, setShowRegionPicker] = useState(false);
+  const [editingAddress, setEditingAddress] = useState<AddressItem | null>(null);
   const [addressForm, setAddressForm] = useState<ProductAddressFormValue>(EMPTY_ADDRESS_FORM);
   const [addressFormErrors, setAddressFormErrors] = useState<Partial<Record<keyof ProductAddressFormValue, string>>>({});
   const [savingAddress, setSavingAddress] = useState(false);
+  const [deletingAddress, setDeletingAddress] = useState(false);
+  const [settingDefaultAddressId, setSettingDefaultAddressId] = useState<number | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -181,6 +186,8 @@ export const ProductDetailPage = () => {
     setAddressForm(EMPTY_ADDRESS_FORM);
     setAddressFormErrors({});
     setSavingAddress(false);
+    setDeletingAddress(false);
+    setEditingAddress(null);
   }, []);
 
   const handleCloseAddressForm = useCallback(() => {
@@ -188,6 +195,26 @@ export const ProductDetailPage = () => {
     setShowRegionPicker(false);
     resetAddressForm();
   }, [resetAddressForm]);
+
+  const openAddAddressForm = useCallback(() => {
+    resetAddressForm();
+    setShowAddressFormSheet(true);
+  }, [resetAddressForm]);
+
+  const openEditAddressForm = useCallback((address: AddressItem) => {
+    setEditingAddress(address);
+    setAddressForm({
+      name: address.name,
+      phone: address.phone,
+      region: address.region,
+      detail: address.detail,
+      isDefault: address.is_default,
+    });
+    setAddressFormErrors({});
+    setSavingAddress(false);
+    setDeletingAddress(false);
+    setShowAddressFormSheet(true);
+  }, []);
 
   const validateAddressForm = useCallback(() => {
     const nextErrors: Partial<Record<keyof ProductAddressFormValue, string>> = {};
@@ -210,23 +237,36 @@ export const ProductDetailPage = () => {
 
     setSavingAddress(true);
     try {
-      const id = await addressApi.add({
-        name: addressForm.name.trim(),
-        phone: addressForm.phone.trim(),
-        region: addressForm.region.trim(),
-        address: addressForm.detail.trim(),
-        is_default: addressForm.isDefault,
-      });
+      let targetId = editingAddress?.id ?? 0;
+      if (editingAddress) {
+        await addressApi.edit({
+          id: editingAddress.id,
+          name: addressForm.name.trim(),
+          phone: addressForm.phone.trim(),
+          region: addressForm.region.trim(),
+          address: addressForm.detail.trim(),
+          is_default: addressForm.isDefault,
+        });
+      } else {
+        targetId = await addressApi.add({
+          name: addressForm.name.trim(),
+          phone: addressForm.phone.trim(),
+          region: addressForm.region.trim(),
+          address: addressForm.detail.trim(),
+          is_default: addressForm.isDefault,
+        });
+      }
 
       const list = await addressApi.list().catch(() => []);
       setAddresses(list);
       const nextSelected =
-        list.find((item) => item.id === id) ??
+        list.find((item) => item.id === targetId) ??
+        list.find((item) => item.id === selectedAddress?.id) ??
         list.find((item) => item.is_default) ??
         list[0] ??
         null;
       setSelectedAddress(nextSelected);
-      showToast({ message: '地址已添加', type: 'success' });
+      showToast({ message: editingAddress ? '地址已更新' : '地址已添加', type: 'success' });
       setShowAddressFormSheet(false);
       setShowRegionPicker(false);
       resetAddressForm();
@@ -234,15 +274,69 @@ export const ProductDetailPage = () => {
       showToast({ message: getErrorMessage(err) || '保存地址失败', type: 'error' });
       setSavingAddress(false);
     }
-  }, [addressForm, resetAddressForm, savingAddress, showToast, validateAddressForm]);
+  }, [addressForm, editingAddress, resetAddressForm, savingAddress, selectedAddress?.id, showToast, validateAddressForm]);
+
+  const handleDeleteAddress = useCallback(async () => {
+    if (!editingAddress || deletingAddress) {
+      return;
+    }
+    if (!window.confirm('确定删除该地址吗？')) {
+      return;
+    }
+
+    setDeletingAddress(true);
+    try {
+      await addressApi.delete(editingAddress.id);
+      const list = await addressApi.list().catch(() => []);
+      setAddresses(list);
+      setSelectedAddress((current) => {
+        if (current?.id === editingAddress.id) {
+          return list.find((item) => item.is_default) ?? list[0] ?? null;
+        }
+        return list.find((item) => item.id === current?.id) ?? list.find((item) => item.is_default) ?? list[0] ?? null;
+      });
+      showToast({ message: '地址已删除', type: 'success' });
+      setShowAddressFormSheet(false);
+      setShowRegionPicker(false);
+      resetAddressForm();
+    } catch (err) {
+      showToast({ message: getErrorMessage(err) || '删除地址失败', type: 'error' });
+      setDeletingAddress(false);
+    }
+  }, [deletingAddress, editingAddress, resetAddressForm, showToast]);
+
+  const handleSetDefaultAddress = useCallback(async (address: AddressItem) => {
+    if (address.is_default || settingDefaultAddressId != null) {
+      return;
+    }
+
+    setSettingDefaultAddressId(address.id);
+    try {
+      await addressApi.setDefault(address.id);
+      const list = await addressApi.list().catch(() => []);
+      setAddresses(list);
+      setSelectedAddress((current) =>
+        list.find((item) => item.id === (current?.id ?? address.id)) ??
+        list.find((item) => item.id === address.id) ??
+        list.find((item) => item.is_default) ??
+        list[0] ??
+        null,
+      );
+      showToast({ message: '已设为默认地址', type: 'success' });
+    } catch (err) {
+      showToast({ message: getErrorMessage(err) || '设置默认地址失败', type: 'error' });
+    } finally {
+      setSettingDefaultAddressId(null);
+    }
+  }, [settingDefaultAddressId, showToast]);
 
   const handleManageAddress = useCallback(() => {
     if (addresses.length === 0) {
-      setShowAddressFormSheet(true);
+      openAddAddressForm();
       return;
     }
-    goTo('address');
-  }, [addresses.length, goTo]);
+    setShowAddressManageSheet(true);
+  }, [addresses.length, openAddAddressForm]);
 
   const handleAddToCart = useCallback(async () => {
     if (!product?.id) {
@@ -292,9 +386,9 @@ export const ProductDetailPage = () => {
     if (!selectedAddress) {
       showToast({ message: '请先添加收货地址', type: 'warning' });
       if (addresses.length === 0) {
-        setShowAddressFormSheet(true);
+        openAddAddressForm();
       } else {
-        goTo('address');
+        setShowAddressManageSheet(true);
       }
       return;
     }
@@ -324,7 +418,7 @@ export const ProductDetailPage = () => {
     } catch (err) {
       showToast({ message: getErrorMessage(err) || '创建订单失败', type: 'error' });
     }
-  }, [product, optionGroups, selectedOptions, quantity, selectedAddress, addresses.length, showToast, goTo, closeSkuSheet, navigate]);
+  }, [product, optionGroups, selectedOptions, quantity, selectedAddress, addresses.length, showToast, closeSkuSheet, navigate, openAddAddressForm]);
 
   const handleOpenSupport = useCallback(() => {
     void openCustomerServiceLink(({ duration, message, type }) => {
@@ -422,9 +516,33 @@ export const ProductDetailPage = () => {
             product={product}
           />
 
+          <ProductAddressManageSheet
+            addresses={addresses}
+            isOpen={showAddressManageSheet}
+            isSettingDefault={settingDefaultAddressId != null}
+            onAdd={() => {
+              setShowAddressManageSheet(false);
+              openAddAddressForm();
+            }}
+            onClose={() => setShowAddressManageSheet(false)}
+            onEdit={(address) => {
+              setShowAddressManageSheet(false);
+              openEditAddressForm(address);
+            }}
+            onSelect={(address) => {
+              setSelectedAddress(address);
+              setShowAddressManageSheet(false);
+            }}
+            onSetDefault={(address) => void handleSetDefaultAddress(address)}
+            selectedAddress={selectedAddress}
+          />
+
           <ProductAddressFormSheet
+            editingAddressName={editingAddress?.name}
             errors={addressFormErrors}
             isOpen={showAddressFormSheet}
+            isDeleting={deletingAddress}
+            isEditing={Boolean(editingAddress)}
             isSaving={savingAddress}
             onChange={(patch) => {
               setAddressForm((previous) => ({ ...previous, ...patch }));
@@ -434,6 +552,7 @@ export const ProductDetailPage = () => {
               }, {} as Partial<Record<keyof ProductAddressFormValue, string>>) }));
             }}
             onClose={handleCloseAddressForm}
+            onDelete={() => void handleDeleteAddress()}
             onOpenRegionPicker={() => setShowRegionPicker(true)}
             onSubmit={() => void handleSubmitAddress()}
             value={addressForm}
