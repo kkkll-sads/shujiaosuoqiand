@@ -8,6 +8,7 @@ import { useFeedback } from '../../components/ui/FeedbackProvider';
 import { ErrorState } from '../../components/ui/ErrorState';
 import { PullToRefreshContainer } from '../../components/ui/PullToRefreshContainer';
 import { ProductDetailHeader } from '../../features/product-detail/components/ProductDetailHeader';
+import { ProductAddressFormSheet, type ProductAddressFormValue } from '../../features/product-detail/components/ProductAddressFormSheet';
 import { ProductOverviewSection } from '../../features/product-detail/components/ProductOverviewSection';
 import { ProductPurchaseBar } from '../../features/product-detail/components/ProductPurchaseBar';
 import { ProductReviewsSection } from '../../features/product-detail/components/ProductReviewsSection';
@@ -27,6 +28,7 @@ import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 import { useRequest } from '../../hooks/useRequest';
 import { useAppNavigate } from '../../lib/navigation';
 import { openCustomerServiceLink } from '../../lib/customerService';
+import { RegionPickerSheet } from '../../components/biz/RegionPickerSheet';
 
 const EMPTY_REVIEW_SUMMARY = {
   follow_up_count: 0,
@@ -34,6 +36,14 @@ const EMPTY_REVIEW_SUMMARY = {
   preview: [],
   total: 0,
   with_media_count: 0,
+};
+
+const EMPTY_ADDRESS_FORM: ProductAddressFormValue = {
+  name: '',
+  phone: '',
+  region: '',
+  detail: '',
+  isDefault: true,
 };
 
 export const ProductDetailPage = () => {
@@ -54,6 +64,11 @@ export const ProductDetailPage = () => {
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
   const [addresses, setAddresses] = useState<AddressItem[]>([]);
   const [selectedAddress, setSelectedAddress] = useState<AddressItem | null>(null);
+  const [showAddressFormSheet, setShowAddressFormSheet] = useState(false);
+  const [showRegionPicker, setShowRegionPicker] = useState(false);
+  const [addressForm, setAddressForm] = useState<ProductAddressFormValue>(EMPTY_ADDRESS_FORM);
+  const [addressFormErrors, setAddressFormErrors] = useState<Partial<Record<keyof ProductAddressFormValue, string>>>({});
+  const [savingAddress, setSavingAddress] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -162,6 +177,73 @@ export const ProductDetailPage = () => {
     setShowSkuSheet(false);
   };
 
+  const resetAddressForm = useCallback(() => {
+    setAddressForm(EMPTY_ADDRESS_FORM);
+    setAddressFormErrors({});
+    setSavingAddress(false);
+  }, []);
+
+  const handleCloseAddressForm = useCallback(() => {
+    setShowAddressFormSheet(false);
+    setShowRegionPicker(false);
+    resetAddressForm();
+  }, [resetAddressForm]);
+
+  const validateAddressForm = useCallback(() => {
+    const nextErrors: Partial<Record<keyof ProductAddressFormValue, string>> = {};
+    if (!addressForm.name.trim()) nextErrors.name = '收货人姓名不能为空';
+    if (!addressForm.phone.trim()) {
+      nextErrors.phone = '手机号不能为空';
+    } else if (!/^1[3-9]\d{9}$/.test(addressForm.phone.trim())) {
+      nextErrors.phone = '手机号格式不正确';
+    }
+    if (!addressForm.region.trim()) nextErrors.region = '所在地区不能为空';
+    if (!addressForm.detail.trim()) nextErrors.detail = '详细地址不能为空';
+    setAddressFormErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
+  }, [addressForm]);
+
+  const handleSubmitAddress = useCallback(async () => {
+    if (!validateAddressForm() || savingAddress) {
+      return;
+    }
+
+    setSavingAddress(true);
+    try {
+      const id = await addressApi.add({
+        name: addressForm.name.trim(),
+        phone: addressForm.phone.trim(),
+        region: addressForm.region.trim(),
+        address: addressForm.detail.trim(),
+        is_default: addressForm.isDefault,
+      });
+
+      const list = await addressApi.list().catch(() => []);
+      setAddresses(list);
+      const nextSelected =
+        list.find((item) => item.id === id) ??
+        list.find((item) => item.is_default) ??
+        list[0] ??
+        null;
+      setSelectedAddress(nextSelected);
+      showToast({ message: '地址已添加', type: 'success' });
+      setShowAddressFormSheet(false);
+      setShowRegionPicker(false);
+      resetAddressForm();
+    } catch (err) {
+      showToast({ message: getErrorMessage(err) || '保存地址失败', type: 'error' });
+      setSavingAddress(false);
+    }
+  }, [addressForm, resetAddressForm, savingAddress, showToast, validateAddressForm]);
+
+  const handleManageAddress = useCallback(() => {
+    if (addresses.length === 0) {
+      setShowAddressFormSheet(true);
+      return;
+    }
+    goTo('address');
+  }, [addresses.length, goTo]);
+
   const handleAddToCart = useCallback(async () => {
     if (!product?.id) {
       showToast({ message: '商品信息异常', type: 'warning' });
@@ -206,14 +288,19 @@ export const ProductDetailPage = () => {
       showToast({ message: '请先选择完整规格', type: 'warning' });
       return;
     }
+
+    if (!selectedAddress) {
+      showToast({ message: '请先添加收货地址', type: 'warning' });
+      if (addresses.length === 0) {
+        setShowAddressFormSheet(true);
+      } else {
+        goTo('address');
+      }
+      return;
+    }
+
     try {
       closeSkuSheet();
-
-      if (!selectedAddress) {
-        showToast({ message: '请先添加收货地址', type: 'warning' });
-        goTo('address');
-        return;
-      }
 
       // 直接传商品 ID 创建订单，跳过购物车
       const result = await shopOrderApi.create({
@@ -237,7 +324,7 @@ export const ProductDetailPage = () => {
     } catch (err) {
       showToast({ message: getErrorMessage(err) || '创建订单失败', type: 'error' });
     }
-  }, [product, optionGroups, selectedOptions, quantity, showToast, closeSkuSheet, navigate, goTo, selectedAddress]);
+  }, [product, optionGroups, selectedOptions, quantity, selectedAddress, addresses.length, showToast, goTo, closeSkuSheet, navigate]);
 
   const handleOpenSupport = useCallback(() => {
     void openCustomerServiceLink(({ duration, message, type }) => {
@@ -314,7 +401,7 @@ export const ProductDetailPage = () => {
             onConfirm={handleBuyNow}
             onDecreaseQuantity={() => setQuantity((previous) => Math.max(1, previous - 1))}
             onIncreaseQuantity={() => setQuantity((previous) => previous + 1)}
-            onManageAddress={() => goTo('address')}
+            onManageAddress={handleManageAddress}
             onSelectOption={(groupName, option) =>
               setSelectedOptions((previous) => ({
                 ...previous,
@@ -333,6 +420,34 @@ export const ProductDetailPage = () => {
             isOpen={showServiceSheet}
             onClose={() => setShowServiceSheet(false)}
             product={product}
+          />
+
+          <ProductAddressFormSheet
+            errors={addressFormErrors}
+            isOpen={showAddressFormSheet}
+            isSaving={savingAddress}
+            onChange={(patch) => {
+              setAddressForm((previous) => ({ ...previous, ...patch }));
+              setAddressFormErrors((previous) => ({ ...previous, ...Object.keys(patch).reduce((acc, key) => {
+                acc[key as keyof ProductAddressFormValue] = '';
+                return acc;
+              }, {} as Partial<Record<keyof ProductAddressFormValue, string>>) }));
+            }}
+            onClose={handleCloseAddressForm}
+            onOpenRegionPicker={() => setShowRegionPicker(true)}
+            onSubmit={() => void handleSubmitAddress()}
+            value={addressForm}
+          />
+
+          <RegionPickerSheet
+            isOpen={showRegionPicker}
+            value={addressForm.region}
+            onCancel={() => setShowRegionPicker(false)}
+            onConfirm={(region) => {
+              setAddressForm((previous) => ({ ...previous, region }));
+              setAddressFormErrors((previous) => ({ ...previous, region: '' }));
+              setShowRegionPicker(false);
+            }}
           />
         </>
       )}
