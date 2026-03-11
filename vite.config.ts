@@ -1,4 +1,4 @@
-﻿import legacy from '@vitejs/plugin-legacy';
+import legacy from '@vitejs/plugin-legacy';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
@@ -37,6 +37,7 @@ export default defineConfig(({ mode }) => {
         '/api': {
           target: apiProxyTarget,
           changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api/, '/index.php/api'),
         },
         '/storage': {
           target: apiProxyTarget,
