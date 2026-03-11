@@ -156,16 +156,6 @@ export const HomePage = () => {
     return resolveUploadUrl(item.image);
   };
 
-  /** 处理轮播图点击跳转 */
-  const handleBannerClick = (item: BannerItem) => {
-    if (!item.url) return;
-    if (item.url.startsWith('/')) {
-      goTo(item.url.replace(/^\//, '') as never);
-    } else if (/^https?:\/\//i.test(item.url)) {
-      window.open(item.url, '_blank');
-    }
-  };
-
   const renderHeader = () => (
     <div className="sticky top-0 z-40 bg-white dark:bg-gray-900/90 backdrop-blur-md px-4 py-2 flex items-center space-x-3 border-b border-gray-100 dark:border-gray-800">
       <div
@@ -228,11 +218,9 @@ export const HomePage = () => {
                     const imageUrl = resolveBannerImage(banner);
 
                     return (
-                      <button
+                      <div
                         key={banner.id}
-                        type="button"
-                        className="relative min-h-[168px] w-full shrink-0 overflow-hidden bg-gradient-to-r from-[#171717] via-[#2D1B69] to-[#FF4B2B] text-left"
-                        onClick={() => handleBannerClick(banner)}
+                        className="relative min-h-[168px] w-full shrink-0 overflow-hidden bg-gradient-to-r from-[#171717] via-[#2D1B69] to-[#FF4B2B]"
                         aria-label={banner.title || '轮播图'}
                       >
                         {/* 有图片则展示图片，否则展示渐变背景 + 文字 */}
@@ -250,9 +238,7 @@ export const HomePage = () => {
                             <div className="absolute right-10 bottom-[-30px] h-28 w-28 rounded-full bg-white/10 blur-2xl" />
                           </>
                         )}
-
-
-                      </button>
+                      </div>
                     );
                   })}
                 </div>
@@ -489,4 +475,6 @@ export const HomePage = () => {
     </div>
   );
 };
+
+
 

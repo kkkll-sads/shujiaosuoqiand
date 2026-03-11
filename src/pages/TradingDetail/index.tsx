@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file 资产申购详情页
  * @description 根据专场 ID 加载商品列表，支持分页、筛选、下拉刷新。
  */
@@ -33,14 +33,12 @@ export const TradingDetailPage = () => {
   const [imageError, setImageError] = useState<Record<number, boolean>>({});
   const [nowMs, setNowMs] = useState(() => Date.now());
 
-  /* ---- 数据状态 ---- */
   const [items, setItems] = useState<CollectionItem[]>([]);
   const [sessionData, setSessionData] = useState<any>(null);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
 
-  /* ---- 首次加载 ---- */
   const {
     error: firstError,
     loading: firstLoading,
@@ -78,7 +76,7 @@ export const TradingDetailPage = () => {
       setNowMs(Date.now());
     }, 1000);
 
-    return () => window.clearInterval(timer);
+    return () => window.clearTimeout(timer);
   }, []);
 
   const currentSession = useMemo(() => {
@@ -99,7 +97,6 @@ export const TradingDetailPage = () => {
     ? `${currentSession.start_time || '--:--'} - ${currentSession.end_time || '--:--'}`
     : '00:00 - 21:00';
 
-  /* ---- 加载更多 ---- */
   const loadMore = useCallback(async () => {
     if (loadingMore || !hasMore || !sessionId) return;
     setLoadingMore(true);
@@ -115,7 +112,7 @@ export const TradingDetailPage = () => {
       setPage(nextPage);
       setHasMore(list.length >= PAGE_SIZE);
     } catch {
-      // 静默失败，用户可重试
+      // Ignore transient load-more failures.
     } finally {
       setLoadingMore(false);
     }
@@ -136,7 +133,6 @@ export const TradingDetailPage = () => {
     restoreWhen: !firstLoading && items.length > 0,
   });
 
-  /* ---- 下拉刷新 ---- */
   const handleRefresh = useCallback(async () => {
     await reloadFirst().catch(() => undefined);
   }, [reloadFirst]);
@@ -145,27 +141,36 @@ export const TradingDetailPage = () => {
     setImageError((prev) => ({ ...prev, [id]: true }));
   };
 
-  /** 获取图片 URL */
   const getImageUrl = (item: CollectionItem) => {
     if (!item.image) return '';
     return resolveUploadUrl(item.image);
   };
 
-  /* ---- 渲染骨架屏 ---- */
+  const openPreOrder = useCallback(
+    (packageId: number) => {
+      if (poolStatus !== 'in_progress') {
+        return;
+      }
+
+      navigate(`/trading/pre-order/${sessionId}?package_id=${packageId}`);
+    },
+    [navigate, poolStatus, sessionId],
+  );
+
   const renderSkeleton = () => (
     <div className="px-4 space-y-3">
       {[1, 2, 3].map((i) => (
-        <Card key={i} className="p-3 flex">
-          <Skeleton className="w-[100px] h-[100px] rounded-xl mr-3 shrink-0" />
-          <div className="flex-1 flex flex-col justify-between py-1">
+        <Card key={i} className="flex p-3">
+          <Skeleton className="mr-3 h-[100px] w-[100px] shrink-0 rounded-xl" />
+          <div className="flex flex-1 flex-col justify-between py-1">
             <div>
-              <Skeleton className="w-full h-4 mb-2" />
-              <Skeleton className="w-2/3 h-4 mb-2" />
-              <Skeleton className="w-1/3 h-3" />
+              <Skeleton className="mb-2 h-4 w-full" />
+              <Skeleton className="mb-2 h-4 w-2/3" />
+              <Skeleton className="h-3 w-1/3" />
             </div>
-            <div className="flex justify-between items-end mt-2">
-              <Skeleton className="w-20 h-5" />
-              <Skeleton className="w-16 h-8 rounded-full" />
+            <div className="mt-2 flex items-end justify-between">
+              <Skeleton className="h-5 w-20" />
+              <Skeleton className="h-8 w-16 rounded-full" />
             </div>
           </div>
         </Card>
@@ -173,7 +178,6 @@ export const TradingDetailPage = () => {
     </div>
   );
 
-  /* ---- 渲染列表 ---- */
   const renderList = () => {
     if (firstLoading && items.length === 0) return renderSkeleton();
 
@@ -192,25 +196,20 @@ export const TradingDetailPage = () => {
     }
 
     return (
-      <div className="px-4 space-y-3">
+      <div className="space-y-3 px-4">
         {items.map((item, index) => (
           <Card
             key={item.package_id ?? index}
-            className={`p-3 flex transition-opacity border border-white/50 shadow-sm ${
+            className={`flex border border-white/50 p-3 shadow-sm transition-opacity ${
               poolStatus === 'in_progress'
-                ? 'active:opacity-90 cursor-pointer'
-                : 'opacity-80 cursor-not-allowed'
+                ? 'cursor-pointer active:opacity-90'
+                : 'cursor-not-allowed opacity-80'
             }`}
-            onClick={() => {
-              if (poolStatus === 'in_progress') {
-                navigate(`/trading/detail/${sessionId}/items/${item.package_id}`);
-              }
-            }}
+            onClick={() => openPreOrder(item.package_id)}
           >
-            {/* 商品图片 */}
-            <div className="w-[100px] h-[100px] rounded-xl bg-bg-base mr-3 shrink-0 overflow-hidden relative border border-border-light/50">
+            <div className="relative mr-3 h-[100px] w-[100px] shrink-0 overflow-hidden rounded-xl border border-border-light/50 bg-bg-base">
               {imageError[item.package_id] || !item.image ? (
-                <div className="w-full h-full flex flex-col items-center justify-center bg-bg-card text-text-aux">
+                <div className="flex h-full w-full flex-col items-center justify-center bg-bg-card text-text-aux">
                   <ImageIcon size={20} className="mb-1 opacity-50" />
                   <span className="text-2xs">{item.image ? '加载失败' : '暂无图片'}</span>
                 </div>
@@ -218,49 +217,47 @@ export const TradingDetailPage = () => {
                 <img
                   src={getImageUrl(item)}
                   alt={item.package_name}
-                  className="w-full h-full object-cover"
+                  className="h-full w-full object-cover"
                   onError={() => handleImageError(item.package_id)}
                   referrerPolicy="no-referrer"
                 />
               )}
             </div>
 
-            {/* 商品信息 */}
-            <div className="flex-1 flex flex-col justify-between py-0.5">
+            <div className="flex flex-1 flex-col justify-between py-0.5">
               <div>
-                <h4 className="text-lg font-bold text-text-main leading-snug line-clamp-2 mb-1.5">
+                <h4 className="mb-1.5 line-clamp-2 text-lg font-bold leading-snug text-text-main">
                   {item.package_name}
                 </h4>
-                <div className="flex items-center space-x-1.5 mb-1.5 flex-wrap gap-y-1">
-                  <span className="text-2xs text-primary-start border border-primary-start/30 px-1.5 py-0.5 rounded-sm bg-red-50/50">
+                <div className="mb-1.5 flex flex-wrap items-center gap-y-1 space-x-1.5">
+                  <span className="rounded-sm border border-primary-start/30 bg-red-50/50 px-1.5 py-0.5 text-2xs text-primary-start">
                     官方自营
                   </span>
                   {currentSession?.is_mixed_pay_available === true && (
-                    <span className="text-2xs text-orange-500 border border-orange-500/30 px-1.5 py-0.5 rounded-sm bg-orange-50/50">
+                    <span className="rounded-sm border border-orange-500/30 bg-orange-50/50 px-1.5 py-0.5 text-2xs text-orange-500">
                       支持混合支付
                     </span>
                   )}
                 </div>
-                </div>
-              <div className="flex items-end justify-between mt-2">
+              </div>
+
+              <div className="mt-2 flex items-end justify-between">
                 <div className="flex flex-col">
-                  <span className="text-xs text-text-sub mb-0.5">申购区间</span>
-                  <span className="text-xl font-bold text-primary-start leading-none">
+                  <span className="mb-0.5 text-xs text-text-sub">申购区间</span>
+                  <span className="text-xl font-bold leading-none text-primary-start">
                     ¥{item.zone_range}
                   </span>
                 </div>
                 <button
-                  className={`h-[36px] px-5 rounded-2xl text-base font-medium text-white shadow-sm transition-opacity ${
+                  className={`h-[36px] rounded-2xl px-5 text-base font-medium text-white shadow-sm transition-opacity ${
                     poolStatus !== 'in_progress'
-                      ? 'bg-border-light text-text-aux cursor-not-allowed'
+                      ? 'cursor-not-allowed bg-border-light text-text-aux'
                       : 'bg-gradient-to-r from-primary-start to-primary-end active:opacity-80'
                   }`}
                   disabled={poolStatus !== 'in_progress'}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (poolStatus === 'in_progress') {
-                      navigate(`/trading/pre-order/${sessionId}?package_id=${item.package_id}`);
-                    }
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    openPreOrder(item.package_id);
                   }}
                 >
                   {poolStatus === 'not_started' ? '未开始' : poolStatus === 'ended' ? '本场已结束' : '申购'}
@@ -270,7 +267,6 @@ export const TradingDetailPage = () => {
           </Card>
         ))}
 
-        {/* 加载更多触发器 */}
         <div ref={loadMoreRef} className="py-4 text-center text-sm text-gray-400">
           {loadingMore ? (
             <span className="inline-flex items-center">
@@ -288,97 +284,119 @@ export const TradingDetailPage = () => {
   };
 
   return (
-    <div className="flex-1 flex flex-col bg-bg-base relative overflow-hidden">
+    <div className="relative flex flex-1 flex-col overflow-hidden bg-bg-base">
       <PageHeader
         title="资产申购"
         onBack={goBack}
         rightAction={
-          <button className="p-1 active:opacity-70 transition-opacity">
+          <button className="p-1 transition-opacity active:opacity-70">
             <HelpCircle size={20} className="text-text-main" />
           </button>
         }
       />
 
       <PullToRefreshContainer onRefresh={handleRefresh}>
-        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto no-scrollbar pb-8 bg-gradient-to-b from-red-50/50 to-bg-base dark:from-bg-base dark:to-bg-base">
-          {/* Top Pool Info Card */}
-          <div className="px-4 mb-5 mt-4">
+        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto bg-gradient-to-b from-red-50/50 to-bg-base pb-8 no-scrollbar dark:from-bg-base dark:to-bg-base">
+          <div className="mb-5 mt-4 px-4">
             {firstLoading && items.length === 0 ? (
               <Card className="p-4">
-                <div className="flex justify-between mb-4">
+                <div className="mb-4 flex justify-between">
                   <div>
-                    <Skeleton className="w-16 h-5 rounded-full mb-2" />
-                    <Skeleton className="w-32 h-6" />
+                    <Skeleton className="mb-2 h-5 w-16 rounded-full" />
+                    <Skeleton className="h-6 w-32" />
                   </div>
-                  <Skeleton className="w-10 h-10 rounded-full" />
+                  <Skeleton className="h-10 w-10 rounded-full" />
                 </div>
-                <Skeleton className="w-24 h-4 mb-4" />
-                <Skeleton className="w-full h-16 rounded-xl" />
+                <Skeleton className="mb-4 h-4 w-24" />
+                <Skeleton className="h-16 w-full rounded-xl" />
               </Card>
             ) : (
-              <Card className="p-4 relative overflow-hidden border border-white/50 shadow-sm">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-primary-start/5 rounded-bl-full -z-10"></div>
-                <div className="flex justify-between items-start mb-3">
+              <Card className="relative overflow-hidden border border-white/50 p-4 shadow-sm">
+                <div className="absolute right-0 top-0 -z-10 h-32 w-32 rounded-bl-full bg-primary-start/5"></div>
+                <div className="mb-3 flex items-start justify-between">
                   <div>
-                    <span className="inline-block px-2 py-0.5 bg-primary-start/10 text-primary-start text-xs font-bold rounded-tl-[8px] rounded-br-[8px] mb-2">
+                    <span className="mb-2 inline-block rounded-tl-[8px] rounded-br-[8px] bg-primary-start/10 px-2 py-0.5 text-xs font-bold text-primary-start">
                       {currentSession?.code || `场次 ${sessionId || '--'}`}
                     </span>
-                    <h2 className="text-4xl font-bold text-text-main leading-tight">
+                    <h2 className="text-4xl font-bold leading-tight text-text-main">
                       {currentSession?.title || '数字流量池'}
                     </h2>
                   </div>
-                  <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center text-primary-start/40">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-50 text-primary-start/40">
                     <Award size={24} />
                   </div>
                 </div>
-                <div className="flex items-center text-sm text-text-sub mb-4">
+                <div className="mb-4 flex items-center text-sm text-text-sub">
                   <Clock size={12} className="mr-1" /> {sessionTimeSlot}
                 </div>
-                <div className="flex bg-bg-base rounded-xl p-3 border border-border-light/50">
-                  <div className="flex-1 flex flex-col">
-                    <span className="text-s text-text-sub mb-1">预期收益率</span>
+                <div className="flex rounded-xl border border-border-light/50 bg-bg-base p-3">
+                  <div className="flex-1 flex-col">
+                    <span className="mb-1 text-s text-text-sub">预期收益率</span>
                     <span className="text-3xl font-bold text-primary-start">{currentSession?.roi || '5.5%'}</span>
                   </div>
-                  <div className="w-px bg-border-light mx-3"></div>
-                  <div className="flex-1 flex flex-col">
-                    <span className="text-s text-text-sub mb-1">本期额度</span>
-                    <span className="text-3xl font-bold text-text-main">{currentSession?.quota || '200万'}</span>
+                  <div className="mx-3 w-px bg-border-light"></div>
+                  <div className="flex-1 flex-col">
+                    <span className="mb-1 text-s text-text-sub">状态</span>
+                    <span className={`inline-flex items-center text-sm font-bold ${
+                      poolStatus === 'in_progress'
+                        ? 'text-emerald-600'
+                        : poolStatus === 'not_started'
+                          ? 'text-orange-500'
+                          : 'text-text-aux'
+                    }`}>
+                      <span className={`mr-1.5 inline-block h-2 w-2 rounded-full ${
+                        poolStatus === 'in_progress'
+                          ? 'bg-emerald-500'
+                          : poolStatus === 'not_started'
+                            ? 'bg-orange-400'
+                            : 'bg-text-aux'
+                      }`} />
+                      {poolStatus === 'in_progress' ? '申购中' : poolStatus === 'not_started' ? '未开始' : '已结束'}
+                    </span>
                   </div>
                 </div>
+                {poolStatus === 'not_started' && sessionTiming.remainingLabel ? (
+                  <div className="mt-3 flex items-center rounded-xl bg-orange-50/70 px-3 py-2 text-sm text-orange-600">
+                    <AlertCircle size={14} className="mr-2" />
+                    距离开始还有 {sessionTiming.remainingLabel}
+                  </div>
+                ) : null}
+                {poolStatus === 'ended' ? (
+                  <div className="mt-3 flex items-center rounded-xl bg-gray-100/80 px-3 py-2 text-sm text-text-sub">
+                    <AlertCircle size={14} className="mr-2" />
+                    本场申购已结束，请关注下一场开放时间
+                  </div>
+                ) : null}
               </Card>
             )}
           </div>
 
-          {/* List Header */}
-          <div className="px-4 mb-3 flex items-center justify-between">
+          <div className="mb-3 flex items-center justify-between px-4">
             <div className="flex items-center">
-              <div className="w-1 h-3.5 bg-primary-start rounded-full mr-2"></div>
+              <div className="mr-2 h-3.5 w-1 rounded-full bg-primary-start"></div>
               <h3 className="text-xl font-bold text-text-main">资产申购列表</h3>
             </div>
             <div className="flex items-center space-x-2">
               <button
-                className="px-2.5 py-1 border border-border-light rounded-full text-s text-text-sub flex items-center active:bg-bg-card transition-colors"
+                className="flex items-center rounded-full border border-border-light px-2.5 py-1 text-s text-text-sub transition-colors active:bg-bg-card"
                 onClick={() => goTo('reservations')}
               >
                 <FileText size={12} className="mr-1" /> 申购记录
               </button>
               <div
-                className={`px-2.5 py-1 rounded-full text-s font-medium text-white shadow-sm ${
-                  poolStatus === 'ended'
-                    ? 'bg-text-aux'
-                    : 'bg-gradient-to-r from-primary-start to-primary-end'
+                className={`rounded-full px-2.5 py-1 text-s font-medium ${
+                  poolStatus === 'in_progress'
+                    ? 'bg-emerald-50 text-emerald-600'
+                    : poolStatus === 'not_started'
+                      ? 'bg-orange-50 text-orange-500'
+                      : 'bg-gray-100 text-text-sub'
                 }`}
               >
-                {poolStatus === 'not_started'
-                  ? `距开始 ${sessionTiming.countdownText}`
-                  : poolStatus === 'in_progress'
-                    ? `距结束 ${sessionTiming.countdownText}`
-                    : '本场结束'}
+                {poolStatus === 'in_progress' ? '进行中' : poolStatus === 'not_started' ? '即将开始' : '已结束'}
               </div>
             </div>
           </div>
 
-          {/* Asset List */}
           {renderList()}
         </div>
       </PullToRefreshContainer>

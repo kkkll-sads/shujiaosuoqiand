@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file 路由配置
  * @description 使用 createHashRouter 创建路由配置。
  *   - 5 个 Tab 页同步导入（首屏加载）
@@ -7,7 +7,7 @@
  */
 
 import React, { lazy, Suspense } from 'react';
-import { createHashRouter, useRouteError } from 'react-router-dom';
+import { Navigate, createHashRouter, useParams, useRouteError } from 'react-router-dom';
 import { AppLayout } from '../components/layout/AppLayout';
 
 // ========== 首屏 Tab 页 - 同步导入 ==========
@@ -51,7 +51,6 @@ const TradingDetailPage = lazy(() => import('../pages/TradingDetail').then(m => 
 const PreOrderPage = lazy(() => import('../pages/PreOrder').then(m => ({ default: m.PreOrderPage })));
 const ReservationsPage = lazy(() => import('../pages/Reservations').then(m => ({ default: m.ReservationsPage })));
 const ReservationDetailPage = lazy(() => import('../pages/ReservationDetail').then(m => ({ default: m.ReservationDetailPage })));
-const ItemDetailPage = lazy(() => import('../pages/ItemDetail').then(m => ({ default: m.ItemDetailPage })));
 const FlashSalePage = lazy(() => import('../pages/FlashSale').then(m => ({ default: m.FlashSalePage })));
 const RightsHistoryPage = lazy(() => import('../pages/RightsHistory').then(m => ({ default: m.RightsHistoryPage })));
 const AccumulatedRightsPage = lazy(() => import('../pages/AccumulatedRights').then(m => ({ default: m.AccumulatedRightsPage })));
@@ -89,6 +88,15 @@ const PageFallback = () => (
 const Lazy = ({ children }: { children: React.ReactNode }) => (
   <Suspense fallback={<PageFallback />}>{children}</Suspense>
 );
+
+const LegacyTradingItemRedirect = () => {
+  const { packageId, sessionId } = useParams();
+  const targetPath = packageId
+    ? `/trading/pre-order/${sessionId || 0}?package_id=${packageId}`
+    : `/trading/pre-order/${sessionId || 0}`;
+
+  return <Navigate replace to={targetPath} />;
+};
 
 /**
  * 根错误边界组件，专用于捕获类似“重新构建后分包文件丢失”或 React 内部抛错
@@ -181,7 +189,7 @@ export const router = createHashRouter([
       // ========== 交易区 ==========
       { path: 'trading', element: <Lazy><TradingZonePage /></Lazy> },
       { path: 'trading/detail/:id', element: <Lazy><TradingDetailPage /></Lazy> },
-      { path: 'trading/detail/:sessionId/items/:packageId', element: <Lazy><ItemDetailPage /></Lazy> },
+      { path: 'trading/detail/:sessionId/items/:packageId', element: <LegacyTradingItemRedirect /> },
       { path: 'trading/pre-order/:id', element: <Lazy><PreOrderPage /></Lazy> },
       { path: 'reservations', element: <Lazy><ReservationsPage /></Lazy> },
       { path: 'reservation_detail/:id', element: <Lazy><ReservationDetailPage /></Lazy> },
@@ -251,3 +259,5 @@ export const router = createHashRouter([
     v7_skipActionErrorRevalidation: true,
   },
 });
+
+
