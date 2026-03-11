@@ -585,7 +585,7 @@ export function RechargePage() {
               ) : null}
             </div>
 
-            <div className="mb-4 flex overflow-x-auto no-scrollbar gap-2">
+            <div className="mb-4 flex min-w-0 overflow-x-auto overflow-y-hidden no-scrollbar overscroll-x-contain gap-2">
               {QUICK_AMOUNTS.map((value) => (
                 <button
                   key={value}

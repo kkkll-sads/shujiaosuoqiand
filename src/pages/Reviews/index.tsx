@@ -276,7 +276,7 @@ export function ReviewsPage() {
           </div>
         </Card>
 
-        <div className="sticky top-11 z-10 flex overflow-x-auto border-b border-border-light bg-bg-base/95 px-4 py-2 backdrop-blur">
+        <div className="sticky top-11 z-10 flex min-w-0 overflow-x-auto overflow-y-hidden border-b border-border-light bg-bg-base/95 px-4 py-2 backdrop-blur no-scrollbar overscroll-x-contain">
           {REVIEW_FILTERS.map((filter) => (
             <button
               key={filter.id}

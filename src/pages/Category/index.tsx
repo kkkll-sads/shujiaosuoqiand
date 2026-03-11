@@ -66,7 +66,7 @@ function mergeProducts(previous: ShopProductItem[], next: ShopProductItem[]) {
 export const CategoryPage = () => {
   const { goBack, goTo } = useAppNavigate();
   const { isOffline, refreshStatus } = useNetworkStatus();
-  const [activeCategory, setActiveCategory] = useSessionState('category-page:active-category', '');
+  const [activeCategory, setActiveCategory] = useSessionState('category-page:active-category', '全部');
   const [products, setProducts] = useState<ShopProductItem[]>([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
@@ -105,13 +105,9 @@ export const CategoryPage = () => {
 
   const fetchCategoryPage = useCallback(
     (nextPage: number, signal?: AbortSignal) => {
-      if (!activeCategory) {
-        return Promise.resolve(EMPTY_PRODUCT_LIST);
-      }
-
       return shopProductApi.list(
         {
-          category: activeCategory,
+          category: activeCategory === '全部' ? undefined : activeCategory,
           limit: 20,
           page: nextPage,
         },
@@ -154,7 +150,7 @@ export const CategoryPage = () => {
   }, [productsRequest.data]);
 
   const loadMore = useCallback(async () => {
-    if (!activeCategory || loadingMoreRef.current || !hasMore) {
+    if (loadingMoreRef.current || !hasMore) {
       return;
     }
 

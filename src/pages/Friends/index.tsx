@@ -232,7 +232,7 @@ export const FriendsPage = () => {
                 </button>
               )}
             </div>
-            <div className="flex items-center overflow-x-auto no-scrollbar pb-1 -mx-4 px-4">
+            <div className="flex min-w-0 items-center overflow-x-auto overflow-y-hidden no-scrollbar overscroll-x-contain pb-1 -mx-4 px-4">
               {FILTERS.map(f => (
                 <button
                   key={f.id}

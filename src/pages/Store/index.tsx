@@ -3,7 +3,7 @@
  * @description 商城首页，展示商品列表、分类筛选、搜索、无限滚动加载。
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'; // React 核心 Hook
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Award,
   CheckCircle2,
@@ -97,7 +97,7 @@ function formatCountdown(seconds: number) {
 
 function HorizontalProductSkeleton() {
   return (
-    <div className="flex space-x-3 overflow-x-auto pb-2">
+    <div className="flex min-w-0 space-x-3 overflow-x-auto overflow-y-hidden pb-2 no-scrollbar overscroll-x-contain">
       {Array.from({ length: 4 }).map((_, index) => (
         <div key={index} className="w-[100px] shrink-0 space-y-2">
           <Skeleton className="aspect-square w-full rounded-xl" />
@@ -487,7 +487,7 @@ export const StorePage = () => {
                       <EmptyState message="当前没有秒杀商品" />
                     </Card>
                   ) : (
-                    <div className="flex space-x-3 overflow-x-auto pb-2">
+                    <div className="flex min-w-0 space-x-3 overflow-x-auto overflow-y-hidden pb-2 no-scrollbar overscroll-x-contain">
                       {flashSaleProducts.map((item) => (
                         <button
                           key={item.flash_sale_product_id}
@@ -540,7 +540,7 @@ export const StorePage = () => {
                       <EmptyState message="当前没有热卖商品" />
                     </Card>
                   ) : (
-                    <div className="flex space-x-3 overflow-x-auto pb-2">
+                    <div className="flex min-w-0 space-x-3 overflow-x-auto overflow-y-hidden pb-2 no-scrollbar overscroll-x-contain">
                       {hotSaleProducts.map((item) => (
                         <button
                           key={item.id}

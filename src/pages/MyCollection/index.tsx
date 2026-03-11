@@ -433,9 +433,9 @@ export const MyCollectionPage = () => {
 
       <PageHeader title="我的藏品" onBack={() => goBackOr('user')} />
 
-      <div className="shrink-0 border-b border-border-light bg-bg-card px-4 pb-4 pt-2">
-        <form onSubmit={handleSearchSubmit} className="flex gap-2">
-          <div className="relative flex-1">
+      <div className="z-10 shrink-0 border-b border-border-light bg-bg-card px-4 pb-4 pt-2">
+        <form onSubmit={handleSearchSubmit} className="flex h-auto shrink-0 gap-2">
+          <div className="relative flex h-11 flex-1 items-center overflow-hidden">
             <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-aux" />
             <input
               value={draftKeyword}
@@ -462,7 +462,7 @@ export const MyCollectionPage = () => {
           </button>
         </form>
 
-        <div className="mt-3 flex gap-2 overflow-x-auto no-scrollbar">
+        <div className="mt-3 flex min-w-0 gap-2 overflow-x-auto overflow-y-hidden no-scrollbar overscroll-x-contain">
           {STATUS_TABS.map((tab) => {
             const active = tab.key === activeStatus;
             return (

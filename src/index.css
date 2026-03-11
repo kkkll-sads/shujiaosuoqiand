@@ -1,4 +1,4 @@
-﻿@import "tailwindcss";
+@import "tailwindcss";
 
 /* 深色模式由 .dark 类控制，不跟随系统；主题由 ThemeContext + 首屏脚本统一设置 */
 @custom-variant dark (&:where(.dark, .dark *));
@@ -214,6 +214,11 @@
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* 筛选按钮横向滚动时防止触发父级竖向滚动 */
+.overscroll-x-contain {
+  overscroll-behavior-x: contain;
 }
 
 @keyframes marquee {

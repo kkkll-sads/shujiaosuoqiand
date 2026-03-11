@@ -558,9 +558,9 @@ export function BillingPage() {
     }
 
     return (
-      <div className="shrink-0 border-b border-border-light bg-bg-card px-4 pb-4 pt-2">
-        <form onSubmit={handleSearchSubmit} className="flex gap-2">
-          <div className="relative flex-1">
+      <div className="z-10 shrink-0 border-b border-border-light bg-bg-card px-4 pb-4 pt-2">
+        <form onSubmit={handleSearchSubmit} className="flex h-auto shrink-0 gap-2">
+          <div className="relative flex h-11 flex-1 items-center overflow-hidden">
             <Search
               size={16}
               className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-aux"
@@ -590,7 +590,7 @@ export function BillingPage() {
           </button>
         </form>
 
-        <div className="mt-3 flex gap-2 overflow-x-auto no-scrollbar">
+        <div className="mt-3 flex min-w-0 gap-2 overflow-x-auto overflow-y-hidden no-scrollbar overscroll-x-contain">
           {ACCOUNT_TYPE_OPTIONS.map((option) => (
             <button
               key={option.key}
@@ -607,7 +607,7 @@ export function BillingPage() {
           ))}
         </div>
 
-        <div className="mt-3 flex gap-2 overflow-x-auto no-scrollbar">
+        <div className="mt-3 flex min-w-0 gap-2 overflow-x-auto overflow-y-hidden no-scrollbar overscroll-x-contain">
           {FLOW_OPTIONS.map((option) => (
             <button
               key={option.key}
@@ -680,14 +680,18 @@ export function BillingPage() {
     }
 
     if (hasMore) {
-      return <span>继续下拉加载更多</span>;
+      return (
+        <button
+          type="button"
+          onClick={() => void loadMore()}
+          className="rounded-full border border-border-light bg-bg-card px-6 py-2 text-sm text-text-main active:opacity-70"
+        >
+          加载更多
+        </button>
+      );
     }
 
-    if (logs.length > PAGE_SIZE) {
-      return <span>没有更多了</span>;
-    }
-
-    return null;
+    return <span className="text-text-aux">已加载全部</span>;
   };
 
   const renderLogList = () => {
@@ -755,7 +759,10 @@ export function BillingPage() {
           </div>
         ))}
 
-        <div ref={loadMoreRef} className="py-4 text-center text-sm text-text-aux">
+        <div
+          ref={loadMoreRef}
+          className="flex min-h-[80px] flex-col items-center justify-center gap-2 py-6"
+        >
           {renderLoadMore()}
         </div>
       </div>

@@ -9,8 +9,8 @@ export const OrderStatusTabs = ({
   activeTab,
   onChange,
 }: OrderStatusTabsProps) => (
-  <div className="bg-bg-card border-b border-border-light">
-    <div className="flex overflow-x-auto no-scrollbar px-2">
+  <div className="z-10 shrink-0 bg-bg-card border-b border-border-light">
+    <div className="flex min-w-0 overflow-x-auto overflow-y-hidden no-scrollbar overscroll-x-contain px-2">
       {tabs.map(tab => (
         <button
           key={tab}

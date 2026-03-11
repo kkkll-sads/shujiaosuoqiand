@@ -180,7 +180,7 @@ export const AfterSalesPage = () => {
           </div>
         </div>
 
-        <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+        <div className="mt-4 flex min-w-0 gap-2 overflow-x-auto overflow-y-hidden pb-1 no-scrollbar overscroll-x-contain">
           {tabItems.map((tab) => {
             const active = tab.key === activeTab;
             return (

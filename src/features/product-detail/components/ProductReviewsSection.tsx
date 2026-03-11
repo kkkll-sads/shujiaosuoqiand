@@ -112,7 +112,7 @@ export const ProductReviewsSection = ({
               <div className="mb-2 text-xs text-text-sub">{preview.purchase_info}</div>
             )}
             {previewImages.length > 0 && (
-              <div className="flex space-x-2 overflow-x-auto">
+              <div className="flex min-w-0 space-x-2 overflow-x-auto overflow-y-hidden no-scrollbar overscroll-x-contain">
                 {previewImages.map((image) => (
                   <img
                     key={image}

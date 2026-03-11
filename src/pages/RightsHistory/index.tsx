@@ -3,7 +3,7 @@
  * @description 展示用户的确权操作历史记录列表。
  */
 
-import { useRef, useState } from 'react'; // React 核心 Hook
+import { useRef, useState } from 'react';
 import { FileText } from 'lucide-react';
 import { rightsDeclarationApi, type RightsDeclarationStatus } from '../../api';
 import { getErrorMessage } from '../../api/core/errors';
@@ -98,8 +98,8 @@ export function RightsHistoryPage() {
         contentClassName="h-12 px-4"
       />
 
-      <div className="border-b border-border-light bg-white px-4 py-3 dark:bg-bg-card">
-        <div className="flex gap-2 overflow-x-auto no-scrollbar">
+      <div className="z-10 shrink-0 border-b border-border-light bg-white px-4 py-3 dark:bg-bg-card">
+        <div className="flex min-w-0 gap-2 overflow-x-auto overflow-y-hidden no-scrollbar overscroll-x-contain">
           {FILTER_OPTIONS.map((option) => {
             const active = statusFilter === option.value;
             return (

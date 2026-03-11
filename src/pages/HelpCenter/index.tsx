@@ -3,7 +3,7 @@
  * @description 提供在线客服、自助服务、常见问题分类展示，支持下拉刷新。
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react'; // React 核心 Hook
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ChevronDown,
   ChevronUp,
@@ -338,7 +338,7 @@ export const HelpCenterPage = () => {
                 <h3 className="mb-2 px-1 text-[16px] font-medium text-text-main">常见问题</h3>
 
                 {categories.length > 1 ? (
-                  <div className="mb-3 flex gap-2 overflow-x-auto px-1 no-scrollbar">
+                  <div className="mb-3 flex min-w-0 gap-2 overflow-x-auto overflow-y-hidden px-1 no-scrollbar overscroll-x-contain">
                     {categories.map((category) => {
                       const active = category.id === selectedCategoryId;
 
