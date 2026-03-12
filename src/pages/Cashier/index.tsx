@@ -137,7 +137,7 @@ const RechargeCashierView = ({
     }
   }, [orderNo, orderId, amount, navigate]);
 
-  /** 监听页面可见性变化 — 用户从三方支付页面返回时自动开始轮询 */
+  /** 备用：visibilitychange 兼容无法检测 window.closed 的场景 */
   useEffect(() => {
     if (!hasOpenedPay) return undefined;
 
@@ -151,9 +151,12 @@ const RechargeCashierView = ({
     return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, [hasOpenedPay, startPolling]);
 
-  /** 组件卸载时中止轮询 */
+  /** 组件卸载时中止轮询 + 清理窗口检测 */
   useEffect(() => {
-    return () => pollAbortRef.current?.abort();
+    return () => {
+      pollAbortRef.current?.abort();
+      if (windowCheckRef.current) clearInterval(windowCheckRef.current);
+    };
   }, []);
 
   useEffect(() => {
@@ -181,6 +184,9 @@ const RechargeCashierView = ({
     });
   };
 
+  const payWindowRef = useRef<Window | null>(null);
+  const windowCheckRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const handleOpenPay = () => {
     if (!payUrl || opening || timeLeft <= 0) {
       return;
@@ -189,16 +195,32 @@ const RechargeCashierView = ({
     setOpening(true);
 
     try {
-      const nextWindow = window.open(payUrl, '_blank', 'noopener,noreferrer');
-      if (!nextWindow) {
-        showToast({
-          message: '支付链接被浏览器拦截，请检查浏览器设置',
-          type: 'warning',
-        });
-        return;
+      const newWindow = window.open(payUrl, '_blank');
+
+      if (newWindow) {
+        payWindowRef.current = newWindow;
+        showToast({ message: '已打开支付页面，完成后请返回', type: 'success' });
+
+        // 轮询检测支付窗口是否已关闭（参考 shopqiand PaymentRedirect）
+        if (windowCheckRef.current) clearInterval(windowCheckRef.current);
+        windowCheckRef.current = setInterval(() => {
+          try {
+            if (newWindow.closed) {
+              if (windowCheckRef.current) clearInterval(windowCheckRef.current);
+              // 支付窗口已关闭，自动开始轮询订单状态
+              if (pollStateRef.current === 'idle') {
+                void startPolling();
+              }
+            }
+          } catch {
+            // 跨域情况下忽略
+          }
+        }, 500);
+      } else {
+        // 移动端 webview 中 window.open 返回 null 但可能已打开
+        showToast({ message: '已打开支付页面，完成后请返回', type: 'success' });
       }
 
-      showToast({ message: '已打开支付页面', type: 'success' });
       setHasOpenedPay(true);
     } finally {
       window.setTimeout(() => setOpening(false), 600);

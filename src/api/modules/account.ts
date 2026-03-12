@@ -730,6 +730,35 @@ export const accountApi = {
       exchangeRate: readNumber(payload.exchange_rate as number | string | undefined),
     };
   },
+
+  /**
+   * 可提现余额划转到可用余额
+   * POST /api/financeOrder/transferIncomeToPurchase
+   */
+  async transferIncomeToPurchase(
+    params: { amount: number; remark?: string },
+    options: AccountRequestOptions = {},
+  ): Promise<{
+    transferAmount: number;
+    remainingWithdrawable: number;
+    newBalanceAvailable: number;
+  }> {
+    const payload = await http.post<Record<string, unknown>>(
+      '/api/financeOrder/transferIncomeToPurchase',
+      { amount: params.amount, remark: params.remark || '余额划转' },
+      {
+        headers: createApiHeaders(options),
+        signal: options.signal,
+      },
+    );
+
+    return {
+      transferAmount: readNumber(payload.transfer_amount as number | string | undefined),
+      remainingWithdrawable: readNumber(payload.remaining_withdrawable as number | string | undefined),
+      newBalanceAvailable: readNumber(payload.new_balance_available as number | string | undefined),
+    };
+
+  },
 };
 
 /* ==================== 鏃ц祫浜цВ閿?==================== */
@@ -853,5 +882,6 @@ export const growthRightsAssetApi = {
     );
     return normalizeUnlockGrowthRightsAssetResult(payload ?? {});
   },
+
 };
 

@@ -21,6 +21,7 @@ import {
   Wallet,
   X,
   XCircle,
+  Zap,
 } from 'lucide-react';
 import {
   accountApi,
@@ -155,6 +156,10 @@ export function RechargePage() {
   const [uploadingScreenshot, setUploadingScreenshot] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  // 余额划转相关
+  const [transferAmount, setTransferAmount] = useState('');
+  const [transferring, setTransferring] = useState(false);
+
   const {
     data: profile,
     error: profileError,
@@ -278,6 +283,40 @@ export function RechargePage() {
         resetMatchState();
       }
       setAmount(nextValue);
+    }
+  };
+
+  const withdrawableBalance = profile?.userInfo?.withdrawableMoney ?? 0;
+
+  const handleTransfer = async () => {
+    const numTransferAmount = parseFloat(transferAmount);
+    if (!numTransferAmount || numTransferAmount <= 0) {
+      showToast({ message: '请输入有效的划转金额', type: 'warning' });
+      return;
+    }
+    if (numTransferAmount > withdrawableBalance) {
+      showToast({ message: '划转金额超过可提现余额', type: 'warning' });
+      return;
+    }
+
+    setTransferring(true);
+    try {
+      const result = await accountApi.transferIncomeToPurchase({ amount: numTransferAmount });
+      showToast({
+        message: `成功划转 ¥${result.transferAmount} 到可用余额`,
+        type: 'success',
+        duration: 3000,
+      });
+      setTransferAmount('');
+      void Promise.allSettled([reloadProfile()]);
+    } catch (error) {
+      showToast({
+        message: getErrorMessage(error),
+        type: 'error',
+        duration: 3000,
+      });
+    } finally {
+      setTransferring(false);
     }
   };
 
@@ -603,6 +642,80 @@ export function RechargePage() {
               ))}
             </div>
 
+          </Card>
+
+          <Card className="p-4">
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Wallet size={20} className="text-blue-500" />
+                <span className="text-base font-medium text-text-main">可提现余额划转</span>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-text-sub">可提现余额</p>
+                <p className="text-lg font-bold text-blue-600">
+                  ¥{mainLoading ? '--' : formatMoney(withdrawableBalance)}
+                </p>
+              </div>
+            </div>
+
+            <div className="mb-4 flex items-center border-b border-border-light pb-2">
+              <span className="mr-2 shrink-0 text-xl font-medium text-text-main">¥</span>
+              <input
+                type="text"
+                inputMode="decimal"
+                value={transferAmount}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v === '' || /^\d*\.?\d{0,2}$/.test(v)) setTransferAmount(v);
+                }}
+                placeholder="输入划转金额"
+                className="min-w-0 flex-1 bg-transparent text-2xl font-bold text-text-main outline-none placeholder:text-lg placeholder:font-normal placeholder:text-text-aux"
+              />
+              {transferAmount ? (
+                <button
+                  type="button"
+                  onClick={() => setTransferAmount('')}
+                  className="shrink-0 p-1 text-text-aux active:text-text-sub"
+                >
+                  <XCircle size={18} />
+                </button>
+              ) : null}
+            </div>
+
+            {transferAmount && (
+              <div className="mb-4 rounded-lg border border-blue-100 bg-blue-50 p-3 dark:border-blue-800/30 dark:bg-blue-900/10">
+                <p className="text-sm font-medium text-blue-700 dark:text-blue-300">划转金额：¥{Number(transferAmount).toFixed(2)}</p>
+                <p className="mt-1 text-xs text-blue-600 dark:text-blue-400">备注：余额划转</p>
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={handleTransfer}
+              disabled={!transferAmount || transferring}
+              className={`flex w-full items-center justify-center gap-2 rounded-xl py-3 text-base font-bold transition-all ${
+                transferAmount && !transferring
+                  ? 'bg-gradient-to-r from-brand-start to-brand-end text-white shadow-lg shadow-red-200 active:scale-[0.98]'
+                  : 'cursor-not-allowed bg-gray-200 text-gray-400 shadow-none dark:bg-gray-800 dark:text-gray-500'
+              }`}
+            >
+              {transferring ? (
+                <>
+                  <Loader2 size={18} className="animate-spin" />
+                  划转中...
+                </>
+              ) : (
+                <>
+                  <Zap size={18} fill="currentColor" />
+                  立即划转到可用余额
+                </>
+              )}
+            </button>
+
+            <p className="mt-3 flex items-center gap-1 text-xs text-text-aux">
+              <ShieldCheck size={12} />
+              划转后资金可用于专项金申购
+            </p>
           </Card>
 
           <Card className="overflow-hidden p-0">
