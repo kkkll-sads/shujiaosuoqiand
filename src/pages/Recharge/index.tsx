@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file Recharge/index.tsx - 充值页面
  * @description 用户充值页面，支持多种充值方式和金额选择。
  */
@@ -336,6 +336,7 @@ export function RechargePage() {
           scene: 'recharge',
           amount: String(numAmount),
           order_no: submitResult.orderNo || String(submitResult.orderId || ''),
+          order_id: String(submitResult.orderId || 0),
           expire_seconds: '300',
           ...(submitResult.payUrl ? { pay_url: submitResult.payUrl } : {}),
         });

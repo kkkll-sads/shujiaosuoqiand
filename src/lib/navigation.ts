@@ -67,6 +67,7 @@ export const VIEW_TO_PATH: Record<string, string> = {
   transfer: '/transfer',
   rights_transfer: '/rights/transfer',
   withdraw: '/withdraw',
+  hashrate_exchange: '/hashrate-exchange',
   live: '/live',
   live_webview: '/live/view',
   reservations: '/reservations',

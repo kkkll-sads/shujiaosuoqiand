@@ -19,6 +19,7 @@ import {
   Newspaper,
   Gift,
   Layers,
+  Zap,
 } from 'lucide-react';
 import type { NavigateFunction } from 'react-router-dom';
 import CoinsIcon from './components/CoinsIcon';
@@ -69,11 +70,11 @@ export const buildConvenientServices = ({
       action: () => navigate('/withdraw'),
     },
     {
-      label: '消费金兑换',
-      icon: CoinsIcon,
-      iconColorClass: 'text-yellow-600',
-      iconBgClass: 'bg-yellow-50',
-      action: () => navigate('/store'),
+      label: '算力补充',
+      icon: Zap,
+      iconColorClass: 'text-emerald-600',
+      iconBgClass: 'bg-emerald-50',
+      action: () => navigate('/hashrate-exchange'),
     },
   ];
 };

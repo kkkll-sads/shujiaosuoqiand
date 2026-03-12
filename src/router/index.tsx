@@ -81,6 +81,7 @@ const ForgotPasswordPage = lazy(() => import('../pages/ForgotPassword').then(m =
 const CommonPage = lazy(() => import('../pages/CommonPage').then(m => ({ default: m.CommonPage })));
 const DesignSystemPage = lazy(() => import('../pages/DesignSystem').then(m => ({ default: m.DesignSystemPage })));
 const SignInPage = lazy(() => import('../pages/SignIn').then(m => ({ default: m.SignInPage })));
+const HashrateExchangePage = lazy(() => import('../pages/HashrateExchange').then(m => ({ default: m.HashrateExchangePage })));
 const NotFoundPage = lazy(() => import('../pages/NotFound').then(m => ({ default: m.NotFoundPage })));
 
 /**
@@ -225,6 +226,7 @@ export const router = createHashRouter([
       { path: 'rights/history', element: <Lazy><RightsHistoryPage /></Lazy> },
       { path: 'rights/transfer', element: <Lazy><RightsTransferPage /></Lazy> },
       { path: 'rights_transfer', element: <Lazy><RightsTransferPage /></Lazy> },
+      { path: 'hashrate-exchange', element: <Lazy><HashrateExchangePage /></Lazy> },
 
       // ========== 用户中心 ==========
       { path: 'address', element: <Lazy><AddressPage /></Lazy> },

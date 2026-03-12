@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   AlertCircle,
@@ -168,10 +168,21 @@ export const PaymentResultPage = () => {
     }
   }, [orderInfoFromParams]);
 
-  /** 页面加载时自动查询一次后端状态 */
+  /** 页面加载时自动查询，pending 状态下每 5s 轮询 */
   useEffect(() => {
     void pollBackendStatus();
   }, [pollBackendStatus]);
+
+  useEffect(() => {
+    // 只有 pending 状态才持续轮询
+    if (orderInfo.status !== 'pending') return undefined;
+
+    const timer = window.setInterval(() => {
+      void pollBackendStatus();
+    }, 5000);
+
+    return () => window.clearInterval(timer);
+  }, [orderInfo.status, pollBackendStatus]);
 
   const handleBack = () => {
     if (orderInfo.scene === 'recharge') {

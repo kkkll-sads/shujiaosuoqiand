@@ -693,6 +693,43 @@ export const accountApi = {
 
     return normalizeMoneyLogDetail(payload);
   },
+
+  /**
+   * 消费金兑换绿色算力
+   * POST /api/Account/exchangeScoreToGreenPower?score=N
+   */
+  async exchangeScoreToGreenPower(
+    params: { score: number },
+    options: AccountRequestOptions = {},
+  ): Promise<{
+    scoreConsumed: number;
+    greenPowerGained: number;
+    beforeScore: number;
+    afterScore: number;
+    beforeGreenPower: number;
+    afterGreenPower: number;
+    exchangeRate: number;
+  }> {
+    const payload = await http.post<Record<string, unknown>>(
+      '/api/Account/exchangeScoreToGreenPower',
+      undefined,
+      {
+        headers: createApiHeaders(options),
+        signal: options.signal,
+        query: { score: params.score },
+      },
+    );
+
+    return {
+      scoreConsumed: readNumber(payload.score_consumed as number | string | undefined),
+      greenPowerGained: readNumber(payload.green_power_gained as number | string | undefined),
+      beforeScore: readNumber(payload.before_score as number | string | undefined),
+      afterScore: readNumber(payload.after_score as number | string | undefined),
+      beforeGreenPower: readNumber(payload.before_green_power as number | string | undefined),
+      afterGreenPower: readNumber(payload.after_green_power as number | string | undefined),
+      exchangeRate: readNumber(payload.exchange_rate as number | string | undefined),
+    };
+  },
 };
 
 /* ==================== 鏃ц祫浜цВ閿?==================== */

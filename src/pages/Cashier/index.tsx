@@ -51,11 +51,13 @@ function formatMinuteClock(seconds: number) {
 const RechargeCashierView = ({
   amount,
   orderNo,
+  orderId,
   payUrl,
   expireSeconds,
 }: {
   amount: number;
   orderNo: string;
+  orderId: number;
   payUrl?: string;
   expireSeconds: number;
 }) => {
@@ -125,6 +127,7 @@ const RechargeCashierView = ({
       status,
       amount: String(amount),
       order_no: orderNo,
+      order_id: String(orderId),
     });
 
     navigate(`/payment/result?${params.toString()}`, { replace: true });
@@ -201,19 +204,36 @@ const RechargeCashierView = ({
         </button>
 
         {hasOpenedPay ? (
-          <button
-            type="button"
-            className="mt-3 flex h-12 w-full items-center justify-center rounded-full border border-[#d1d5db] bg-white text-[16px] font-medium text-[#374151] active:bg-[#f9fafb]"
-            onClick={() => handleOpenResult('pending')}
-          >
-            已完成支付，返回查看结果
-          </button>
-        ) : null}
+          <div className="mt-10 flex flex-col items-center">
+            <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-[#ecfdf3]">
+              <CheckCircle2 size={36} className="text-[#16a34a]" />
+            </div>
+            <h3 className="mb-1 text-[18px] font-semibold text-[#111827]">请确认支付结果</h3>
+            <p className="mb-6 text-[14px] text-[#6b7280]">如果您已在支付页面完成付款，请点击下方按钮</p>
 
-        <div className="mt-6 flex items-center justify-center text-[14px] text-[#9ca3af]">
-          <ShieldCheck size={14} className="mr-1.5" />
-          安全支付保障
-        </div>
+            <button
+              type="button"
+              className="flex h-14 w-full items-center justify-center rounded-full bg-gradient-to-r from-[#16a34a] to-[#22c55e] text-[18px] font-semibold text-white shadow-[0_14px_28px_rgba(22,163,74,0.22)] active:scale-[0.99]"
+              onClick={() => handleOpenResult('pending')}
+            >
+              ✓ 已完成支付
+            </button>
+
+            <button
+              type="button"
+              className="mt-3 flex items-center text-[14px] text-[#6b7280] active:opacity-70"
+              onClick={handleOpenPay}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1.5"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+              支付遇到问题，获取新链接
+            </button>
+          </div>
+        ) : (
+          <div className="mt-6 flex items-center justify-center text-[14px] text-[#9ca3af]">
+            <ShieldCheck size={14} className="mr-1.5" />
+            安全支付保障
+          </div>
+        )}
       </div>
 
       <button
@@ -648,6 +668,7 @@ export const CashierPage = () => {
       <RechargeCashierView
         amount={amount}
         orderNo={orderNo}
+        orderId={Number(searchParams.get('order_id')) || 0}
         payUrl={payUrl || undefined}
         expireSeconds={expireSeconds}
       />
