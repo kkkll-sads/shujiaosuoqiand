@@ -9,13 +9,13 @@ import {
   Clock3,
   Coins,
   Copy,
-  Loader2,
   ShieldCheck,
   Wallet,
   WifiOff,
 } from 'lucide-react';
 import { shopOrderApi, rechargeApi } from '../../api';
 import { getErrorMessage } from '../../api/core/errors';
+import { Button } from '../../components/ui/Button';
 import { useFeedback } from '../../components/ui/FeedbackProvider';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { copyToClipboard } from '../../lib/clipboard';
@@ -64,18 +64,28 @@ const RechargeCashierView = ({
 }) => {
   const { goBack, navigate } = useAppNavigate();
   const { showToast } = useFeedback();
+  const pollAbortRef = useRef<AbortController | null>(null);
+  const pollStateRef = useRef<'idle' | 'polling' | 'done'>('idle');
+  const windowCheckRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [timeLeft, setTimeLeft] = useState(expireSeconds);
   const [opening, setOpening] = useState(false);
   const [hasOpenedPay, setHasOpenedPay] = useState(false);
   const [pollState, setPollState] = useState<'idle' | 'polling' | 'done'>('idle');
   const [pollCount, setPollCount] = useState(0);
   const [pollResult, setPollResult] = useState<'pending' | 'success' | 'failure' | null>(null);
-  const pollAbortRef = useRef<AbortController | null>(null);
-  const pollStateRef = useRef<'idle' | 'polling' | 'done'>('idle');
 
   useEffect(() => {
     setTimeLeft(expireSeconds);
     setHasOpenedPay(false);
+    setOpening(false);
+    setPollState('idle');
+    setPollCount(0);
+    setPollResult(null);
+    pollAbortRef.current?.abort();
+    if (windowCheckRef.current) {
+      clearInterval(windowCheckRef.current);
+      windowCheckRef.current = null;
+    }
   }, [expireSeconds]);
 
   // 同步 ref
@@ -83,8 +93,11 @@ const RechargeCashierView = ({
 
   /** 轮询后端订单状态（最多 maxAttempts 次，每次间隔 intervalMs） */
   const startPolling = useCallback(async (maxAttempts = 5, intervalMs = 3000) => {
-    if (!orderNo && !orderId) return;
+    if ((!orderNo && !orderId) || pollStateRef.current === 'polling') {
+      return;
+    }
 
+    pollAbortRef.current?.abort();
     const abort = new AbortController();
     pollAbortRef.current = abort;
     setPollState('polling');
@@ -134,8 +147,12 @@ const RechargeCashierView = ({
     if (!abort.signal.aborted) {
       setPollResult('pending');
       setPollState('done');
+      showToast({
+        message: '暂未确认支付结果，请稍后重试或查看结果',
+        type: 'warning',
+      });
     }
-  }, [orderNo, orderId, amount, navigate]);
+  }, [orderNo, orderId, amount, navigate, showToast]);
 
   /** 备用：visibilitychange 兼容无法检测 window.closed 的场景 */
   useEffect(() => {
@@ -184,21 +201,21 @@ const RechargeCashierView = ({
     });
   };
 
-  const payWindowRef = useRef<Window | null>(null);
-  const windowCheckRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
   const handleOpenPay = () => {
     if (!payUrl || opening || timeLeft <= 0) {
       return;
     }
 
+    pollAbortRef.current?.abort();
+    setPollState('idle');
+    setPollCount(0);
+    setPollResult(null);
     setOpening(true);
 
     try {
       const newWindow = window.open(payUrl, '_blank');
 
       if (newWindow) {
-        payWindowRef.current = newWindow;
         showToast({ message: '已打开支付页面，完成后请返回', type: 'success' });
 
         // 轮询检测支付窗口是否已关闭（参考 shopqiand PaymentRedirect）
@@ -244,6 +261,59 @@ const RechargeCashierView = ({
       showToast({ duration, message, type });
     });
   };
+
+  const isPolling = pollState === 'polling';
+  const isFailureState = pollState === 'done' && pollResult === 'failure';
+  const showCompletionAction = hasOpenedPay && !isPolling && !isFailureState;
+
+  const primaryAction = isFailureState
+    ? {
+        className:
+          'mt-8 h-14 rounded-full text-[18px] font-semibold !bg-gradient-to-r !from-[#ff1530] !to-[#ff0019] !shadow-[0_14px_28px_rgba(255,0,25,0.22)]',
+        disabled: false,
+        label: '支付未完成 · 查看详情',
+        leftIcon: <AlertTriangle size={18} />,
+        loading: false,
+        onClick: () => handleOpenResult('failure'),
+        rightIcon: undefined,
+      }
+    : showCompletionAction
+      ? {
+          className:
+            'mt-8 h-14 rounded-full text-[18px] font-semibold !bg-gradient-to-r !from-[#16a34a] !to-[#22c55e] !shadow-[0_14px_28px_rgba(22,163,74,0.22)]',
+          disabled: false,
+          label: '已完成支付',
+          leftIcon: <CheckCircle2 size={18} />,
+          loading: false,
+          onClick: () => {
+            void startPolling();
+          },
+          rightIcon: undefined,
+        }
+      : {
+          className:
+            'mt-8 h-14 rounded-full text-[18px] font-semibold !bg-gradient-to-r !from-[#ff1530] !to-[#ff0019] !shadow-[0_14px_28px_rgba(255,0,25,0.22)]',
+          disabled: !payUrl || timeLeft <= 0 || opening,
+          label: opening ? '打开中...' : '去支付',
+          leftIcon: opening ? undefined : <span className="text-[18px] leading-none">▶</span>,
+          loading: opening,
+          onClick: handleOpenPay,
+          rightIcon: opening ? undefined : <ArrowRight size={19} />,
+        };
+
+  const secondaryAction = isPolling
+    ? null
+    : isFailureState
+      ? {
+          label: '重新支付',
+          onClick: handleOpenPay,
+        }
+      : showCompletionAction
+        ? {
+            label: '支付遇到问题，获取新链接',
+            onClick: handleOpenPay,
+          }
+        : null;
 
   return (
     <div className="relative flex h-full flex-1 flex-col overflow-hidden bg-[#f4f4f5]">
@@ -298,82 +368,36 @@ const RechargeCashierView = ({
           </div>
         </div>
 
-        {/* === 主操作按钮 — 根据状态动态切换 === */}
-        {pollState === 'polling' ? (
-          <>
-            <button
-              type="button"
-              className="mt-8 flex h-14 w-full items-center justify-center gap-2 rounded-full bg-[#6366f1] text-[18px] font-semibold text-white shadow-[0_14px_28px_rgba(99,102,241,0.22)]"
-              disabled
-            >
-              <Loader2 size={20} className="animate-spin" />
-              查询支付结果中 ({pollCount}/5)
-            </button>
-            <div className="mx-auto mt-4 flex w-full max-w-[240px] overflow-hidden rounded-full bg-[#e5e7eb] h-1.5">
-              <div
-                className="h-full bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] rounded-full transition-all duration-500"
-                style={{ width: `${(pollCount / 5) * 100}%` }}
-              />
-            </div>
-          </>
-        ) : pollState === 'done' && pollResult === 'failure' ? (
-          <>
-            <button
-              type="button"
-              className="mt-8 flex h-14 w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#ff1530] to-[#ff0019] text-[18px] font-semibold text-white shadow-[0_14px_28px_rgba(255,0,25,0.22)] active:scale-[0.99]"
-              onClick={() => handleOpenResult('failure')}
-            >
-              <AlertTriangle size={18} />
-              支付未完成 · 查看详情
-            </button>
-            <button
-              type="button"
-              className="mx-auto mt-3 flex items-center text-[14px] text-[#6b7280] active:opacity-70"
-              onClick={handleOpenPay}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1.5"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
-              重新支付
-            </button>
-          </>
-        ) : hasOpenedPay ? (
-          <>
-            <button
-              type="button"
-              className="mt-8 flex h-14 w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#16a34a] to-[#22c55e] text-[18px] font-semibold text-white shadow-[0_14px_28px_rgba(22,163,74,0.22)] active:scale-[0.99]"
-              onClick={() => handleOpenResult('pending')}
-            >
-              <CheckCircle2 size={18} />
-              已完成支付
-            </button>
-            <button
-              type="button"
-              className="mx-auto mt-3 flex items-center text-[14px] text-[#6b7280] active:opacity-70"
-              onClick={handleOpenPay}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1.5"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
-              支付遇到问题，获取新链接
-            </button>
-          </>
-        ) : (
-          <>
-            <button
-              type="button"
-              className="mt-8 flex h-14 w-full items-center justify-center rounded-full bg-gradient-to-r from-[#ff1530] to-[#ff0019] text-[22px] font-semibold text-white shadow-[0_14px_28px_rgba(255,0,25,0.22)] active:scale-[0.99] disabled:opacity-50"
-              onClick={handleOpenPay}
-              disabled={!payUrl || timeLeft <= 0 || opening}
-            >
-              {opening ? (
-                <><Loader2 size={20} className="mr-2 animate-spin" />打开中...</>
-              ) : (
-                <><span className="mr-2 text-[18px]">▶</span>去支付<ArrowRight size={19} className="ml-2" /></>
-              )}
-            </button>
-            <div className="mt-6 flex items-center justify-center text-[14px] text-[#9ca3af]">
-              <ShieldCheck size={14} className="mr-1.5" />
-              安全支付保障
-            </div>
-          </>
-        )}
+        <Button
+          type="button"
+          size="lg"
+          className={primaryAction.className}
+          onClick={primaryAction.onClick}
+          disabled={primaryAction.disabled}
+          loading={primaryAction.loading || isPolling}
+          leftIcon={isPolling ? undefined : primaryAction.leftIcon}
+          rightIcon={isPolling ? undefined : primaryAction.rightIcon}
+        >
+          {isPolling ? `查询支付结果中 (${pollCount}/5)` : primaryAction.label}
+        </Button>
+
+        {secondaryAction ? (
+          <button
+            type="button"
+            className="mx-auto mt-3 flex items-center text-[14px] text-[#6b7280] active:opacity-70"
+            onClick={secondaryAction.onClick}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1.5"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+            {secondaryAction.label}
+          </button>
+        ) : null}
+
+        {!secondaryAction && !isPolling && !showCompletionAction ? (
+          <div className="mt-6 flex items-center justify-center text-[14px] text-[#9ca3af]">
+            <ShieldCheck size={14} className="mr-1.5" />
+            安全支付保障
+          </div>
+        ) : null}
       </div>
 
       <button
