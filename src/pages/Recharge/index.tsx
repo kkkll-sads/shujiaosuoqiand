@@ -302,8 +302,12 @@ export function RechargePage() {
     setTransferring(true);
     try {
       const result = await accountApi.transferIncomeToPurchase({ amount: numTransferAmount });
+      const transferredAmount =
+        typeof result.transferAmount === 'number' && result.transferAmount > 0
+          ? result.transferAmount
+          : numTransferAmount;
       showToast({
-        message: `成功划转 ¥${result.transferAmount} 到可用余额`,
+        message: `成功划转 ¥${formatMoney(transferredAmount)} 到可用余额`,
         type: 'success',
         duration: 3000,
       });
@@ -1107,7 +1111,6 @@ export function RechargePage() {
     </div>
   );
 }
-
 
 
 

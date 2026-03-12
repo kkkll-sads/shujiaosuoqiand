@@ -753,9 +753,18 @@ export const accountApi = {
     );
 
     return {
-      transferAmount: readNumber(payload.transfer_amount as number | string | undefined),
-      remainingWithdrawable: readNumber(payload.remaining_withdrawable as number | string | undefined),
-      newBalanceAvailable: readNumber(payload.new_balance_available as number | string | undefined),
+      transferAmount: readNumber(
+        payload.transfer_amount as number | string | undefined,
+        params.amount,
+      ),
+      remainingWithdrawable: readNumber(
+        (payload.remaining_withdrawable ??
+          payload.withdrawable_money) as number | string | undefined,
+      ),
+      newBalanceAvailable: readNumber(
+        (payload.new_balance_available ??
+          payload.balance_available) as number | string | undefined,
+      ),
     };
 
   },

@@ -9,6 +9,7 @@ import {
   Clock3,
   Coins,
   Copy,
+  RefreshCcw,
   ShieldCheck,
   Wallet,
   WifiOff,
@@ -19,7 +20,6 @@ import { Button } from '../../components/ui/Button';
 import { useFeedback } from '../../components/ui/FeedbackProvider';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { copyToClipboard } from '../../lib/clipboard';
-import { openCustomerServiceLink } from '../../lib/customerService';
 import { useAppNavigate } from '../../lib/navigation';
 
 interface PaymentMethod {
@@ -273,12 +273,6 @@ const RechargeCashierView = ({
     navigate(`/payment/result?${params.toString()}`, { replace: true });
   };
 
-  const handleOpenSupport = () => {
-    void openCustomerServiceLink(({ duration, message, type }) => {
-      showToast({ duration, message, type });
-    });
-  };
-
   const isPolling = pollState === 'polling';
   const isFailureState = pollState === 'done' && pollResult === 'failure';
   const showCompletionAction = hasOpenedPay && !isFailureState;
@@ -305,7 +299,7 @@ const RechargeCashierView = ({
   const primaryAction = isFailureState
     ? {
         className:
-          'mt-8 h-14 rounded-full text-[18px] font-semibold !bg-gradient-to-r !from-[#ff1530] !to-[#ff0019] !shadow-[0_14px_28px_rgba(255,0,25,0.22)]',
+          'h-14 rounded-full text-[18px] font-semibold !bg-gradient-to-r !from-[#ff1530] !to-[#ff0019] !shadow-[0_14px_28px_rgba(255,0,25,0.22)]',
         disabled: false,
         label: '支付未完成 · 查看详情',
         leftIcon: <AlertTriangle size={18} />,
@@ -316,7 +310,7 @@ const RechargeCashierView = ({
     : showCompletionAction
       ? {
           className:
-            'mt-8 h-14 rounded-full text-[18px] font-semibold !bg-gradient-to-r !from-[#16a34a] !to-[#22c55e] !shadow-[0_14px_28px_rgba(22,163,74,0.22)]',
+            'h-14 rounded-full text-[18px] font-semibold !bg-gradient-to-r !from-[#16a34a] !to-[#22c55e] !shadow-[0_14px_28px_rgba(22,163,74,0.22)]',
           disabled: isPolling,
           label: '已完成支付',
           leftIcon: <CheckCircle2 size={18} />,
@@ -328,7 +322,7 @@ const RechargeCashierView = ({
         }
       : {
           className:
-            'mt-8 h-14 rounded-full text-[18px] font-semibold !bg-gradient-to-r !from-[#ff1530] !to-[#ff0019] !shadow-[0_14px_28px_rgba(255,0,25,0.22)]',
+            'h-14 rounded-full text-[18px] font-semibold !bg-gradient-to-r !from-[#ff1530] !to-[#ff0019] !shadow-[0_14px_28px_rgba(255,0,25,0.22)]',
           disabled: !payUrl || timeLeft <= 0 || opening,
           label: opening ? '打开中...' : '去支付',
           leftIcon: opening ? undefined : <span className="text-[18px] leading-none">▶</span>,
@@ -340,13 +334,15 @@ const RechargeCashierView = ({
   const secondaryAction = isFailureState
     ? {
         label: '重新支付',
+        leftIcon: <RefreshCcw size={16} />,
         onClick: handleOpenPay,
       }
     : showCompletionAction && !isPolling
       ? {
-          label: '支付遇到问题，获取新链接',
-          onClick: handleOpenPay,
-        }
+        label: '支付遇到问题，获取新链接',
+        leftIcon: <RefreshCcw size={16} />,
+        onClick: handleOpenPay,
+      }
       : null;
 
   return (
@@ -370,80 +366,76 @@ const RechargeCashierView = ({
         {formatMinuteClock(timeLeft)}
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 pb-28 pt-14">
-        <div className="pt-[18vh] text-center">
-          <div className="mb-4 text-[16px] text-[#6b7280]">支付金额</div>
-          <div className="mb-5 flex items-end justify-center text-[#e50019]">
-            <span className="mr-1 pb-1 text-[20px] font-semibold text-[#111827]">¥</span>
-            <span className="text-[62px] font-bold leading-none tracking-tight">
-              {Number.isFinite(amount) ? Math.round(amount).toString() : '0'}
-            </span>
+      <div className="flex-1 overflow-y-auto px-4 pb-10 pt-6">
+        <div className="mx-auto flex min-h-full max-w-[420px] flex-col gap-5 pb-6">
+          <div className="rounded-[28px] bg-white px-5 pb-6 pt-7 text-center shadow-[0_18px_44px_rgba(15,23,42,0.06)]">
+            <div className="mx-auto inline-flex items-center rounded-full bg-[#fff1f2] px-3 py-1 text-[12px] font-medium text-[#e11d48]">
+              本次支付
+            </div>
+            <div className="mt-5 text-[15px] text-[#6b7280]">支付金额</div>
+            <div className="mt-3 flex items-end justify-center text-[#e50019]">
+              <span className="mr-1 pb-1 text-[22px] font-semibold text-[#111827]">¥</span>
+              <span className="text-[62px] font-bold leading-none tracking-tight">
+                {Number.isFinite(amount) ? Math.round(amount).toString() : '0'}
+              </span>
+            </div>
+
+            <button
+              type="button"
+              className="mx-auto mt-5 flex max-w-full items-center rounded-full bg-[#f8fafc] px-4 py-2 text-[13px] text-[#8b95a7] shadow-[inset_0_0_0_1px_rgba(148,163,184,0.12)] active:opacity-70"
+              onClick={handleCopyOrderNo}
+            >
+              <span className="truncate">订单号：{orderNo || '--'}</span>
+              <Copy size={13} className="ml-1.5 shrink-0" />
+            </button>
           </div>
 
-          <button
-            type="button"
-            className="mx-auto flex items-center text-[13px] text-[#9ca3af] active:opacity-70"
-            onClick={handleCopyOrderNo}
-          >
-            <span>订单号：{orderNo || '--'}</span>
-            <Copy size={13} className="ml-1.5" />
-          </button>
+          <div className="rounded-[22px] border border-[#f2ca77] bg-[#fff6df] px-5 py-4 text-left shadow-[0_12px_28px_rgba(242,202,119,0.14)]">
+            <div className="mb-2 flex items-center text-[15px] font-semibold text-[#e46a00]">
+              <AlertTriangle size={16} className="mr-2" />
+              重要提醒
+            </div>
+            <div className="space-y-1 text-[14px] leading-6 text-[#c75c00]">
+              <div>请核对支付金额，否则无法到账</div>
+              <div>请勿保存二维码稍后支付</div>
+              <div>支付链接 5 分钟内有效</div>
+            </div>
+          </div>
+
+          <div className="mt-auto space-y-3 pt-1">
+            <Button
+              type="button"
+              size="lg"
+              className={primaryAction.className}
+              onClick={primaryAction.onClick}
+              disabled={primaryAction.disabled}
+              loading={primaryAction.loading}
+              leftIcon={primaryAction.leftIcon}
+              rightIcon={primaryAction.rightIcon}
+            >
+              {primaryAction.label}
+            </Button>
+
+            {secondaryAction ? (
+              <Button
+                type="button"
+                variant="secondary"
+                size="lg"
+                className="h-12 rounded-full border-white/80 bg-white text-[15px] font-medium text-[#4b5563] shadow-[0_12px_24px_rgba(148,163,184,0.14)]"
+                onClick={secondaryAction.onClick}
+                leftIcon={secondaryAction.leftIcon}
+              >
+                {secondaryAction.label}
+              </Button>
+            ) : null}
+
+            <div className="flex items-center justify-center text-[14px] text-[#9ca3af]">
+              <ShieldCheck size={14} className="mr-1.5" />
+              安全支付保障
+            </div>
+          </div>
         </div>
-
-        <div className="mt-12 rounded-[20px] border border-[#f2ca77] bg-[#fff6df] px-5 py-4 text-left">
-          <div className="mb-2 flex items-center text-[15px] font-semibold text-[#e46a00]">
-            <AlertTriangle size={16} className="mr-2" />
-            重要提醒
-          </div>
-          <div className="space-y-1 text-[14px] leading-6 text-[#c75c00]">
-            <div>请核对支付金额，否则无法到账</div>
-            <div>请勿保存二维码稍后支付</div>
-            <div>支付链接 5 分钟内有效</div>
-          </div>
-        </div>
-
-        <Button
-          type="button"
-          size="lg"
-          className={primaryAction.className}
-          onClick={primaryAction.onClick}
-          disabled={primaryAction.disabled}
-          loading={primaryAction.loading}
-          leftIcon={primaryAction.leftIcon}
-          rightIcon={primaryAction.rightIcon}
-        >
-          {primaryAction.label}
-        </Button>
-
-        {secondaryAction ? (
-          <button
-            type="button"
-            className="mx-auto mt-3 flex items-center text-[14px] text-[#6b7280] active:opacity-70"
-            onClick={secondaryAction.onClick}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1.5"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
-            {secondaryAction.label}
-          </button>
-        ) : null}
-
-        {!secondaryAction && !isPolling && !showCompletionAction ? (
-          <div className="mt-6 flex items-center justify-center text-[14px] text-[#9ca3af]">
-            <ShieldCheck size={14} className="mr-1.5" />
-            安全支付保障
-          </div>
-        ) : null}
       </div>
-
-      <button
-        type="button"
-        className="absolute bottom-20 right-0 z-20 flex h-14 w-14 translate-x-1/3 items-center justify-center rounded-full bg-[#ff8a00] text-white shadow-[0_10px_24px_rgba(255,138,0,0.28)] active:scale-95"
-        onClick={handleOpenSupport}
-        aria-label="联系客服"
-      >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-        </svg>
-      </button>
 
       {timeLeft <= 0 ? (
         <div className="absolute inset-x-4 bottom-6 z-30 rounded-2xl border border-[#fecaca] bg-white px-4 py-3 text-sm text-[#b91c1c] shadow-sm">
