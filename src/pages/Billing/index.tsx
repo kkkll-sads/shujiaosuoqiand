@@ -900,9 +900,13 @@ export function BillingPage() {
 
     const detail = selectedDetail;
     const titleSnapshot = detail?.titleSnapshot || selectedLog.titleSnapshot;
-    const imageSnapshot = detail?.imageSnapshot || selectedLog.imageSnapshot;
     const userCollectionId = detail?.userCollectionId;
     const itemId = detail?.itemId;
+    const hasUserCollectionId = typeof userCollectionId === 'number' ? userCollectionId > 0 : Boolean(userCollectionId);
+    const hasItemId = typeof itemId === 'number' ? itemId > 0 : Boolean(itemId);
+    const hasAssetSnapshot = Boolean(titleSnapshot || hasUserCollectionId || hasItemId);
+    const beforeValueText = formatMoney(detail?.beforeValue);
+    const afterValueText = formatMoney(detail?.afterValue);
 
     return (
       <div className="space-y-4 p-4 pb-10">
@@ -917,14 +921,22 @@ export function BillingPage() {
             <div className="mt-2 text-sm text-text-aux">
               {formatAccountTypeLabel(detail?.accountType || selectedLog.accountType)}
             </div>
+            <div className="mt-5 grid w-full grid-cols-2 gap-3">
+              <div className="rounded-2xl border border-border-light bg-bg-base px-4 py-3 text-left">
+                <div className="text-xs text-text-aux">变动前金额</div>
+                <div className="mt-1 text-base font-semibold text-text-main">{beforeValueText}</div>
+              </div>
+              <div className="rounded-2xl border border-border-light bg-bg-base px-4 py-3 text-left">
+                <div className="text-xs text-text-aux">变动后金额</div>
+                <div className="mt-1 text-base font-semibold text-text-main">{afterValueText}</div>
+              </div>
+            </div>
           </div>
 
           <div className="space-y-4">
             {renderDetailRow('账户类型', formatAccountTypeLabel(detail?.accountType || selectedLog.accountType))}
             {renderDetailRow('业务类型', formatBizTypeLabel(detail?.bizType || selectedLog.bizType))}
             {renderDetailRow('创建时间', detail?.createTimeText || selectedLog.createTimeText)}
-            {renderDetailRow('变动前金额', formatMoney(detail?.beforeValue))}
-            {renderDetailRow('变动后金额', formatMoney(detail?.afterValue))}
             {renderDetailRow('备注说明', detail?.memo || selectedLog.memo)}
             {renderDetailRow('流水号', detail?.flowNo || selectedLog.flowNo, {
               copyable: true,
@@ -938,27 +950,13 @@ export function BillingPage() {
           </div>
         </Card>
 
-        {titleSnapshot || imageSnapshot ? (
-          <Card className="overflow-hidden p-0">
-            <div className="border-b border-border-light px-4 py-3 text-sm font-medium text-text-main">
-              关联资产
-            </div>
-            <div className="flex items-center p-4">
-              {imageSnapshot ? (
-                <img
-                  src={imageSnapshot}
-                  alt={titleSnapshot || '关联资产'}
-                  className="mr-3 h-14 w-14 rounded-2xl object-cover"
-                  referrerPolicy="no-referrer"
-                />
-              ) : null}
-              <div className="min-w-0">
-                <div className="truncate text-sm font-medium text-text-main">
-                  {titleSnapshot || '未命名资产'}
-                </div>
-                <div className="mt-1 text-sm text-text-sub">
-                  藏品 ID：{userCollectionId ?? '--'} / 商品 ID：{itemId ?? '--'}
-                </div>
+        {hasAssetSnapshot ? (
+          <Card className="p-4">
+            <div className="mb-3 text-sm font-medium text-text-main">关联资产</div>
+            <div className="space-y-2">
+              <div className="break-all text-sm font-medium text-text-main">{titleSnapshot || '未命名资产'}</div>
+              <div className="text-sm text-text-sub">
+                藏品 ID：{userCollectionId ?? '--'} / 商品 ID：{itemId ?? '--'}
               </div>
             </div>
           </Card>

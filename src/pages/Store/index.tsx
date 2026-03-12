@@ -30,10 +30,10 @@ import { EmptyState } from '../../components/ui/EmptyState';
 import { ErrorState } from '../../components/ui/ErrorState';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { PullToRefreshContainer } from '../../components/ui/PullToRefreshContainer';
+import { ShopProductPriceDisplay } from '../../features/shop-product/components/ShopProductPriceDisplay';
 import {
   buildShopProductPath,
   formatShopProductSales,
-  getShopProductPrimaryPrice,
   resolveShopProductImageUrl,
 } from '../../features/shop-product/utils';
 import { useInfiniteScroll } from '../../hooks/useInfiniteScroll';
@@ -561,9 +561,11 @@ export const StorePage = () => {
                             />
                           </div>
                           <div className="mb-1 line-clamp-1 text-sm text-text-main">{item.name}</div>
-                          <div className="mb-1 text-lg font-bold leading-none text-primary-start">
-                            {getShopProductPrimaryPrice(item)}
-                          </div>
+                          <ShopProductPriceDisplay
+                            className="mb-1"
+                            product={item}
+                            size="narrow"
+                          />
                           <div className="flex items-center justify-between gap-2">
                             <span className="line-clamp-1 text-xs text-text-aux whitespace-nowrap">
                               已售{formatShopProductSales(item.sales)}
@@ -631,16 +633,12 @@ export const StorePage = () => {
                           <div className="mb-2 line-clamp-2 text-base leading-tight text-text-main">
                             {item.name}
                           </div>
-                          <div className="mt-auto flex items-end justify-between">
-                            <div>
-                              <div className="flex items-center">
-                                <span className="text-xl font-bold leading-none text-primary-start">
-                                  {getShopProductPrimaryPrice(item)}
-                                </span>
-                                <span className="ml-2 text-xs text-text-aux whitespace-nowrap shrink-0">
-                                  已售{formatShopProductSales(item.sales)}
-                                </span>
-                              </div>
+                          <div className="mt-auto flex items-end justify-between gap-3">
+                            <div className="min-w-0">
+                              <ShopProductPriceDisplay product={item} />
+                              <span className="mt-1 inline-block text-xs text-text-aux whitespace-nowrap">
+                                已售{formatShopProductSales(item.sales)}
+                              </span>
                             </div>
                             <button
                               type="button"

@@ -7,10 +7,19 @@ import type {
   ShopProductSkuSpec,
 } from '../../api/modules/shopProduct';
 
-type ProductPriceSource = Pick<
+export type ShopProductPriceSource = Pick<
   ShopProductItem,
   'balance_available_amount' | 'green_power_amount' | 'price' | 'purchase_type' | 'score_price'
 >;
+
+export interface ShopProductPricePresentation {
+  balanceText?: string;
+  greenPowerText?: string;
+  mode: 'balance' | 'green_power' | 'mixed' | 'money' | 'pending' | 'score';
+  moneyText?: string;
+  primaryText: string;
+  scoreText?: string;
+}
 
 export interface ShopProductOptionGroup {
   name: string;
@@ -116,7 +125,7 @@ export function resolveShopProductImageUrl(url?: string | null) {
  * 商城统一使用 score_price 作为余额/消费金字段；
  * 部分商品为混合支付（score_price + 可用余额 balance_available_amount）。
  */
-export function getShopProductPrimaryPrice(product: ProductPriceSource) {
+export function getShopProductPrimaryPrice(product: ShopProductPriceSource) {
   const price = toFiniteNumber(product.price);
   const greenPowerAmount = toFiniteNumber(product.green_power_amount);
   const balanceAvailableAmount = toFiniteNumber(product.balance_available_amount);
@@ -164,7 +173,7 @@ export function getShopProductPrimaryPrice(product: ProductPriceSource) {
 /**
  * 余额统一使用 score_price；混合支付时展示 score_price + 可用余额。
  */
-export function getShopProductPriceCaption(product: ProductPriceSource) {
+export function getShopProductPriceCaption(product: ShopProductPriceSource) {
   const scorePrice = toFiniteNumber(product.score_price);
   const price = toFiniteNumber(product.price);
   const greenPowerAmount = toFiniteNumber(product.green_power_amount);
@@ -188,7 +197,7 @@ export function getShopProductPriceCaption(product: ProductPriceSource) {
   return captions.join(' + ');
 }
 
-export function getShopProductPurchaseTag(product: ProductPriceSource) {
+export function getShopProductPurchaseTag(product: ShopProductPriceSource) {
   if (product.purchase_type === 'score') {
     return '消费金';
   }
@@ -198,6 +207,76 @@ export function getShopProductPurchaseTag(product: ProductPriceSource) {
   }
 
   return '现金购买';
+}
+
+export function getShopProductPricePresentation(
+  product: ShopProductPriceSource,
+): ShopProductPricePresentation {
+  const price = toFiniteNumber(product.price);
+  const greenPowerAmount = toFiniteNumber(product.green_power_amount);
+  const balanceAvailableAmount = toFiniteNumber(product.balance_available_amount);
+  const scorePrice = toFiniteNumber(product.score_price);
+
+  const moneyText = price > 0 ? `¥${formatDecimalAmount(price)}` : undefined;
+  const scoreText = scorePrice > 0 ? formatIntegerAmount(scorePrice) : undefined;
+  const greenPowerText =
+    greenPowerAmount > 0 ? `绿色算力 ${formatDecimalAmount(greenPowerAmount)}` : undefined;
+  const balanceText =
+    balanceAvailableAmount > 0 ? `余额 ${formatDecimalAmount(balanceAvailableAmount)}` : undefined;
+
+  if (product.purchase_type === 'both' && moneyText && scoreText) {
+    return {
+      mode: 'mixed',
+      moneyText,
+      primaryText: `${moneyText} + ${scoreText}`,
+      scoreText,
+    };
+  }
+
+  if (product.purchase_type === 'score' && scoreText) {
+    return {
+      mode: 'score',
+      primaryText: scoreText,
+      scoreText,
+    };
+  }
+
+  if (moneyText) {
+    return {
+      mode: 'money',
+      moneyText,
+      primaryText: moneyText,
+    };
+  }
+
+  if (greenPowerText) {
+    return {
+      greenPowerText,
+      mode: 'green_power',
+      primaryText: greenPowerText,
+    };
+  }
+
+  if (balanceText) {
+    return {
+      balanceText,
+      mode: 'balance',
+      primaryText: balanceText,
+    };
+  }
+
+  if (scoreText) {
+    return {
+      mode: 'score',
+      primaryText: scoreText,
+      scoreText,
+    };
+  }
+
+  return {
+    mode: 'pending',
+    primaryText: product.purchase_type === 'score' ? '待定' : '价格待定',
+  };
 }
 
 export function getShopProductBadges(product: ShopProductItem) {

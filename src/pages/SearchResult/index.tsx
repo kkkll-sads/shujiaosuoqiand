@@ -25,11 +25,11 @@ import { EmptyState } from '../../components/ui/EmptyState';
 import { ErrorState } from '../../components/ui/ErrorState';
 import { PullToRefreshContainer } from '../../components/ui/PullToRefreshContainer';
 import { Skeleton } from '../../components/ui/Skeleton';
+import { ShopProductPriceDisplay } from '../../features/shop-product/components/ShopProductPriceDisplay';
 import {
   buildShopProductPath,
   formatShopProductSales,
   getShopProductBadges,
-  getShopProductPrimaryPrice,
   normalizeShopProductCategories,
   resolveShopProductImageUrl,
 } from '../../features/shop-product/utils';
@@ -472,9 +472,7 @@ export const SearchResultPage = () => {
                     ))}
                   </div>
                   <div className="mt-auto">
-                    <div className="text-primary-start">
-                      <span className="text-lg font-bold">{getShopProductPrimaryPrice(item)}</span>
-                    </div>
+                    <ShopProductPriceDisplay product={item} />
                     <div className="mt-1 text-xs text-text-aux">销量 {formatShopProductSales(item.sales)}</div>
                   </div>
                 </div>
@@ -531,10 +529,8 @@ export const SearchResultPage = () => {
                 </div>
               </div>
               <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-xl font-bold leading-none text-primary-start">
-                    {getShopProductPrimaryPrice(item)}
-                  </div>
+                <div className="min-w-0">
+                  <ShopProductPriceDisplay product={item} />
                   <div className="mt-1 text-xs text-text-aux">
                     销量 {formatShopProductSales(item.sales)} · {item.category}
                   </div>

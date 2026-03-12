@@ -19,11 +19,11 @@ import { EmptyState } from '../../components/ui/EmptyState';
 import { ErrorState } from '../../components/ui/ErrorState';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { PullToRefreshContainer } from '../../components/ui/PullToRefreshContainer';
+import { ShopProductPriceDisplay } from '../../features/shop-product/components/ShopProductPriceDisplay';
 import {
   buildShopProductPath,
   formatShopProductSales,
   getShopProductBadges,
-  getShopProductPrimaryPrice,
   normalizeShopProductCategories,
   resolveShopProductImageUrl,
 } from '../../features/shop-product/utils';
@@ -387,10 +387,8 @@ export const CategoryPage = () => {
                           </div>
                         </div>
                         <div className="mt-2 flex items-end justify-between">
-                          <div>
-                            <div className="text-xl font-bold leading-none text-primary-start">
-                              {getShopProductPrimaryPrice(item)}
-                            </div>
+                          <div className="min-w-0">
+                            <ShopProductPriceDisplay product={item} />
                             <div className="mt-1 text-xs text-text-aux">
                               销量 {formatShopProductSales(item.sales)} · 库存 {item.stock}
                             </div>
