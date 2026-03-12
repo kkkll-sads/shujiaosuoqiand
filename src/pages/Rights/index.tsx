@@ -323,11 +323,10 @@ export function RightsPage() {
               <div className="mx-2 h-[2px] flex-1 bg-red-100 dark:bg-red-900/30" />
               <div className="flex flex-col items-center gap-2">
                 <div
-                  className={`flex h-6 w-6 items-center justify-center rounded-full text-sm ${
-                    pendingCount > 0
-                      ? 'bg-red-500 text-white shadow-[0_0_8px_rgba(239,68,68,0.45)]'
-                      : 'bg-gray-100 text-text-sub dark:bg-gray-800'
-                  }`}
+                  className={`flex h-6 w-6 items-center justify-center rounded-full text-sm ${pendingCount > 0
+                    ? 'bg-red-500 text-white shadow-[0_0_8px_rgba(239,68,68,0.45)]'
+                    : 'bg-gray-100 text-text-sub dark:bg-gray-800'
+                    }`}
                 >
                   2
                 </div>
@@ -353,11 +352,10 @@ export function RightsPage() {
               className={pendingCount > 0 ? 'mt-[2px] text-orange-500' : 'mt-[2px] text-blue-500'}
             />
             <p
-              className={`text-sm leading-relaxed ${
-                pendingCount > 0
-                  ? 'text-orange-600 dark:text-orange-400'
-                  : 'text-blue-600 dark:text-blue-400'
-              }`}
+              className={`text-sm leading-relaxed ${pendingCount > 0
+                ? 'text-orange-600 dark:text-orange-400'
+                : 'text-blue-600 dark:text-blue-400'
+                }`}
             >
               {pendingCount > 0 ? '当前有待审核记录，暂不可重复提交' : '可提交新的确权申请'}
             </p>
@@ -365,9 +363,8 @@ export function RightsPage() {
         </Card>
 
         <Card
-          className={`rounded-2xl border border-border-light bg-white p-4 shadow-sm transition-opacity dark:bg-bg-card ${
-            isFormDisabled ? 'pointer-events-none opacity-60' : ''
-          }`}
+          className={`rounded-2xl border border-border-light bg-white p-4 shadow-sm transition-opacity dark:bg-bg-card ${isFormDisabled ? 'pointer-events-none opacity-60' : ''
+            }`}
         >
           <h2 className="mb-4 text-xl font-bold text-text-main">确权申请</h2>
 
@@ -387,11 +384,10 @@ export function RightsPage() {
                     key={key}
                     type="button"
                     onClick={() => setVoucherType(key as RightsDeclarationVoucherType)}
-                    className={`flex-1 rounded-xl border px-3 py-2 text-base font-medium transition-colors ${
-                      voucherType === key
-                        ? 'border-red-200 bg-red-50 text-red-600 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-400'
-                        : 'border-transparent bg-gray-50 text-text-main dark:bg-gray-800'
-                    }`}
+                    className={`flex-1 rounded-xl border px-3 py-2 text-base font-medium transition-colors ${voucherType === key
+                      ? 'border-red-200 bg-red-50 text-red-600 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-400'
+                      : 'border-transparent bg-gray-50 text-text-main dark:bg-gray-800'
+                      }`}
                   >
                     {label}
                   </button>
@@ -507,11 +503,10 @@ export function RightsPage() {
             </div>
 
             <Button
-              className={`mt-6 h-12 w-full rounded-xl text-xl font-medium ${
-                isSubmitDisabled
-                  ? 'cursor-not-allowed bg-gray-200 text-gray-400 dark:bg-gray-800 dark:text-gray-500'
-                  : 'bg-gradient-to-r from-brand-start to-brand-end text-white shadow-lg shadow-red-500/30 active:scale-[0.98]'
-              }`}
+              className={`mt-6 h-12 w-full rounded-xl text-xl font-medium ${isSubmitDisabled
+                ? 'cursor-not-allowed bg-gray-200 text-gray-400 dark:bg-gray-800 dark:text-gray-500'
+                : 'bg-gradient-to-r from-brand-start to-brand-end text-white shadow-lg shadow-red-500/30 active:scale-[0.98]'
+                }`}
               disabled={isSubmitDisabled}
               onClick={handleSubmit}
             >
@@ -613,52 +608,40 @@ export function RightsPage() {
       />
 
       <div className="sticky top-0 z-10 border-b border-border-light bg-white/96 px-4 py-3 backdrop-blur-md dark:border-gray-800 dark:bg-gray-900/96">
-        <div className="mb-2 flex items-center justify-between">
-          <div className="text-[15px] font-semibold text-text-main">内容切换</div>
-          <div className="text-[12px] font-medium text-primary-start">点击标签即可切换</div>
-        </div>
+
         <div className="grid grid-cols-3 gap-2 rounded-[22px] bg-[#F7F1F1] p-2 shadow-inner dark:bg-gray-800/80">
           <button
             type="button"
-            className={`rounded-[16px] px-2 py-3 text-left transition-all ${
-              activeTab === 'apply'
-                ? 'bg-gradient-to-r from-primary-start to-primary-end text-white shadow-[0_10px_24px_rgba(239,68,68,0.22)]'
-                : 'bg-transparent text-text-sub'
-            }`}
+            className={`rounded-[16px] px-2 py-3 text-left transition-all ${activeTab === 'apply'
+              ? 'bg-gradient-to-r from-primary-start to-primary-end text-white shadow-[0_10px_24px_rgba(239,68,68,0.22)]'
+              : 'bg-transparent text-text-sub'
+              }`}
             onClick={() => setActiveTab('apply')}
           >
             <div className="text-[15px] font-bold leading-5">确权申请</div>
-            <div className="mt-1 text-[11px] leading-4 opacity-90">
-              提交审核材料
-            </div>
+
           </button>
           <button
             type="button"
-            className={`rounded-[16px] px-2 py-3 text-left transition-all ${
-              activeTab === 'unlock'
-                ? 'bg-gradient-to-r from-primary-start to-primary-end text-white shadow-[0_10px_24px_rgba(239,68,68,0.22)]'
-                : 'bg-transparent text-text-sub'
-            }`}
+            className={`rounded-[16px] px-2 py-3 text-left transition-all ${activeTab === 'unlock'
+              ? 'bg-gradient-to-r from-primary-start to-primary-end text-white shadow-[0_10px_24px_rgba(239,68,68,0.22)]'
+              : 'bg-transparent text-text-sub'
+              }`}
             onClick={() => setActiveTab('unlock')}
           >
             <div className="text-[15px] font-bold leading-5">旧资产解锁</div>
-            <div className="mt-1 text-[11px] leading-4 opacity-90">
-              查看解锁条件
-            </div>
+
           </button>
           <button
             type="button"
-            className={`rounded-[16px] px-2 py-3 text-left transition-all ${
-              activeTab === 'growth'
-                ? 'bg-gradient-to-r from-primary-start to-primary-end text-white shadow-[0_10px_24px_rgba(239,68,68,0.22)]'
-                : 'bg-transparent text-text-sub'
-            }`}
+            className={`rounded-[16px] px-2 py-3 text-left transition-all ${activeTab === 'growth'
+              ? 'bg-gradient-to-r from-primary-start to-primary-end text-white shadow-[0_10px_24px_rgba(239,68,68,0.22)]'
+              : 'bg-transparent text-text-sub'
+              }`}
             onClick={() => setActiveTab('growth')}
           >
             <div className="text-[15px] font-bold leading-5">成长权益</div>
-            <div className="mt-1 text-[11px] leading-4 opacity-90">
-              查看权益规则
-            </div>
+
           </button>
         </div>
       </div>

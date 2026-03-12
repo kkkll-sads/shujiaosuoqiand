@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from 'react';
+﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   AlertTriangle,
@@ -9,11 +9,12 @@ import {
   Clock3,
   Coins,
   Copy,
+  Loader2,
   ShieldCheck,
   Wallet,
   WifiOff,
 } from 'lucide-react';
-import { shopOrderApi } from '../../api';
+import { shopOrderApi, rechargeApi } from '../../api';
 import { getErrorMessage } from '../../api/core/errors';
 import { useFeedback } from '../../components/ui/FeedbackProvider';
 import { Skeleton } from '../../components/ui/Skeleton';
@@ -66,11 +67,90 @@ const RechargeCashierView = ({
   const [timeLeft, setTimeLeft] = useState(expireSeconds);
   const [opening, setOpening] = useState(false);
   const [hasOpenedPay, setHasOpenedPay] = useState(false);
+  const [pollState, setPollState] = useState<'idle' | 'polling' | 'done'>('idle');
+  const [pollCount, setPollCount] = useState(0);
+  const [pollResult, setPollResult] = useState<'pending' | 'success' | 'failure' | null>(null);
+  const pollAbortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     setTimeLeft(expireSeconds);
     setHasOpenedPay(false);
   }, [expireSeconds]);
+
+  /** 轮询后端订单状态（最多 maxAttempts 次，每次间隔 intervalMs） */
+  const startPolling = useCallback(async (maxAttempts = 5, intervalMs = 3000) => {
+    if (!orderNo && !orderId) return;
+
+    const abort = new AbortController();
+    pollAbortRef.current = abort;
+    setPollState('polling');
+    setPollCount(0);
+    setPollResult(null);
+
+    for (let i = 0; i < maxAttempts; i++) {
+      if (abort.signal.aborted) break;
+
+      setPollCount(i + 1);
+
+      try {
+        const detail = await rechargeApi.detail(
+          orderId ? { id: orderId } : { order_no: orderNo },
+        );
+        // 充值: 0=待审核(pending), 1=已通过(success), 2=已拒绝(failure)
+        if (detail.status === 1) {
+          setPollResult('success');
+          setPollState('done');
+          // 自动跳转到成功结果页
+          const params = new URLSearchParams({
+            scene: 'recharge',
+            status: 'success',
+            amount: String(amount),
+            order_no: orderNo,
+            order_id: String(orderId),
+          });
+          navigate(`/payment/result?${params.toString()}`, { replace: true });
+          return;
+        }
+        if (detail.status === 2) {
+          setPollResult('failure');
+          setPollState('done');
+          return;
+        }
+      } catch {
+        // 网络错误，继续轮询
+      }
+
+      // 等待下次轮询（最后一次不等）
+      if (i < maxAttempts - 1 && !abort.signal.aborted) {
+        await new Promise((r) => window.setTimeout(r, intervalMs));
+      }
+    }
+
+    // 轮询结束仍为 pending
+    if (!abort.signal.aborted) {
+      setPollResult('pending');
+      setPollState('done');
+    }
+  }, [orderNo, orderId, amount, navigate]);
+
+  /** 监听页面可见性变化 — 用户从三方支付页面返回时自动开始轮询 */
+  useEffect(() => {
+    if (!hasOpenedPay) return undefined;
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible' && pollState === 'idle') {
+        void startPolling();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [hasOpenedPay, pollState, startPolling]);
+
+  /** 组件卸载时中止轮询 */
+  useEffect(() => {
+    return () => pollAbortRef.current?.abort();
+  }, []);
 
   useEffect(() => {
     if (timeLeft <= 0) {
@@ -203,30 +283,63 @@ const RechargeCashierView = ({
           <ArrowRight size={19} className="ml-2" />
         </button>
 
-        {hasOpenedPay ? (
+        {hasOpenedPay && pollState === 'polling' ? (
           <div className="mt-10 flex flex-col items-center">
-            <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-[#ecfdf3]">
-              <CheckCircle2 size={36} className="text-[#16a34a]" />
+            <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-[#f0f4ff]">
+              <Loader2 size={36} className="animate-spin text-[#6366f1]" />
             </div>
-            <h3 className="mb-1 text-[18px] font-semibold text-[#111827]">请确认支付结果</h3>
-            <p className="mb-6 text-[14px] text-[#6b7280]">如果您已在支付页面完成付款，请点击下方按钮</p>
+            <h3 className="mb-1 text-[18px] font-semibold text-[#111827]">正在查询支付结果</h3>
+            <p className="text-[14px] text-[#6b7280]">第 {pollCount}/5 次查询中，请稍候...</p>
+            <div className="mt-4 flex w-full max-w-[200px] overflow-hidden rounded-full bg-[#e5e7eb] h-1.5">
+              <div
+                className="h-full bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] rounded-full transition-all duration-500"
+                style={{ width: `${(pollCount / 5) * 100}%` }}
+              />
+            </div>
+          </div>
+        ) : hasOpenedPay && pollState === 'done' ? (
+          <div className="mt-10 flex flex-col items-center">
+            {pollResult === 'failure' ? (
+              <>
+                <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-[#fef2f2]">
+                  <AlertTriangle size={36} className="text-[#ef4444]" />
+                </div>
+                <h3 className="mb-1 text-[18px] font-semibold text-[#111827]">支付未完成</h3>
+                <p className="mb-6 text-[14px] text-[#6b7280]">订单已被拒绝或取消</p>
+                <button
+                  type="button"
+                  className="flex h-12 w-full items-center justify-center rounded-full bg-gradient-to-r from-[#ff1530] to-[#ff0019] text-[17px] font-semibold text-white active:scale-[0.99]"
+                  onClick={() => handleOpenResult('failure')}
+                >
+                  查看详情
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-[#ecfdf3]">
+                  <CheckCircle2 size={36} className="text-[#16a34a]" />
+                </div>
+                <h3 className="mb-1 text-[18px] font-semibold text-[#111827]">请确认支付结果</h3>
+                <p className="mb-6 text-[14px] text-[#6b7280]">如果您已在支付页面完成付款，请点击下方按钮</p>
 
-            <button
-              type="button"
-              className="flex h-14 w-full items-center justify-center rounded-full bg-gradient-to-r from-[#16a34a] to-[#22c55e] text-[18px] font-semibold text-white shadow-[0_14px_28px_rgba(22,163,74,0.22)] active:scale-[0.99]"
-              onClick={() => handleOpenResult('pending')}
-            >
-              ✓ 已完成支付
-            </button>
+                <button
+                  type="button"
+                  className="flex h-14 w-full items-center justify-center rounded-full bg-gradient-to-r from-[#16a34a] to-[#22c55e] text-[18px] font-semibold text-white shadow-[0_14px_28px_rgba(22,163,74,0.22)] active:scale-[0.99]"
+                  onClick={() => handleOpenResult('pending')}
+                >
+                  ✓ 已完成支付
+                </button>
 
-            <button
-              type="button"
-              className="mt-3 flex items-center text-[14px] text-[#6b7280] active:opacity-70"
-              onClick={handleOpenPay}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1.5"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
-              支付遇到问题，获取新链接
-            </button>
+                <button
+                  type="button"
+                  className="mt-3 flex items-center text-[14px] text-[#6b7280] active:opacity-70"
+                  onClick={handleOpenPay}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1.5"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+                  支付遇到问题，获取新链接
+                </button>
+              </>
+            )}
           </div>
         ) : (
           <div className="mt-6 flex items-center justify-center text-[14px] text-[#9ca3af]">

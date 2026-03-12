@@ -136,7 +136,7 @@ export const HashrateExchangePage: React.FC = () => {
                   inputMode="decimal"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  placeholder="0"
+                  placeholder="点击输入兑换数量"
                   className="flex-1 bg-transparent text-4xl font-black text-text-main outline-none placeholder:text-text-aux/20"
                 />
               </div>
