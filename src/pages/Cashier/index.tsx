@@ -298,80 +298,81 @@ const RechargeCashierView = ({
           </div>
         </div>
 
-        <button
-          type="button"
-          className="mt-8 flex h-14 w-full items-center justify-center rounded-full bg-gradient-to-r from-[#ff1530] to-[#ff0019] text-[22px] font-semibold text-white shadow-[0_14px_28px_rgba(255,0,25,0.22)] active:scale-[0.99] disabled:opacity-50"
-          onClick={handleOpenPay}
-          disabled={!payUrl || timeLeft <= 0 || opening}
-        >
-          <span className="mr-2 text-[18px]">▶</span>
-          去支付
-          <ArrowRight size={19} className="ml-2" />
-        </button>
-
-        {hasOpenedPay && pollState === 'polling' ? (
-          <div className="mt-10 flex flex-col items-center">
-            <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-[#f0f4ff]">
-              <Loader2 size={36} className="animate-spin text-[#6366f1]" />
-            </div>
-            <h3 className="mb-1 text-[18px] font-semibold text-[#111827]">正在查询支付结果</h3>
-            <p className="text-[14px] text-[#6b7280]">第 {pollCount}/5 次查询中，请稍候...</p>
-            <div className="mt-4 flex w-full max-w-[200px] overflow-hidden rounded-full bg-[#e5e7eb] h-1.5">
+        {/* === 主操作按钮 — 根据状态动态切换 === */}
+        {pollState === 'polling' ? (
+          <>
+            <button
+              type="button"
+              className="mt-8 flex h-14 w-full items-center justify-center gap-2 rounded-full bg-[#6366f1] text-[18px] font-semibold text-white shadow-[0_14px_28px_rgba(99,102,241,0.22)]"
+              disabled
+            >
+              <Loader2 size={20} className="animate-spin" />
+              查询支付结果中 ({pollCount}/5)
+            </button>
+            <div className="mx-auto mt-4 flex w-full max-w-[240px] overflow-hidden rounded-full bg-[#e5e7eb] h-1.5">
               <div
                 className="h-full bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] rounded-full transition-all duration-500"
                 style={{ width: `${(pollCount / 5) * 100}%` }}
               />
             </div>
-          </div>
-        ) : hasOpenedPay && pollState === 'done' ? (
-          <div className="mt-10 flex flex-col items-center">
-            {pollResult === 'failure' ? (
-              <>
-                <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-[#fef2f2]">
-                  <AlertTriangle size={36} className="text-[#ef4444]" />
-                </div>
-                <h3 className="mb-1 text-[18px] font-semibold text-[#111827]">支付未完成</h3>
-                <p className="mb-6 text-[14px] text-[#6b7280]">订单已被拒绝或取消</p>
-                <button
-                  type="button"
-                  className="flex h-12 w-full items-center justify-center rounded-full bg-gradient-to-r from-[#ff1530] to-[#ff0019] text-[17px] font-semibold text-white active:scale-[0.99]"
-                  onClick={() => handleOpenResult('failure')}
-                >
-                  查看详情
-                </button>
-              </>
-            ) : (
-              <>
-                <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-[#ecfdf3]">
-                  <CheckCircle2 size={36} className="text-[#16a34a]" />
-                </div>
-                <h3 className="mb-1 text-[18px] font-semibold text-[#111827]">请确认支付结果</h3>
-                <p className="mb-6 text-[14px] text-[#6b7280]">如果您已在支付页面完成付款，请点击下方按钮</p>
-
-                <button
-                  type="button"
-                  className="flex h-14 w-full items-center justify-center rounded-full bg-gradient-to-r from-[#16a34a] to-[#22c55e] text-[18px] font-semibold text-white shadow-[0_14px_28px_rgba(22,163,74,0.22)] active:scale-[0.99]"
-                  onClick={() => handleOpenResult('pending')}
-                >
-                  ✓ 已完成支付
-                </button>
-
-                <button
-                  type="button"
-                  className="mt-3 flex items-center text-[14px] text-[#6b7280] active:opacity-70"
-                  onClick={handleOpenPay}
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1.5"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
-                  支付遇到问题，获取新链接
-                </button>
-              </>
-            )}
-          </div>
+          </>
+        ) : pollState === 'done' && pollResult === 'failure' ? (
+          <>
+            <button
+              type="button"
+              className="mt-8 flex h-14 w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#ff1530] to-[#ff0019] text-[18px] font-semibold text-white shadow-[0_14px_28px_rgba(255,0,25,0.22)] active:scale-[0.99]"
+              onClick={() => handleOpenResult('failure')}
+            >
+              <AlertTriangle size={18} />
+              支付未完成 · 查看详情
+            </button>
+            <button
+              type="button"
+              className="mx-auto mt-3 flex items-center text-[14px] text-[#6b7280] active:opacity-70"
+              onClick={handleOpenPay}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1.5"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+              重新支付
+            </button>
+          </>
+        ) : hasOpenedPay ? (
+          <>
+            <button
+              type="button"
+              className="mt-8 flex h-14 w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#16a34a] to-[#22c55e] text-[18px] font-semibold text-white shadow-[0_14px_28px_rgba(22,163,74,0.22)] active:scale-[0.99]"
+              onClick={() => handleOpenResult('pending')}
+            >
+              <CheckCircle2 size={18} />
+              已完成支付
+            </button>
+            <button
+              type="button"
+              className="mx-auto mt-3 flex items-center text-[14px] text-[#6b7280] active:opacity-70"
+              onClick={handleOpenPay}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1.5"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+              支付遇到问题，获取新链接
+            </button>
+          </>
         ) : (
-          <div className="mt-6 flex items-center justify-center text-[14px] text-[#9ca3af]">
-            <ShieldCheck size={14} className="mr-1.5" />
-            安全支付保障
-          </div>
+          <>
+            <button
+              type="button"
+              className="mt-8 flex h-14 w-full items-center justify-center rounded-full bg-gradient-to-r from-[#ff1530] to-[#ff0019] text-[22px] font-semibold text-white shadow-[0_14px_28px_rgba(255,0,25,0.22)] active:scale-[0.99] disabled:opacity-50"
+              onClick={handleOpenPay}
+              disabled={!payUrl || timeLeft <= 0 || opening}
+            >
+              {opening ? (
+                <><Loader2 size={20} className="mr-2 animate-spin" />打开中...</>
+              ) : (
+                <><span className="mr-2 text-[18px]">▶</span>去支付<ArrowRight size={19} className="ml-2" /></>
+              )}
+            </button>
+            <div className="mt-6 flex items-center justify-center text-[14px] text-[#9ca3af]">
+              <ShieldCheck size={14} className="mr-1.5" />
+              安全支付保障
+            </div>
+          </>
         )}
       </div>
 
