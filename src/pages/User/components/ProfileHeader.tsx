@@ -88,33 +88,33 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           <div className="flex flex-col gap-1">
             <h2 className="text-xl font-bold text-text-main leading-tight">{displayName}</h2>
 
-            <div className="flex items-center gap-2">
-              <div className="flex items-center rounded-full px-2 py-0.5 bg-bg-card border border-border-light shadow-sm">
-                <div className="w-3.5 h-3.5 rounded-full bg-gradient-to-br from-primary-start to-primary-end flex items-center justify-center mr-1">
-                  <UserTypeIcon size={8} className="text-white fill-current" />
+            <div className="flex items-center gap-1.5">
+              <div className="flex items-center whitespace-nowrap rounded-full px-1.5 py-px bg-bg-card border border-border-light shadow-sm">
+                <div className="w-3 h-3 rounded-full bg-gradient-to-br from-primary-start to-primary-end flex items-center justify-center mr-0.5">
+                  <UserTypeIcon size={7} className="text-white fill-current" />
                 </div>
-                <span className="text-[10px] font-bold text-text-sub">{userTypeText || displayId}</span>
+                <span className="text-[9px] font-bold text-text-sub">{userTypeText || displayId}</span>
               </div>
 
               {/* 代理等级徽标 */}
               {agentLevelText.length > 0 && agentLevel >= 0 && (
-                <div className={`flex items-center rounded-full px-2 py-0.5 border ${lc.bg} ${lc.border}`}>
-                  <div className={`w-3.5 h-3.5 rounded-full bg-gradient-to-br ${lc.dot} flex items-center justify-center mr-1`}>
-                    <Award size={8} className="text-white" />
+                <div className={`flex items-center whitespace-nowrap rounded-full px-1.5 py-px border ${lc.bg} ${lc.border}`}>
+                  <div className={`w-3 h-3 rounded-full bg-gradient-to-br ${lc.dot} flex items-center justify-center mr-0.5`}>
+                    <Award size={7} className="text-white" />
                   </div>
-                  <span className={`text-[10px] font-bold ${lc.text}`}>{agentLevelText}</span>
+                  <span className={`text-[9px] font-bold ${lc.text}`}>{agentLevelText}</span>
                 </div>
               )}
               {agentReviewStatus === 1 && (
-                <div className="flex items-center bg-red-50 dark:bg-red-900/20 rounded-full px-2 py-0.5 border border-red-100 dark:border-red-800/40">
-                  <Award size={10} className="text-red-500 mr-1" />
-                  <span className="text-[10px] font-bold text-red-600 dark:text-red-400">代理</span>
+                <div className="flex items-center bg-red-50 dark:bg-red-900/20 whitespace-nowrap rounded-full px-1.5 py-px border border-red-100 dark:border-red-800/40">
+                  <Award size={8} className="text-red-500 mr-0.5" />
+                  <span className="text-[9px] font-bold text-red-600 dark:text-red-400">代理</span>
                 </div>
               )}
               {agentReviewStatus === 0 && (
-                <div className="flex items-center bg-yellow-50 dark:bg-yellow-900/20 rounded-full px-2 py-0.5 border border-yellow-100 dark:border-yellow-800/40">
-                  <Award size={10} className="text-yellow-600 mr-1" />
-                  <span className="text-[10px] font-bold text-yellow-700 dark:text-yellow-400">待审核</span>
+                <div className="flex items-center bg-yellow-50 dark:bg-yellow-900/20 whitespace-nowrap rounded-full px-1.5 py-px border border-yellow-100 dark:border-yellow-800/40">
+                  <Award size={8} className="text-yellow-600 mr-0.5" />
+                  <span className="text-[9px] font-bold text-yellow-700 dark:text-yellow-400">待审核</span>
                 </div>
               )}
             </div>
