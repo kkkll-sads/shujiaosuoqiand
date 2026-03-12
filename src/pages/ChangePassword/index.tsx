@@ -1,14 +1,18 @@
 /**
- * @file ChangePassword/index.tsx - 修改登录密码页面
+ * @file ChangePassword/index.tsx
  * @description 用户通过输入旧密码和新密码来修改登录密码，修改成功后自动清除登录态并跳转登录页。
  */
 
-import { useState } from 'react'; // React 核心 Hook
-import { ShieldAlert } from 'lucide-react';
+import { useState } from 'react';
+import { KeyRound, ShieldAlert } from 'lucide-react';
 import { accountApi } from '../../api';
 import { getErrorMessage } from '../../api/core/errors';
 import { AuthPasswordToggle } from '../../components/biz/auth/AuthPasswordToggle';
-import { SettingsNotice, SettingsSection } from '../../components/biz/settings/SettingsSection';
+import {
+  SettingsActionItem,
+  SettingsNotice,
+  SettingsSection,
+} from '../../components/biz/settings/SettingsSection';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { Button } from '../../components/ui/Button';
 import { useFeedback } from '../../components/ui/FeedbackProvider';
@@ -16,10 +20,6 @@ import { Input } from '../../components/ui/Input';
 import { clearAuthSession, PASSWORD_PATTERN } from '../../lib/auth';
 import { useAppNavigate } from '../../lib/navigation';
 
-/**
- * ChangePasswordPage - 修改登录密码页面
- * 功能：输入旧密码 → 输入新密码 → 确认新密码 → 提交修改 → 清除登录态并跳转登录页
- */
 export const ChangePasswordPage = () => {
   const { goBackOr, goTo } = useAppNavigate();
   const { showToast } = useFeedback();
@@ -31,7 +31,6 @@ export const ChangePasswordPage = () => {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  /** 提交修改密码：验证表单 → 调用 API → 清除登录态 → 跳转登录页 */
   const handleSubmit = async () => {
     const currentPassword = oldPassword.trim();
     const nextPassword = newPassword.trim();
@@ -112,6 +111,17 @@ export const ChangePasswordPage = () => {
               <span>修改成功后当前登录态会失效，需要使用新密码重新登录。</span>
             </div>
           </SettingsNotice>
+
+          <SettingsSection>
+            <SettingsActionItem
+              label="验证码重置登录密码？"
+              description="通过短信验证码重置登录密码"
+              icon={<KeyRound size={18} />}
+              variant="secondary"
+              borderless
+              onClick={() => goTo('reset_password')}
+            />
+          </SettingsSection>
 
           <Button className="mt-2" loading={submitting} onClick={handleSubmit}>
             确认修改

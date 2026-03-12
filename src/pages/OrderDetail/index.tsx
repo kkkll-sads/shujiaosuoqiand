@@ -161,23 +161,7 @@ export const OrderDetailPage = () => {
 
   const handleApplyAfterSale = async () => {
     if (orderId <= 0) return;
-    const confirmed = await showConfirm({
-      title: '申请售后',
-      message: '确定要提交这笔商城订单的售后申请吗？',
-      confirmText: '提交申请',
-      cancelText: '取消',
-    });
-    if (!confirmed) return;
-    showLoading('提交售后申请中...');
-    try {
-      await shopOrderApi.applyAfterSale({ order_id: orderId, reason: '买家申请退货' });
-      showToast({ message: '售后申请已提交', type: 'success' });
-      await fetchData();
-    } catch (e) {
-      showToast({ message: getErrorMessage(e) || '申请售后失败', type: 'error' });
-    } finally {
-      hideLoading();
-    }
+    navigate(`/after-sales/apply/${orderId}`);
   };
 
   const handleCancelAfterSale = async () => {

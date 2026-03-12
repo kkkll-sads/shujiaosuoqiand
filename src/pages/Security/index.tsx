@@ -1,9 +1,9 @@
 /**
- * @file Security/index.tsx - 安全中心页面
+ * @file Security/index.tsx
  * @description 用户安全设置页面，管理登录密码、支付密码、实名认证等。
  */
 
-import { useEffect } from 'react'; // React 核心 Hook
+import { useEffect } from 'react';
 import { Lock, Smartphone } from 'lucide-react';
 import { accountApi } from '../../api';
 import { SettingsActionItem, SettingsNotice, SettingsSection } from '../../components/biz/settings/SettingsSection';
@@ -58,12 +58,6 @@ export const SecurityPage = () => {
                   description="用于支付和资金验证"
                   icon={<Lock size={18} />}
                   onClick={() => goTo('change_pay_password')}
-                />
-                <SettingsActionItem
-                  label="验证码重置登录密码"
-                  description="短信验证码重置"
-                  icon={<Smartphone size={18} />}
-                  onClick={() => goTo('reset_password')}
                 />
                 <SettingsActionItem
                   label="绑定手机号"

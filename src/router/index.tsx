@@ -29,6 +29,7 @@ const PaymentResultPage = lazy(() => import('../pages/PaymentResult').then(m => 
 const OrderDetailPage = lazy(() => import('../pages/OrderDetail').then(m => ({ default: m.OrderDetailPage })));
 const LogisticsPage = lazy(() => import('../pages/Logistics').then(m => ({ default: m.LogisticsPage })));
 const AfterSalesPage = lazy(() => import('../pages/AfterSales').then(m => ({ default: m.AfterSalesPage })));
+const AfterSalesApplyPage = lazy(() => import('../pages/AfterSalesApply/index').then(m => ({ default: m.AfterSalesApplyPage })));
 const CouponPage = lazy(() => import('../pages/Coupon').then(m => ({ default: m.CouponPage })));
 const ActivityCenterPage = lazy(() => import('../pages/ActivityCenter').then(m => ({ default: m.ActivityCenterPage })));
 const ConsignmentCouponPage = lazy(() => import('../pages/ConsignmentCoupon').then(m => ({ default: m.ConsignmentCouponPage })));
@@ -194,6 +195,7 @@ export const router = createHashRouter([
       { path: 'order/detail/:id', element: <Lazy><OrderDetailPage /></Lazy> },
       { path: 'logistics/:id', element: <Lazy><LogisticsPage /></Lazy> },
       { path: 'after-sales', element: <Lazy><AfterSalesPage /></Lazy> },
+      { path: 'after-sales/apply/:orderId', element: <Lazy><AfterSalesApplyPage /></Lazy> },
 
       // ========== 交易区 ==========
       { path: 'trading', element: <Lazy><TradingZonePage /></Lazy> },

@@ -27,7 +27,7 @@ interface OrderListContentProps {
   onOpenMallOrderDetail: (orderId: number) => void;
   onOpenCollectibleDetail: (order: SelectedOrder) => void;
   onOpenLogistics: () => void;
-  onOpenCashier: () => void;
+  onOpenCashier: (order: ShopOrderListItem) => void;
   /** 取消商城订单 */
   onCancelMallOrder?: (orderId: number, cancelReason?: string) => void | Promise<void>;
   /** 取消售后申请 */
@@ -137,7 +137,7 @@ export const OrderListContent = ({
               onOpenOrderDetail={() => onOpenMallOrderDetail(order.id)}
               onCopy={onCopy}
               onOpenLogistics={onOpenLogistics}
-              onOpenCashier={onOpenCashier}
+              onOpenCashier={() => onOpenCashier(order)}
               onCancelOrder={onCancelMallOrder}
               onCancelAfterSale={onCancelMallAfterSale}
               onConfirmOrder={onConfirmMallOrder}

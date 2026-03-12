@@ -47,7 +47,14 @@ export const buildConvenientServices = ({
       action: () => navigate('/recharge'),
     },
     {
-      label: '姣忔棩绛惧埌',
+      label: '确权金充值',
+      icon: ShieldCheck,
+      iconColorClass: 'text-emerald-600',
+      iconBgClass: 'bg-emerald-50',
+      action: () => navigate('/service-recharge'),
+    },
+    {
+      label: '每日签到',
       icon: CalendarCheck,
       iconColorClass: 'text-red-500',
       iconBgClass: 'bg-red-50',
@@ -55,7 +62,7 @@ export const buildConvenientServices = ({
       showDot: !hasSignedToday,
     },
     {
-      label: '鏀剁泭鎻愮幇',
+      label: '收益提现',
       icon: Receipt,
       iconColorClass: 'text-red-500',
       iconBgClass: 'bg-red-50',
@@ -74,14 +81,14 @@ export const buildConvenientServices = ({
 export const buildRightsManagement = (navigate: NavigateFunction): ProfileSectionItem[] => {
   return [
     {
-      label: '璧勪骇鏄庣粏',
+      label: '账单明细',
       icon: FileText,
       iconColorClass: 'text-purple-600',
       iconBgClass: 'bg-purple-50',
       action: () => navigate('/billing'),
     },
     {
-      label: '绱鏉冪泭',
+      label: '累计确权',
       icon: ShieldCheck,
       iconColorClass: 'text-green-600',
       iconBgClass: 'bg-green-50',
@@ -95,14 +102,14 @@ export const buildRightsManagement = (navigate: NavigateFunction): ProfileSectio
       action: () => navigate('/consignment-voucher'),
     },
     {
-      label: '鎴戠殑钘忓搧',
+      label: '我的藏品',
       icon: Box,
       iconColorClass: 'text-indigo-600',
       iconBgClass: 'bg-indigo-50',
       action: () => navigate('/my-collection'),
     },
     {
-      label: '鎴戠殑鍗″寘',
+      label: '我的卡包',
       icon: Layers,
       iconColorClass: 'text-orange-600',
       iconBgClass: 'bg-orange-50',
@@ -163,17 +170,17 @@ export const buildServiceManagement = ({
   openSupport,
 }: BuildServiceManagementParams): ProfileSectionItem[] => {
   return [
-    { label: '瀹炲悕璁よ瘉', icon: UserCheck, action: () => navigate('/auth/real-name') },
+    { label: '实名认证', icon: UserCheck, action: () => navigate('/auth/real-name') },
     { label: '代理认证', icon: UserCheck, action: () => navigate('/agent-auth') },
-    { label: '鍗″彿绠＄悊', icon: CreditCard, action: () => navigate('/payment-accounts') },
-    { label: '鏀惰揣鍦板潃', icon: MapPin, action: () => navigate('/address') },
-    { label: '鎴戠殑濂藉弸', icon: Users, action: () => navigate('/friends') },
-    { label: '甯姪涓績', icon: HelpCircle, action: () => navigate('/help_center') },
-    { label: '瑙勫垯鍗忚', icon: FileText, action: () => navigate('/user_agreement') },
-    { label: '闅愮鏀跨瓥', icon: ShieldCheck, action: () => navigate('/privacy_policy') },
-    { label: '娲诲姩涓績', icon: Gift, action: () => navigate('/activity-center') },
-    { label: '鍦ㄧ嚎瀹㈡湇', icon: HeadphonesIcon, action: openSupport },
-    { label: '骞冲彴璧勮', icon: Newspaper, action: () => navigate('/announcement') },
+    { label: '收款账号', icon: CreditCard, action: () => navigate('/payment-accounts') },
+    { label: '地址管理', icon: MapPin, action: () => navigate('/address') },
+    { label: '我的好友', icon: Users, action: () => navigate('/friends') },
+    { label: '帮助中心', icon: HelpCircle, action: () => navigate('/help_center') },
+    { label: '用户协议', icon: FileText, action: () => navigate('/user_agreement') },
+    { label: '隐私政策', icon: ShieldCheck, action: () => navigate('/privacy_policy') },
+    { label: '活动中心', icon: Gift, action: () => navigate('/activity-center') },
+    { label: '在线客服', icon: HeadphonesIcon, action: openSupport },
+    { label: '平台公告', icon: Newspaper, action: () => navigate('/announcement') },
   ].map((item) => ({
     ...item,
     iconBgClass: 'bg-gray-50',

@@ -3,7 +3,7 @@
  * @description 展示商城订单和藏品交易订单，支持状态切换、搜索、下拉刷新。
  */
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { collectionTradeApi, shopOrderApi, type CollectionBuyOrder, type CollectionSellOrder, type ShopOrderListItem } from '../../api';
 import { getErrorMessage } from '../../api/core/errors';
 import { OfflineBanner } from '../../components/layout/OfflineBanner';
@@ -34,7 +34,9 @@ export const OrderPage = () => {
     ORDER_TABS.collectible[0],
   );
   const [selectedOrder, setSelectedOrder] = useState<SelectedOrder | null>(null);
+  const [isHeaderHidden, setIsHeaderHidden] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const lastScrollTopRef = useRef(0);
 
   const validCollectibleTab = ORDER_TABS.collectible.includes(collectibleTab)
     ? collectibleTab
@@ -129,6 +131,40 @@ export const OrderPage = () => {
     restoreWhen: !loading && !selectedOrder,
   });
 
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) {
+      return;
+    }
+
+    lastScrollTopRef.current = container.scrollTop;
+
+    const handleScroll = () => {
+      const currentScrollTop = container.scrollTop;
+      const delta = currentScrollTop - lastScrollTopRef.current;
+
+      if (currentScrollTop <= 12) {
+        setIsHeaderHidden(false);
+      } else if (delta >= 10 && currentScrollTop > 72) {
+        setIsHeaderHidden(true);
+      } else if (delta <= -10) {
+        setIsHeaderHidden(false);
+      }
+
+      lastScrollTopRef.current = currentScrollTop;
+    };
+
+    container.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+
+  useEffect(() => {
+    setIsHeaderHidden(false);
+  }, [activeTab, orderType, selectedOrder]);
+
   const handleTabChange = (tab: string) => {
     if (orderType === 'mall') {
       setMallTab(tab);
@@ -189,23 +225,9 @@ export const OrderPage = () => {
 
   const handleRefundOrder = useCallback(
     async (orderId: number) => {
-      const confirmed = await showConfirm({
-        title: '申请售后',
-        message: '确定要提交这笔商城订单的售后申请吗？',
-        confirmText: '提交申请',
-        cancelText: '取消',
-      });
-      if (!confirmed) return;
-
-      try {
-        await shopOrderApi.applyAfterSale({ order_id: orderId, reason: '买家申请退货' });
-        showToast({ message: '售后申请已提交', type: 'success' });
-        void mallOrdersRequest.reload();
-      } catch (err) {
-        showToast({ message: getErrorMessage(err) || '申请售后失败', type: 'error' });
-      }
+      navigate(`/after-sales/apply/${orderId}`);
     },
-    [showConfirm, showToast, mallOrdersRequest],
+    [navigate],
   );
 
   const handleCancelAfterSale = useCallback(
@@ -257,7 +279,7 @@ export const OrderPage = () => {
     <div className="flex-1 flex flex-col bg-bg-base relative overflow-hidden">
       {isOffline && <OfflineBanner onAction={refreshStatus} />}
 
-      <OrderHeader onSearch={() => goTo('search')} />
+      <OrderHeader hidden={isHeaderHidden} onSearch={() => goTo('search')} />
       <OrderTypeSwitcher orderType={orderType} onChange={setOrderType} />
       <OrderStatusTabs tabs={ORDER_TABS[orderType]} activeTab={activeTab} onChange={handleTabChange} />
 
@@ -279,7 +301,18 @@ export const OrderPage = () => {
           )}
           onOpenCollectibleDetail={(order) => setSelectedOrder(order)}
           onOpenLogistics={() => goTo('logistics')}
-          onOpenCashier={() => goTo('cashier')}
+          onOpenCashier={(order) => {
+            const cashierParams = new URLSearchParams({
+              order_id: String(order.id),
+              amount: String(order.total_amount),
+              total_score: String(order.total_score),
+              order_no: order.order_no,
+              pay_type: order.pay_type,
+              balance: mallOrdersRequest.data?.balance_available ?? '0',
+              score_balance: mallOrdersRequest.data?.score ?? '0',
+            });
+            navigate(`/cashier?${cashierParams.toString()}`);
+          }}
           onCancelMallOrder={handleCancelOrder}
           onCancelMallAfterSale={handleCancelAfterSale}
           onConfirmMallOrder={handleConfirmOrder}

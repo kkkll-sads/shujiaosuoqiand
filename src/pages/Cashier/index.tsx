@@ -30,11 +30,13 @@ interface PaymentMethod {
   bg: string;
 }
 
-function formatMoney(value: number) {
-  return value.toLocaleString('zh-CN', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+interface MallCashierSnapshot {
+  orderNo: string;
+  amount: number;
+  totalScore: number;
+  payType: string;
+  balance: string;
+  scoreBalance: string;
 }
 
 function formatMinuteClock(seconds: number) {
@@ -87,7 +89,7 @@ const RechargeCashierView = ({
 
     copyToClipboard(orderNo).then((ok) => {
       showToast({
-        message: ok ? '已复制订单号' : '复制失败，请稍后重试',
+        message: ok ? '订单号已复制' : '复制失败，请稍后重试',
         type: ok ? 'success' : 'error',
       });
     });
@@ -104,7 +106,7 @@ const RechargeCashierView = ({
       const nextWindow = window.open(payUrl, '_blank', 'noopener,noreferrer');
       if (!nextWindow) {
         showToast({
-          message: '支付链接已被拦截，请检查浏览器设置',
+          message: '支付链接被浏览器拦截，请检查浏览器设置',
           type: 'warning',
         });
         return;
@@ -178,12 +180,12 @@ const RechargeCashierView = ({
         <div className="mt-12 rounded-[20px] border border-[#f2ca77] bg-[#fff6df] px-5 py-4 text-left">
           <div className="mb-2 flex items-center text-[15px] font-semibold text-[#e46a00]">
             <AlertTriangle size={16} className="mr-2" />
-            重要提醒：
+            重要提醒
           </div>
           <div className="space-y-1 text-[14px] leading-6 text-[#c75c00]">
-            <div>• 请核对支付金额，否则无法到账</div>
-            <div>• 请勿保存二维码稍后支付</div>
-            <div>• 支付链接 5 分钟内有效</div>
+            <div>请核对支付金额，否则无法到账</div>
+            <div>请勿保存二维码稍后支付</div>
+            <div>支付链接 5 分钟内有效</div>
           </div>
         </div>
 
@@ -193,7 +195,7 @@ const RechargeCashierView = ({
           onClick={handleOpenPay}
           disabled={!payUrl || timeLeft <= 0 || opening}
         >
-          <span className="mr-2 text-[18px]">□</span>
+          <span className="mr-2 text-[18px]">▶</span>
           去支付
           <ArrowRight size={19} className="ml-2" />
         </button>
@@ -247,24 +249,53 @@ const MallCashierView = () => {
   const { showToast, showLoading, hideLoading } = useFeedback();
 
   const orderId = Number(searchParams.get('order_id')) || 0;
-  const orderNoParam = searchParams.get('order_no') ?? '';
-  const amountParam = Number(searchParams.get('amount')) || 0;
-  const scoreParam = Number(searchParams.get('total_score')) || 0;
-  const payTypeParam = searchParams.get('pay_type') ?? '';
-  const balanceParam = searchParams.get('balance') ?? '0';
-  const scoreBalanceParam = searchParams.get('score_balance') ?? '0';
-
-  const displayOrderNo = orderNoParam || '--';
-  const isScoreOnly = payTypeParam === 'score' || (scoreParam > 0 && amountParam <= 0);
-  const isMoneyOnly = payTypeParam === 'money' || (amountParam > 0 && scoreParam <= 0);
-
+  const [snapshot, setSnapshot] = useState<MallCashierSnapshot>({
+    orderNo: searchParams.get('order_no') ?? '',
+    amount: Number(searchParams.get('amount')) || 0,
+    totalScore: Number(searchParams.get('total_score')) || 0,
+    payType: searchParams.get('pay_type') ?? '',
+    balance: searchParams.get('balance') ?? '0',
+    scoreBalance: searchParams.get('score_balance') ?? '0',
+  });
   const [loading, setLoading] = useState(true);
   const [offline, setOffline] = useState(false);
   const [moduleError, setModuleError] = useState(false);
-  const [selectedMethod, setSelectedMethod] = useState(isScoreOnly ? 'score' : 'balance');
+  const [selectedMethod, setSelectedMethod] = useState('balance');
   const [timeLeft, setTimeLeft] = useState(29 * 60 + 59);
   const [showFailureModal, setShowFailureModal] = useState(false);
   const [paying, setPaying] = useState(false);
+
+  const displayOrderNo = snapshot.orderNo || '--';
+  const isScoreOnly = snapshot.payType === 'score' || (snapshot.totalScore > 0 && snapshot.amount <= 0);
+  const isMoneyOnly = snapshot.payType === 'money' || (snapshot.amount > 0 && snapshot.totalScore <= 0);
+
+  const loadOrderSnapshot = React.useCallback(async () => {
+    if (orderId <= 0) {
+      setModuleError(true);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setModuleError(false);
+
+    try {
+      const detail = await shopOrderApi.detail(orderId);
+      setSnapshot({
+        orderNo: detail.order_no ?? '',
+        amount: Number(detail.total_amount) || 0,
+        totalScore: Number(detail.total_score) || 0,
+        payType: detail.pay_type ?? '',
+        balance: detail.balance_available ?? '0',
+        scoreBalance: detail.score ?? '0',
+      });
+    } catch (error) {
+      setModuleError(true);
+      showToast({ message: getErrorMessage(error), type: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  }, [orderId, showToast]);
 
   const paymentMethods = useMemo<PaymentMethod[]>(() => {
     if (isScoreOnly) {
@@ -272,7 +303,7 @@ const MallCashierView = () => {
         {
           id: 'score',
           name: '消费金支付',
-          desc: `可用消费金 ${Number(scoreBalanceParam).toLocaleString('zh-CN')}`,
+          desc: `可用消费金 ${Number(snapshot.scoreBalance).toLocaleString('zh-CN')}`,
           icon: Coins,
           color: 'text-orange-500',
           bg: 'bg-orange-50 dark:bg-orange-500/15',
@@ -285,7 +316,7 @@ const MallCashierView = () => {
         {
           id: 'balance',
           name: '余额支付',
-          desc: `可用余额 ¥${Number(balanceParam).toLocaleString('zh-CN', { minimumFractionDigits: 2 })}`,
+          desc: `可用余额 ¥${Number(snapshot.balance).toLocaleString('zh-CN', { minimumFractionDigits: 2 })}`,
           icon: Wallet,
           color: 'text-primary-start',
           bg: 'bg-primary-start/10 dark:bg-red-500/15',
@@ -297,7 +328,7 @@ const MallCashierView = () => {
       {
         id: 'balance',
         name: '余额支付',
-        desc: `可用余额 ¥${Number(balanceParam).toLocaleString('zh-CN', { minimumFractionDigits: 2 })}`,
+        desc: `可用余额 ¥${Number(snapshot.balance).toLocaleString('zh-CN', { minimumFractionDigits: 2 })}`,
         icon: Wallet,
         color: 'text-primary-start',
         bg: 'bg-primary-start/10 dark:bg-red-500/15',
@@ -305,20 +336,21 @@ const MallCashierView = () => {
       {
         id: 'score',
         name: '消费金支付',
-        desc: `可用消费金 ${Number(scoreBalanceParam).toLocaleString('zh-CN')}`,
+        desc: `可用消费金 ${Number(snapshot.scoreBalance).toLocaleString('zh-CN')}`,
         icon: Coins,
         color: 'text-orange-500',
         bg: 'bg-orange-50 dark:bg-orange-500/15',
       },
     ];
-  }, [isMoneyOnly, isScoreOnly, balanceParam, scoreBalanceParam]);
+  }, [isMoneyOnly, isScoreOnly, snapshot.balance, snapshot.scoreBalance]);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setLoading(false);
-    }, 600);
-    return () => window.clearTimeout(timer);
-  }, []);
+    void loadOrderSnapshot();
+  }, [loadOrderSnapshot]);
+
+  useEffect(() => {
+    setSelectedMethod(isScoreOnly ? 'score' : 'balance');
+  }, [isScoreOnly]);
 
   useEffect(() => {
     if (timeLeft <= 0 || loading || moduleError) {
@@ -339,7 +371,7 @@ const MallCashierView = () => {
 
     copyToClipboard(displayOrderNo).then((ok) => {
       showToast({
-        message: ok ? '已复制订单号' : '复制失败，请手动复制',
+        message: ok ? '订单号已复制' : '复制失败，请手动复制',
         type: ok ? 'success' : 'error',
       });
     });
@@ -364,21 +396,21 @@ const MallCashierView = () => {
       };
 
       if (isScoreOnly) {
-        payParams.pay_score = scoreParam;
+        payParams.pay_score = snapshot.totalScore;
         payParams.pay_money = 0;
       } else if (isMoneyOnly) {
-        payParams.pay_money = amountParam;
+        payParams.pay_money = snapshot.amount;
         payParams.pay_score = 0;
       } else {
-        payParams.pay_money = amountParam;
-        payParams.pay_score = scoreParam;
+        payParams.pay_money = snapshot.amount;
+        payParams.pay_score = snapshot.totalScore;
       }
 
       const result = await shopOrderApi.pay(payParams);
       const params = new URLSearchParams({
         status: 'success',
         order_no: result.order_no,
-        pay_type: payTypeParam,
+        pay_type: snapshot.payType,
       });
 
       if (isScoreOnly) {
@@ -404,31 +436,33 @@ const MallCashierView = () => {
     if (isScoreOnly) {
       return (
         <div className="mb-4 flex items-baseline font-bold text-primary-start">
-          <span className="text-7xl leading-none">{scoreParam}</span>
+          <span className="text-7xl leading-none">{snapshot.totalScore}</span>
           <span className="ml-1 text-2xl">消费金</span>
         </div>
       );
     }
 
     if (isMoneyOnly) {
+      const [integerPart, decimalPart] = snapshot.amount.toFixed(2).split('.');
       return (
         <div className="mb-4 flex items-baseline font-bold text-primary-start">
           <span className="mr-0.5 text-3xl">¥</span>
-          <span className="text-7xl leading-none">{amountParam.toFixed(2).split('.')[0]}</span>
-          <span className="text-3xl">.{amountParam.toFixed(2).split('.')[1]}</span>
+          <span className="text-7xl leading-none">{integerPart}</span>
+          <span className="text-3xl">.{decimalPart}</span>
         </div>
       );
     }
 
+    const [integerPart, decimalPart] = snapshot.amount.toFixed(2).split('.');
     return (
       <div className="mb-4 flex flex-col items-center gap-1">
         <div className="flex items-baseline font-bold text-primary-start">
           <span className="mr-0.5 text-2xl">¥</span>
-          <span className="text-5xl leading-none">{amountParam.toFixed(2).split('.')[0]}</span>
-          <span className="text-2xl">.{amountParam.toFixed(2).split('.')[1]}</span>
+          <span className="text-5xl leading-none">{integerPart}</span>
+          <span className="text-2xl">.{decimalPart}</span>
         </div>
         <div className="flex items-baseline font-bold text-orange-500">
-          <span className="text-3xl leading-none">+{scoreParam}</span>
+          <span className="text-3xl leading-none">+{snapshot.totalScore}</span>
           <span className="ml-1 text-lg">消费金</span>
         </div>
       </div>
@@ -436,9 +470,9 @@ const MallCashierView = () => {
   };
 
   const payButtonText = () => {
-    if (isScoreOnly) return `确认支付 ${scoreParam}消费金`;
-    if (isMoneyOnly) return `确认支付 ¥${amountParam.toFixed(2)}`;
-    return `确认支付 ¥${amountParam.toFixed(2)} + ${scoreParam}消费金`;
+    if (isScoreOnly) return `确认支付 ${snapshot.totalScore}消费金`;
+    if (isMoneyOnly) return `确认支付 ¥${snapshot.amount.toFixed(2)}`;
+    return `确认支付 ¥${snapshot.amount.toFixed(2)} + ${snapshot.totalScore}消费金`;
   };
 
   if (moduleError) {
@@ -458,8 +492,7 @@ const MallCashierView = () => {
         <div className="flex flex-1 items-center justify-center p-4">
           <button
             onClick={() => {
-              setLoading(true);
-              setModuleError(false);
+              void loadOrderSnapshot();
             }}
             className="rounded-full border border-border-light px-6 py-2 text-base text-text-main"
           >
@@ -551,7 +584,7 @@ const MallCashierView = () => {
 
             <div className="flex items-center justify-center text-text-sub text-s">
               <ShieldCheck size={12} className="mr-1" />
-              <span>支付安全由树交所及合作机构保障</span>
+              <span>支付安全由平台及合作机构保障</span>
             </div>
           </div>
         )}

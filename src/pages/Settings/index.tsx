@@ -1,10 +1,10 @@
 /**
  * @file Settings/index.tsx
- * @description 应用设置页面，包括缓存清理、账户安全、注销与退出登录。
+ * @description 应用设置页面，包括主题切换、缓存清理、账户安全、注销与退出登录。
  */
 
 import { useState } from 'react';
-import { AlertTriangle, Info, LogOut, Shield, Trash2, UserX } from 'lucide-react';
+import { AlertTriangle, LogOut, Moon, Shield, Sun, Trash2, UserX } from 'lucide-react';
 import { accountApi } from '../../api';
 import { getErrorMessage } from '../../api/core/errors';
 import { AuthPasswordToggle } from '../../components/biz/auth';
@@ -18,6 +18,7 @@ import { ActionSheet } from '../../components/ui/ActionSheet';
 import { Button } from '../../components/ui/Button';
 import { useFeedback } from '../../components/ui/FeedbackProvider';
 import { Input } from '../../components/ui/Input';
+import { useTheme } from '../../contexts/ThemeContext';
 import { clearAuthSession, PASSWORD_PATTERN } from '../../lib/auth';
 import { CURRENT_APP_VERSION, formatVersionLabel } from '../../lib/appVersion';
 import { useAppNavigate } from '../../lib/navigation';
@@ -41,6 +42,7 @@ function readCacheSizeLabel() {
 export const SettingsPage = () => {
   const { goBack, goTo } = useAppNavigate();
   const { showToast, showLoading, hideLoading } = useFeedback();
+  const { isDark, setTheme } = useTheme();
 
   const [cacheSize, setCacheSize] = useState(() => readCacheSizeLabel());
   const [showCancelAccountForm, setShowCancelAccountForm] = useState(false);
@@ -137,7 +139,7 @@ export const SettingsPage = () => {
       <PageHeader title="设置" onBack={goBack} />
       <div className="flex-1 overflow-y-auto p-4 pb-8">
         <div className="space-y-4">
-          <SettingsSection title="账户安全" description="密码修改、验证码重置和安全入口统一放在这里。">
+          <SettingsSection title="账户安全" description="密码修改和安全入口统一放在这里。">
             <SettingsActionItem
               label="修改登录密码"
               description="校验旧密码后修改，成功后需要重新登录"
@@ -150,12 +152,6 @@ export const SettingsPage = () => {
               icon={<Shield size={18} />}
               onClick={() => goTo('change_pay_password')}
             />
-            <SettingsActionItem
-              label="验证码重置登录密码"
-              description="通过短信验证码快速重置登录密码"
-              icon={<Info size={18} />}
-              onClick={() => goTo('reset_password')}
-            />
           </SettingsSection>
 
           <SettingsSection>
@@ -164,6 +160,14 @@ export const SettingsPage = () => {
               description="查看绑定手机号、密码和安全说明"
               icon={<Shield size={18} />}
               onClick={() => goTo('security')}
+            />
+            <SettingsActionItem
+              label={isDark ? '浅色模式' : '深色模式'}
+              description="切换应用的深浅色外观"
+              icon={isDark ? <Sun size={18} /> : <Moon size={18} />}
+              value={isDark ? '已开启' : '已关闭'}
+              variant="secondary"
+              onClick={() => setTheme(isDark ? 'light' : 'dark')}
             />
             <SettingsActionItem
               label="清理缓存"
@@ -224,7 +228,7 @@ export const SettingsPage = () => {
                   onChange={(event) => setCancelReason(event.target.value)}
                 />
                 <div className="rounded-[20px] border border-red-100 bg-red-50/70 px-4 py-3 text-[12px] leading-5 text-primary-start">
-                  注销成功后会立即清除当前登录状态。如后端对账户注销有额外限制，将按接口返回信息提示。
+                  注销成功后会立即清除当前登录状态。如后端对账户注销有限制，将按接口返回信息提示。
                 </div>
                 <div className="flex gap-3">
                   <button
@@ -253,7 +257,7 @@ export const SettingsPage = () => {
 
           <SettingsNotice tone="warning" title="注销提醒" className="flex items-start gap-2">
             <AlertTriangle size={16} className="mt-0.5 shrink-0" />
-            <span>本页已移除悬浮窗确认，危险操作会直接在当前页面内展开或执行。</span>
+            <span>本页已移除悬浮弹窗确认，危险操作会直接在当前页面内展开或执行。</span>
           </SettingsNotice>
         </div>
       </div>

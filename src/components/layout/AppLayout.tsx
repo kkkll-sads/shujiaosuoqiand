@@ -1,7 +1,5 @@
-﻿import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Moon, Sun } from 'lucide-react';
-import { useTheme } from '../../contexts/ThemeContext';
 import { BottomTab } from './BottomTab';
 import { FeedbackProvider, useFeedback } from '../ui/FeedbackProvider';
 import { isTabPage, PATH_TO_TAB } from '../../lib/navigation';
@@ -38,7 +36,6 @@ function isPublicPath(pathname: string) {
 }
 
 function AppLayoutContent() {
-  const { setTheme, isDark } = useTheme();
   const { isAuthenticated } = useAuthSession();
   const { showToast } = useFeedback();
   const location = useLocation();
@@ -67,13 +64,6 @@ function AppLayoutContent() {
 
   return (
     <div className="app-viewport-height flex w-full flex-col overflow-hidden bg-bg-base">
-      <button
-        className={`fixed ${showBottomTab ? 'bottom-24' : 'bottom-6'} right-4 z-50 rounded-full border border-border-light bg-bg-card p-3 text-text-main shadow-lg transition-all`}
-        onClick={() => setTheme(isDark ? 'light' : 'dark')}
-      >
-        {isDark ? <Sun size={20} /> : <Moon size={20} />}
-      </button>
-
       <div className="relative flex w-full flex-1 flex-col overflow-hidden bg-bg-base sm:mx-auto sm:max-w-[430px] sm:shadow-2xl">
         <div className="relative flex flex-1 flex-col overflow-hidden">
           {!isBlocked ? <Outlet /> : null}

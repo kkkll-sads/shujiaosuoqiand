@@ -90,6 +90,62 @@ function hasJsonContentType(headers: Headers): boolean {
   return headers.get('content-type')?.includes('application/json') ?? false;
 }
 
+function getCharset(contentType: string): string | null {
+  const matched = contentType.match(/charset\s*=\s*["']?([^;"'\s]+)/i);
+  return matched?.[1]?.trim().toLowerCase() ?? null;
+}
+
+function countReplacementChars(value: string): number {
+  let count = 0;
+  for (const char of value) {
+    if (char === '\uFFFD') {
+      count += 1;
+    }
+  }
+  return count;
+}
+
+function tryDecodeBuffer(buffer: ArrayBuffer, charset: string): string | null {
+  try {
+    return new TextDecoder(charset).decode(buffer);
+  } catch {
+    return null;
+  }
+}
+
+function decodeResponseText(buffer: ArrayBuffer, contentType: string): string {
+  const declaredCharset = getCharset(contentType);
+  const decodeOrder = declaredCharset
+    ? [declaredCharset, 'utf-8']
+    : ['utf-8', 'gb18030', 'gbk'];
+
+  let bestText = '';
+  let bestReplacementCount = Number.POSITIVE_INFINITY;
+
+  decodeOrder.forEach((charset, index) => {
+    const decoded = tryDecodeBuffer(buffer, charset);
+    if (decoded == null) {
+      return;
+    }
+
+    const replacementCount = countReplacementChars(decoded);
+    const isBetter =
+      replacementCount < bestReplacementCount ||
+      (replacementCount === bestReplacementCount && index === 0);
+
+    if (isBetter) {
+      bestText = decoded;
+      bestReplacementCount = replacementCount;
+    }
+  });
+
+  if (bestText) {
+    return bestText;
+  }
+
+  return new TextDecoder().decode(buffer);
+}
+
 function isEnvelope<TData>(payload: unknown): payload is ApiEnvelope<TData> {
   return isPlainObject(payload) && 'code' in payload && 'data' in payload;
 }
@@ -397,16 +453,22 @@ export class HttpClient {
       return response.blob();
     }
 
-    if (responseType === 'text') {
-      return response.text();
-    }
-
     const contentType = response.headers.get('content-type') ?? '';
-    if (contentType.includes('application/json')) {
-      return response.json();
+    const buffer = await response.arrayBuffer();
+    const text = decodeResponseText(buffer, contentType);
+
+    if (responseType === 'text') {
+      return text;
     }
 
-    const text = await response.text();
+    if (contentType.includes('application/json')) {
+      if (!text) {
+        return null;
+      }
+
+      return JSON.parse(text);
+    }
+
     if (!text) {
       return null;
     }
