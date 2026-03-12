@@ -14,6 +14,7 @@ import {
   SettingsSection,
 } from '../../components/biz/settings/SettingsSection';
 import { PageHeader } from '../../components/layout/PageHeader';
+import { ActionSheet } from '../../components/ui/ActionSheet';
 import { Button } from '../../components/ui/Button';
 import { useFeedback } from '../../components/ui/FeedbackProvider';
 import { Input } from '../../components/ui/Input';
@@ -47,6 +48,9 @@ export const SettingsPage = () => {
   const [cancelReason, setCancelReason] = useState('');
   const [showCancelPassword, setShowCancelPassword] = useState(false);
   const [cancelSubmitting, setCancelSubmitting] = useState(false);
+  const [showCancelAccountSheet, setShowCancelAccountSheet] = useState(false);
+  const [showLogoutSheet, setShowLogoutSheet] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const clearCache = () => {
     try {
@@ -72,14 +76,25 @@ export const SettingsPage = () => {
 
   const resetCancelAccountForm = () => {
     setShowCancelAccountForm(false);
+    setShowCancelAccountSheet(false);
     setCancelPassword('');
     setCancelReason('');
     setShowCancelPassword(false);
   };
 
+  const openCancelAccountForm = () => {
+    setShowCancelAccountSheet(false);
+    setShowCancelAccountForm(true);
+  };
+
   const handleLogout = () => {
-    clearAuthSession();
-    goTo('login');
+    setIsLoggingOut(true);
+    window.setTimeout(() => {
+      clearAuthSession();
+      setIsLoggingOut(false);
+      setShowLogoutSheet(false);
+      goTo('login');
+    }, 300);
   };
 
   const handleCancelAccount = async () => {
@@ -181,7 +196,13 @@ export const SettingsPage = () => {
               icon={<UserX size={18} />}
               variant="danger"
               hideChevron={showCancelAccountForm}
-              onClick={() => setShowCancelAccountForm((current) => !current)}
+              onClick={() => {
+                if (showCancelAccountForm) {
+                  resetCancelAccountForm();
+                  return;
+                }
+                setShowCancelAccountSheet(true);
+              }}
             />
             {showCancelAccountForm ? (
               <div className="space-y-3 border-b border-border-light/80 px-4 py-4">
@@ -226,7 +247,7 @@ export const SettingsPage = () => {
               icon={<LogOut size={18} />}
               variant="danger"
               borderless
-              onClick={handleLogout}
+              onClick={() => setShowLogoutSheet(true)}
             />
           </SettingsSection>
 
@@ -236,6 +257,53 @@ export const SettingsPage = () => {
           </SettingsNotice>
         </div>
       </div>
+
+      <ActionSheet
+        isOpen={showCancelAccountSheet}
+        onClose={() => {
+          if (cancelSubmitting) {
+            return;
+          }
+          setShowCancelAccountSheet(false);
+        }}
+        title="确认注销账户？"
+        groups={[
+          {
+            options: [
+              {
+                label: '继续注销',
+                icon: <UserX size={18} />,
+                danger: true,
+                onClick: openCancelAccountForm,
+              },
+            ],
+          },
+        ]}
+      />
+
+      <ActionSheet
+        isOpen={showLogoutSheet}
+        onClose={() => {
+          if (isLoggingOut) {
+            return;
+          }
+          setShowLogoutSheet(false);
+        }}
+        title="确认退出登录？"
+        groups={[
+          {
+            options: [
+              {
+                label: '退出登录',
+                icon: <LogOut size={18} />,
+                danger: true,
+                loading: isLoggingOut,
+                onClick: handleLogout,
+              },
+            ],
+          },
+        ]}
+      />
     </div>
   );
 };

@@ -1,9 +1,10 @@
 /**
- * @file Login/index.tsx - 登录页面
- * @description 用户登录页面，支持手机号+密码登录。
+ * @file Login/index.tsx
+ * @description 用户登录页，支持密码登录与短信登录。
  */
 
-import { useEffect, useMemo, useState } from 'react'; // React 核心 Hook
+import { useEffect, useMemo, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { getErrorMessage } from '../../api/core/errors';
 import { authApi, type CheckInConfig, type LoginTab } from '../../api/modules/auth';
 import {
@@ -57,8 +58,15 @@ function resolveDefaultTab(value: CheckInConfig['defaultTab']): LoginTab | null 
   return typeof value === 'string' && isLoginTab(value) ? value : null;
 }
 
+function readRedirectFromState(state: unknown) {
+  return typeof (state as { from?: unknown } | null)?.from === 'string'
+    ? (state as { from: string }).from
+    : undefined;
+}
+
 export const LoginPage = () => {
   const { goTo, goBack, navigate } = useAppNavigate();
+  const location = useLocation();
   const { showToast } = useFeedback();
 
   const [showPassword, setShowPassword] = useState(false);
@@ -127,6 +135,7 @@ export const LoginPage = () => {
     } else if (tab === 'login' && mobile.trim()) {
       setUsername(mobile.trim());
     }
+
     setCurrentTab(tab);
   };
 
@@ -199,7 +208,9 @@ export const LoginPage = () => {
       });
 
       showToast({ message: '登录成功', type: 'success' });
-      navigate(resolveAuthRedirectPath(session.routePath), { replace: true });
+      navigate(resolveAuthRedirectPath(readRedirectFromState(location.state) ?? session.routePath), {
+        replace: true,
+      });
     } catch (error) {
       showToast({ message: getErrorMessage(error), type: 'error' });
     } finally {
@@ -216,21 +227,36 @@ export const LoginPage = () => {
           className="mt-16"
           title="Hello!"
           description="欢迎登录树交所"
-          headerExtra={tabItems.length > 0 ? <AuthTabs items={tabItems} value={currentTab} onChange={handleTabChange} /> : null}
-          auxiliary={(
+          headerExtra={
+            tabItems.length > 0 ? (
+              <AuthTabs items={tabItems} value={currentTab} onChange={handleTabChange} />
+            ) : null
+          }
+          auxiliary={
             <div className="flex items-center justify-between">
-              <Checkbox checked={remember} onChange={() => setRemember((current) => !current)} label="记住密码" />
-              <Button type="button" variant="ghost" size="sm" fullWidth={false} className="px-0 text-[12px] text-text-sub" onClick={() => navigate('/forgot-password')}>
+              <Checkbox
+                checked={remember}
+                onChange={() => setRemember((current) => !current)}
+                label="记住密码"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                fullWidth={false}
+                className="px-0 text-[12px] text-text-sub"
+                onClick={() => navigate('/forgot-password')}
+              >
                 忘记密码
               </Button>
             </div>
-          )}
-          actions={(
+          }
+          actions={
             <Button loading={submitting} onClick={handleSubmit}>
               登录
             </Button>
-          )}
-          footer={(
+          }
+          footer={
             <>
               <AuthAgreement
                 checked={agree}
@@ -239,9 +265,13 @@ export const LoginPage = () => {
                 onOpenPrivacy={() => navigate('/privacy_policy')}
                 mode="login"
               />
-              <AuthFooterLink text="没有账户？" accentText="点击注册" onClick={() => goTo('register')} />
+              <AuthFooterLink
+                text="没有账户？"
+                accentText="点击注册"
+                onClick={() => goTo('register')}
+              />
             </>
-          )}
+          }
         >
           {currentTab === 'login' ? (
             <>
@@ -255,7 +285,12 @@ export const LoginPage = () => {
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                rightIcon={<AuthPasswordToggle visible={showPassword} onToggle={() => setShowPassword((current) => !current)} />}
+                rightIcon={
+                  <AuthPasswordToggle
+                    visible={showPassword}
+                    onToggle={() => setShowPassword((current) => !current)}
+                  />
+                }
               />
             </>
           ) : (
@@ -283,3 +318,4 @@ export const LoginPage = () => {
   );
 };
 
+export default LoginPage;

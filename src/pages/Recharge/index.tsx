@@ -136,7 +136,7 @@ function getOrderTitle(record: RechargeOrderRecord) {
 type MatchStep = 'select' | 'matching' | 'matched';
 
 export function RechargePage() {
-  const { goBack, goTo } = useAppNavigate();
+  const { goBack, goTo, navigate } = useAppNavigate();
   const { isAuthenticated } = useAuthSession();
   const { isOffline, refreshStatus } = useNetworkStatus();
   const { showToast } = useFeedback();
@@ -323,6 +323,40 @@ export function RechargePage() {
       });
 
       const resolvedPaymentMethod = result.paymentMethod ?? 'online';
+
+      if (resolvedPaymentMethod !== 'offline') {
+        const submitResult = await rechargeApi.submitOrder({
+          amount: numAmount,
+          matchedAccountId: result.matchedAccountId,
+          paymentMethod: 'online',
+          paymentType: result.account.type,
+        });
+
+        const cashierParams = new URLSearchParams({
+          scene: 'recharge',
+          amount: String(numAmount),
+          order_no: submitResult.orderNo || String(submitResult.orderId || ''),
+          expire_seconds: '300',
+          ...(submitResult.payUrl ? { pay_url: submitResult.payUrl } : {}),
+        });
+
+        showToast({
+          message: '支付订单已创建，正在跳转收银台',
+          type: 'success',
+          duration: 2400,
+        });
+
+        setAmount('');
+        resetMatchState();
+        void Promise.allSettled([reloadProfile(), reloadRecentOrders()]);
+        navigate('/matching', {
+          state: {
+            nextPath: `/cashier?${cashierParams.toString()}`,
+            delayMs: 1800,
+          },
+        });
+        return;
+      }
 
       if (resolvedPaymentMethod !== 'offline') {
         try {

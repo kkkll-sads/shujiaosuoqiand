@@ -164,6 +164,7 @@ export const buildServiceManagement = ({
 }: BuildServiceManagementParams): ProfileSectionItem[] => {
   return [
     { label: '瀹炲悕璁よ瘉', icon: UserCheck, action: () => navigate('/auth/real-name') },
+    { label: '代理认证', icon: UserCheck, action: () => navigate('/agent-auth') },
     { label: '鍗″彿绠＄悊', icon: CreditCard, action: () => navigate('/payment-accounts') },
     { label: '鏀惰揣鍦板潃', icon: MapPin, action: () => navigate('/address') },
     { label: '鎴戠殑濂藉弸', icon: Users, action: () => navigate('/friends') },

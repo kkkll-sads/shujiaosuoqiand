@@ -25,6 +25,22 @@ interface SubmitRealNameRaw {
   real_name_status?: number | string;
 }
 
+interface AgentReviewStatusRaw {
+  apply_time?: string;
+  audit_remark?: string;
+  company_name?: string;
+  id?: number | string;
+  legal_id_number?: string;
+  legal_person?: string;
+  license_image?: string;
+  review_reason?: string;
+  review_time?: string;
+  status?: number | string;
+  status_text?: string;
+  subject_type?: number | string;
+  user_id?: number | string;
+}
+
 interface PaymentAccountRaw {
   account_name?: string;
   account_type?: string;
@@ -104,6 +120,31 @@ export interface SubmitRealNamePayload {
 
 export interface SubmitRealNameResult {
   realNameStatus: number;
+}
+
+export interface AgentReviewStatus {
+  applyTime?: string;
+  auditRemark?: string;
+  companyName?: string;
+  id?: number;
+  legalIdNumber?: string;
+  legalPerson?: string;
+  licenseImage?: string;
+  reviewReason?: string;
+  reviewTime?: string;
+  status: number;
+  statusText?: string;
+  subjectType: number;
+  userId?: number;
+}
+
+export interface SubmitAgentReviewPayload {
+  companyName: string;
+  legalPerson: string;
+  legalIdNumber: string;
+  licenseImage: string;
+  reason?: string;
+  subjectType: 1 | 2;
 }
 
 export interface PaymentAccount {
@@ -244,6 +285,28 @@ function normalizeRealNameStatus(payload: RealNameStatusRaw): RealNameStatus {
   };
 }
 
+function normalizeAgentReviewStatus(payload: AgentReviewStatusRaw | null | undefined): AgentReviewStatus | null {
+  if (!payload) {
+    return null;
+  }
+
+  return {
+    applyTime: readOptionalString(payload.apply_time),
+    auditRemark: readOptionalString(payload.audit_remark),
+    companyName: readOptionalString(payload.company_name),
+    id: readOptionalNumber(payload.id),
+    legalIdNumber: readOptionalString(payload.legal_id_number),
+    legalPerson: readOptionalString(payload.legal_person),
+    licenseImage: payload.license_image ? resolveUploadUrl(payload.license_image) : undefined,
+    reviewReason: readOptionalString(payload.review_reason),
+    reviewTime: readOptionalString(payload.review_time),
+    status: readNumber(payload.status, -1),
+    statusText: readOptionalString(payload.status_text),
+    subjectType: readNumber(payload.subject_type, 1),
+    userId: readOptionalNumber(payload.user_id),
+  };
+}
+
 function normalizePaymentAccount(payload: PaymentAccountRaw): PaymentAccount {
   return {
     accountName: readOptionalString(payload.account_name),
@@ -344,6 +407,37 @@ function normalizeConsignmentCoupon(payload: ConsignmentCouponRaw): ConsignmentC
 }
 
 export const userApi = {
+  async getAgentReviewStatus(options: UserRequestOptions = {}): Promise<AgentReviewStatus | null> {
+    const payload = await http.get<AgentReviewStatusRaw | null>('/api/User/agentReviewStatus', {
+      headers: createApiHeaders(options),
+      signal: options.signal,
+    });
+
+    return normalizeAgentReviewStatus(payload);
+  },
+
+  async submitAgentReview(
+    payload: SubmitAgentReviewPayload,
+    options: UserRequestOptions = {},
+  ): Promise<void> {
+    const formData = new FormData();
+
+    formData.append('company_name', payload.companyName);
+    formData.append('legal_person', payload.legalPerson);
+    formData.append('legal_id_number', payload.legalIdNumber);
+    formData.append('subject_type', String(payload.subjectType));
+    formData.append('license_image', payload.licenseImage);
+
+    if (payload.reason) {
+      formData.append('reason', payload.reason);
+    }
+
+    await http.post<null, FormData>('/api/User/submitAgentReview', formData, {
+      headers: createApiHeaders(options),
+      signal: options.signal,
+    });
+  },
+
   async getRealNameStatus(options: UserRequestOptions = {}): Promise<RealNameStatus> {
     const payload = await http.get<RealNameStatusRaw>('/api/User/realNameStatus', {
       headers: createApiHeaders(options),

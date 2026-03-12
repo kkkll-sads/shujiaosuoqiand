@@ -1,9 +1,10 @@
 /**
- * @file Register/index.tsx - 注册页面
- * @description 用户注册页面，支持手机号、验证码、密码、邀请码注册。
+ * @file Register/index.tsx
+ * @description 用户注册页。
  */
 
-import { useState } from 'react'; // React 核心 Hook
+import { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { getErrorMessage } from '../../api/core/errors';
 import { authApi } from '../../api/modules/auth';
 import {
@@ -27,8 +28,15 @@ import {
 } from '../../lib/auth';
 import { useAppNavigate } from '../../lib/navigation';
 
+function readRedirectFromState(state: unknown) {
+  return typeof (state as { from?: unknown } | null)?.from === 'string'
+    ? (state as { from: string }).from
+    : undefined;
+}
+
 export const RegisterPage = () => {
   const { goTo, goBack, navigate } = useAppNavigate();
+  const location = useLocation();
   const { showToast } = useFeedback();
 
   const [showLoginPassword, setShowLoginPassword] = useState(false);
@@ -98,7 +106,9 @@ export const RegisterPage = () => {
       });
 
       showToast({ message: '注册成功', type: 'success' });
-      navigate(resolveAuthRedirectPath(session.routePath), { replace: true });
+      navigate(resolveAuthRedirectPath(readRedirectFromState(location.state) ?? session.routePath), {
+        replace: true,
+      });
     } catch (error) {
       showToast({ message: getErrorMessage(error), type: 'error' });
     } finally {
@@ -115,12 +125,12 @@ export const RegisterPage = () => {
           className="mt-16"
           title="Welcome!"
           description="欢迎注册树交所"
-          actions={(
+          actions={
             <Button loading={submitting} onClick={handleSubmit}>
               注册
             </Button>
-          )}
-          footer={(
+          }
+          footer={
             <>
               <AuthAgreement
                 checked={agree}
@@ -129,9 +139,13 @@ export const RegisterPage = () => {
                 onOpenPrivacy={() => navigate('/privacy_policy')}
                 mode="register"
               />
-              <AuthFooterLink text="已有账户？" accentText="去登录" onClick={() => goTo('login')} />
+              <AuthFooterLink
+                text="已有账户？"
+                accentText="去登录"
+                onClick={() => goTo('login')}
+              />
             </>
-          )}
+          }
         >
           <Input
             placeholder="请输入邀请码"
@@ -149,14 +163,24 @@ export const RegisterPage = () => {
             type={showLoginPassword ? 'text' : 'password'}
             value={loginPassword}
             onChange={(event) => setLoginPassword(event.target.value)}
-            rightIcon={<AuthPasswordToggle visible={showLoginPassword} onToggle={() => setShowLoginPassword((current) => !current)} />}
+            rightIcon={
+              <AuthPasswordToggle
+                visible={showLoginPassword}
+                onToggle={() => setShowLoginPassword((current) => !current)}
+              />
+            }
           />
           <Input
             placeholder="请设置支付密码"
             type={showPayPassword ? 'text' : 'password'}
             value={payPassword}
             onChange={(event) => setPayPassword(event.target.value)}
-            rightIcon={<AuthPasswordToggle visible={showPayPassword} onToggle={() => setShowPayPassword((current) => !current)} />}
+            rightIcon={
+              <AuthPasswordToggle
+                visible={showPayPassword}
+                onToggle={() => setShowPayPassword((current) => !current)}
+              />
+            }
           />
           <AuthSmsField
             value={verifyCode}
@@ -173,3 +197,4 @@ export const RegisterPage = () => {
   );
 };
 
+export default RegisterPage;

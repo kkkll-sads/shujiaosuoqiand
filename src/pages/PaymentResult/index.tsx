@@ -1,135 +1,328 @@
-/**
- * @file PaymentResult/index.tsx - 支付结果页面
- * @description 展示支付结果（成功/失败），支持跳转订单详情或返回首页。
- */
-
-import React, { useMemo, useState } from 'react'; // React 核心 Hook
+import React, { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { ChevronLeft, WifiOff, CheckCircle2, AlertCircle, Copy, HeadphonesIcon } from 'lucide-react';
+import {
+  AlertCircle,
+  CheckCircle2,
+  ChevronLeft,
+  Clock3,
+  Copy,
+  HeadphonesIcon,
+  ShieldCheck,
+  WifiOff,
+} from 'lucide-react';
 import { useAppNavigate } from '../../lib/navigation';
 import { copyToClipboard } from '../../lib/clipboard';
 import { useFeedback } from '../../components/ui/FeedbackProvider';
 import { openCustomerServiceLink } from '../../lib/customerService';
 
+type RechargeStatus = 'pending' | 'success' | 'failure';
+type MallStatus = 'success' | 'failure';
+
+interface RechargeResultInfo {
+  scene: 'recharge';
+  status: RechargeStatus;
+  orderNo: string;
+  amount: number;
+  errorMessage: string;
+}
+
+interface MallResultInfo {
+  scene: 'mall';
+  status: MallStatus;
+  orderNo: string;
+  amount: number;
+  totalScore: number;
+  payType: string;
+  errorMessage: string;
+}
+
+type ResultInfo = RechargeResultInfo | MallResultInfo;
+
+function formatMoney(value: number) {
+  return value.toLocaleString('zh-CN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+    useGrouping: false,
+  });
+}
+
 export const PaymentResultPage = () => {
   const [searchParams] = useSearchParams();
-  const { goTo, goBack } = useAppNavigate();
+  const { goTo, goBack, navigate } = useAppNavigate();
   const { showToast } = useFeedback();
+  const [offline, setOffline] = useState(false);
+
   const handleOpenSupport = () => {
     void openCustomerServiceLink(({ duration, message, type }) => {
       showToast({ duration, message, type });
     });
   };
 
-  const [offline, setOffline] = useState(false);
-
-  const orderInfo = useMemo(() => {
+  const orderInfo = useMemo<ResultInfo>(() => {
+    const scene = searchParams.get('scene') === 'recharge' ? 'recharge' : 'mall';
     const statusParam = searchParams.get('status');
     const orderNo = searchParams.get('order_no') ?? '';
-    const amountParam = searchParams.get('amount');
-    const totalScoreParam = searchParams.get('total_score');
-    const errorMsg = searchParams.get('error') ?? '';
+    const amount = Number(searchParams.get('amount') ?? '0');
+    const errorMessage = searchParams.get('error') ?? '支付失败，请稍后重试或联系客服。';
 
-    const status: 'success' | 'failure' =
-      statusParam === 'success' ? 'success' : statusParam === 'failure' ? 'failure' : 'success';
+    if (scene === 'recharge') {
+      const status: RechargeStatus =
+        statusParam === 'success'
+          ? 'success'
+          : statusParam === 'failure'
+            ? 'failure'
+            : 'pending';
 
-    const amount = amountParam ? Number(amountParam) : 0;
-    const totalScore = totalScoreParam ? Number(totalScoreParam) : 0;
+      return {
+        scene,
+        status,
+        orderNo,
+        amount: Number.isFinite(amount) ? amount : 0,
+        errorMessage,
+      };
+    }
+
+    const totalScore = Number(searchParams.get('total_score') ?? '0');
     const payType = searchParams.get('pay_type') ?? '';
+    const status: MallStatus = statusParam === 'failure' ? 'failure' : 'success';
 
     return {
+      scene,
       status,
       orderNo,
       amount: Number.isFinite(amount) ? amount : 0,
       totalScore: Number.isFinite(totalScore) ? totalScore : 0,
       payType,
-      errorMessage: errorMsg || '支付失败，请稍后重试或联系客服。',
+      errorMessage,
     };
   }, [searchParams]);
 
   const handleBack = () => {
-    // Usually goes back to home or order list
+    if (orderInfo.scene === 'recharge') {
+      navigate('/recharge', { replace: true });
+      return;
+    }
+
     goTo('home');
   };
 
-  const handleCopy = (text: string) => {
-    if (!text) return;
+  const handleCopy = (text: string, successMessage = '已复制') => {
+    if (!text) {
+      return;
+    }
+
     copyToClipboard(text).then((ok) => {
-      showToast({ message: ok ? '已复制' : '复制失败，请长按手动复制', type: ok ? 'success' : 'error' });
+      showToast({
+        message: ok ? successMessage : '复制失败，请稍后重试',
+        type: ok ? 'success' : 'error',
+      });
     });
   };
 
-  const renderHeader = () => (
-    <div className="bg-white dark:bg-gray-900 z-40 relative shrink-0 border-b border-border-light">
-      {offline && (
-        <div className="bg-red-50 text-primary-start px-4 py-2 flex items-center justify-between text-sm">
+  const renderHeader = (title: string) => (
+    <div className="relative z-40 shrink-0 border-b border-border-light bg-white">
+      {offline ? (
+        <div className="flex items-center justify-between bg-red-50 px-4 py-2 text-sm text-primary-start">
           <div className="flex items-center">
             <WifiOff size={14} className="mr-2" />
             <span>网络不稳定，请检查网络设置</span>
           </div>
-          <button onClick={() => setOffline(false)} className="font-medium px-2 py-1 bg-white dark:bg-gray-900 rounded shadow-sm">刷新</button>
+          <button
+            type="button"
+            onClick={() => setOffline(false)}
+            className="rounded bg-white px-2 py-1 font-medium shadow-sm"
+          >
+            刷新
+          </button>
         </div>
-      )}
-      <div className="h-12 flex items-center justify-between px-3 pt-safe">
-        <div className="flex items-center w-1/3">
-          <button onClick={handleBack} className="p-1 -ml-1 text-text-main active:opacity-70">
+      ) : null}
+      <div className="flex h-12 items-center justify-between px-3 pt-safe">
+        <div className="flex w-1/3 items-center">
+          <button type="button" onClick={goBack} className="p-1 -ml-1 text-text-main active:opacity-70">
             <ChevronLeft size={24} />
           </button>
         </div>
-        <h1 className="text-xl font-bold text-text-main text-center w-1/3">支付结果</h1>
-        <div className="w-1/3"></div>
+        <h1 className="w-1/3 text-center text-xl font-bold text-text-main">{title}</h1>
+        <div className="w-1/3" />
       </div>
     </div>
   );
 
-  const renderSuccess = () => (
-    <div className="flex flex-col items-center pt-12 px-6">
-      <div className="w-20 h-20 rounded-full bg-[#00C853]/10 flex items-center justify-center mb-4">
+  const renderRechargeResult = () => {
+    const statusMeta: Record<
+      RechargeStatus,
+      {
+        title: string;
+        description: string;
+        icon: React.ReactNode;
+        accentClass: string;
+        amountClass: string;
+        primaryText: string;
+        primaryAction: () => void;
+        secondaryText: string;
+        secondaryAction: () => void;
+      }
+    > = {
+      pending: {
+        title: '支付状态已提交',
+        description: '请等待系统确认，支付成功后可在资产明细查看订单。',
+        icon: (
+          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#fff3d8]">
+            <Clock3 size={40} className="text-[#f59e0b]" />
+          </div>
+        ),
+        accentClass: 'text-[#f59e0b]',
+        amountClass: 'text-[#e50019]',
+        primaryText: '查看充值记录',
+        primaryAction: () => goTo('billing'),
+        secondaryText: '返回专项金',
+        secondaryAction: () => goTo('recharge'),
+      },
+      success: {
+        title: '支付成功',
+        description: '订单已提交成功，到账后可在资产明细中查看。',
+        icon: (
+          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#ecfdf3]">
+            <CheckCircle2 size={40} className="text-[#16a34a]" />
+          </div>
+        ),
+        accentClass: 'text-[#16a34a]',
+        amountClass: 'text-[#e50019]',
+        primaryText: '查看充值记录',
+        primaryAction: () => goTo('billing'),
+        secondaryText: '继续充值',
+        secondaryAction: () => goTo('recharge'),
+      },
+      failure: {
+        title: '支付未完成',
+        description: orderInfo.errorMessage,
+        icon: (
+          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#fef2f2]">
+            <AlertCircle size={40} className="text-primary-start" />
+          </div>
+        ),
+        accentClass: 'text-primary-start',
+        amountClass: 'text-[#111827]',
+        primaryText: '重新发起支付',
+        primaryAction: () => goTo('recharge'),
+        secondaryText: '联系客服',
+        secondaryAction: handleOpenSupport,
+      },
+    };
+
+    const meta = statusMeta[orderInfo.status];
+
+    return (
+      <div className="flex flex-1 flex-col bg-[#f4f4f5]">
+        {renderHeader('支付结果')}
+        <div className="flex-1 overflow-y-auto px-4 pb-10 pt-10">
+          <div className="rounded-[28px] bg-white px-5 pb-6 pt-8 shadow-[0_18px_44px_rgba(15,23,42,0.06)]">
+            <div className="flex flex-col items-center text-center">
+              {meta.icon}
+              <h2 className={`mt-5 text-[28px] font-semibold ${meta.accentClass}`}>{meta.title}</h2>
+              <p className="mt-3 max-w-[280px] text-[14px] leading-6 text-[#6b7280]">{meta.description}</p>
+            </div>
+
+            <div className="mt-8 rounded-[22px] bg-[#f8fafc] px-5 py-5">
+              <div className="text-center text-[14px] text-[#6b7280]">支付金额</div>
+              <div className={`mt-3 flex items-end justify-center ${meta.amountClass}`}>
+                <span className="mr-1 pb-1 text-[22px] font-semibold text-[#111827]">¥</span>
+                <span className="text-[44px] font-bold leading-none">
+                  {Number.isFinite(orderInfo.amount) ? Math.round(orderInfo.amount).toString() : '0'}
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => handleCopy(orderInfo.orderNo, '已复制订单号')}
+                className="mx-auto mt-4 flex items-center text-[13px] text-[#9ca3af] active:opacity-70"
+              >
+                <span>订单号：{orderInfo.orderNo || '--'}</span>
+                <Copy size={13} className="ml-1.5" />
+              </button>
+            </div>
+
+            <div className="mt-6 rounded-[20px] border border-[#e5e7eb] bg-[#f9fafb] px-4 py-4 text-[13px] leading-6 text-[#6b7280]">
+              <div className="mb-1 flex items-center text-[14px] font-medium text-[#374151]">
+                <ShieldCheck size={14} className="mr-2 text-[#9ca3af]" />
+                支付提示
+              </div>
+              <div>支付成功后，返回 APP 查看订单。</div>
+              <div>如果支付状态未更新，可稍后在资产明细中刷新查看。</div>
+            </div>
+
+            <div className="mt-8 space-y-3">
+              <button
+                type="button"
+                onClick={meta.primaryAction}
+                className="flex h-12 w-full items-center justify-center rounded-full bg-gradient-to-r from-[#ff1530] to-[#ff0019] text-[17px] font-semibold text-white shadow-[0_14px_28px_rgba(255,0,25,0.18)] active:scale-[0.99]"
+              >
+                {meta.primaryText}
+              </button>
+              <button
+                type="button"
+                onClick={meta.secondaryAction}
+                className="flex h-12 w-full items-center justify-center rounded-full border border-[#d1d5db] bg-white text-[16px] font-medium text-[#374151] active:bg-[#f9fafb]"
+              >
+                {meta.secondaryText}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderMallSuccess = (info: MallResultInfo) => (
+    <div className="flex flex-col items-center px-6 pt-12">
+      <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-[#00C853]/10">
         <CheckCircle2 size={48} className="text-success" />
       </div>
-      <h2 className="text-4xl font-bold text-text-main mb-2">支付成功</h2>
-      {(orderInfo.payType === 'combined' || orderInfo.payType === 'both') && orderInfo.totalScore > 0 ? (
+      <h2 className="mb-2 text-4xl font-bold text-text-main">支付成功</h2>
+      {(info.payType === 'combined' || info.payType === 'both') && info.totalScore > 0 ? (
         <div className="mb-4 flex flex-col items-center gap-1">
-          <div className="text-primary-start font-bold flex items-baseline">
-            <span className="text-2xl mr-0.5">¥</span>
-            <span className="text-5xl leading-none">{(orderInfo.amount || 0).toFixed(2).split('.')[0]}</span>
-            <span className="text-2xl">.{(orderInfo.amount || 0).toFixed(2).split('.')[1]}</span>
+          <div className="flex items-baseline font-bold text-primary-start">
+            <span className="mr-0.5 text-2xl">¥</span>
+            <span className="text-5xl leading-none">{formatMoney(info.amount).split('.')[0]}</span>
+            <span className="text-2xl">.{formatMoney(info.amount).split('.')[1]}</span>
           </div>
-          <div className="text-orange-500 font-bold flex items-baseline">
-            <span className="text-3xl leading-none">+{orderInfo.totalScore}</span>
-            <span className="text-lg ml-1">消费金</span>
+          <div className="flex items-baseline font-bold text-orange-500">
+            <span className="text-3xl leading-none">+{info.totalScore}</span>
+            <span className="ml-1 text-lg">消费金</span>
           </div>
         </div>
-      ) : orderInfo.payType === 'score' ? (
-        <div className="text-6xl font-bold text-text-main mb-1 flex items-baseline">
-          <span>{orderInfo.amount > 0 ? orderInfo.amount : 0}</span>
-          <span className="text-2xl ml-1">消费金</span>
+      ) : info.payType === 'score' ? (
+        <div className="mb-1 flex items-baseline text-6xl font-bold text-text-main">
+          <span>{info.amount > 0 ? info.amount : 0}</span>
+          <span className="ml-1 text-2xl">消费金</span>
         </div>
       ) : (
-        <div className="text-6xl font-bold text-text-main mb-1 flex items-baseline">
-          <span className="text-3xl mr-1">¥</span>
-          {orderInfo.amount > 0 ? orderInfo.amount.toFixed(2) : '0.00'}
+        <div className="mb-1 flex items-baseline text-6xl font-bold text-text-main">
+          <span className="mr-1 text-3xl">¥</span>
+          {formatMoney(info.amount)}
         </div>
       )}
-      <div className="flex items-center text-base text-text-sub mb-10">
-        <span className="mr-2">订单号：{orderInfo.orderNo || '--'}</span>
-        {orderInfo.orderNo ? (
-          <button onClick={() => handleCopy(orderInfo.orderNo)} className="active:opacity-70">
+      <div className="mb-10 flex items-center text-base text-text-sub">
+        <span className="mr-2">订单号：{info.orderNo || '--'}</span>
+        {info.orderNo ? (
+          <button type="button" onClick={() => handleCopy(info.orderNo, '已复制订单号')} className="active:opacity-70">
             <Copy size={14} />
           </button>
         ) : null}
       </div>
 
-      <div className="w-full flex space-x-4">
-        <button 
+      <div className="flex w-full space-x-4">
+        <button
+          type="button"
           onClick={() => goTo('home')}
-          className="flex-1 h-11 rounded-full border border-primary-start text-primary-start text-lg font-medium active:bg-primary-start/5"
+          className="h-11 flex-1 rounded-full border border-primary-start text-lg font-medium text-primary-start active:bg-primary-start/5"
         >
           继续逛逛
         </button>
-        <button 
+        <button
+          type="button"
           onClick={() => goTo('order')}
-          className="flex-1 h-11 rounded-full bg-gradient-to-r from-primary-start to-primary-end text-white text-lg font-medium shadow-sm active:opacity-80"
+          className="h-11 flex-1 rounded-full bg-gradient-to-r from-primary-start to-primary-end text-lg font-medium text-white shadow-sm active:opacity-80"
         >
           查看订单
         </button>
@@ -137,57 +330,61 @@ export const PaymentResultPage = () => {
     </div>
   );
 
-  const renderFailure = () => (
-    <div className="flex flex-col items-center pt-12 px-6">
-      <div className="w-20 h-20 rounded-full bg-primary-start/10 flex items-center justify-center mb-4">
+  const renderMallFailure = (info: MallResultInfo) => (
+    <div className="flex flex-col items-center px-6 pt-12">
+      <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-primary-start/10">
         <AlertCircle size={48} className="text-primary-start" />
       </div>
-      <h2 className="text-4xl font-bold text-text-main mb-6">支付失败</h2>
-      
-      <div className="w-full bg-bg-base rounded-xl p-4 mb-10 relative">
-        <div className="text-base text-text-sub leading-relaxed pr-8">
-          {orderInfo.errorMessage}
-        </div>
-        <button 
-          onClick={() => handleCopy(orderInfo.errorMessage)} 
-          className="absolute top-4 right-4 text-text-aux active:text-text-main"
+      <h2 className="mb-6 text-4xl font-bold text-text-main">支付失败</h2>
+
+      <div className="relative mb-10 w-full rounded-xl bg-bg-base p-4">
+        <div className="pr-8 text-base leading-relaxed text-text-sub">{info.errorMessage}</div>
+        <button
+          type="button"
+          onClick={() => handleCopy(info.errorMessage, '已复制错误信息')}
+          className="absolute right-4 top-4 text-text-aux active:text-text-main"
           title="复制错误信息"
         >
           <Copy size={16} />
         </button>
       </div>
 
-      <div className="w-full flex space-x-4 mb-6">
-        <button 
+      <div className="mb-6 flex w-full space-x-4">
+        <button
+          type="button"
           onClick={() => goTo('cashier')}
-          className="flex-1 h-11 rounded-full border border-primary-start text-primary-start text-lg font-medium active:bg-primary-start/5"
+          className="h-11 flex-1 rounded-full border border-primary-start text-lg font-medium text-primary-start active:bg-primary-start/5"
         >
           更换方式
         </button>
-        <button 
+        <button
+          type="button"
           onClick={() => goTo('cashier')}
-          className="flex-1 h-11 rounded-full bg-gradient-to-r from-primary-start to-primary-end text-white text-lg font-medium shadow-sm active:opacity-80"
+          className="h-11 flex-1 rounded-full bg-gradient-to-r from-primary-start to-primary-end text-lg font-medium text-white shadow-sm active:opacity-80"
         >
           重新支付
         </button>
       </div>
 
-      <button 
-        className="flex items-center text-base text-text-sub active:opacity-70"
-        onClick={handleOpenSupport}
-      >
+      <button type="button" className="flex items-center text-base text-text-sub active:opacity-70" onClick={handleOpenSupport}>
         <HeadphonesIcon size={14} className="mr-1" />
         联系客服
       </button>
     </div>
   );
 
+  if (orderInfo.scene === 'recharge') {
+    return renderRechargeResult();
+  }
+
   return (
-    <div className="flex-1 flex flex-col bg-white dark:bg-gray-900 relative h-full overflow-hidden">
-      {renderHeader()}
-      <div className="flex-1 overflow-y-auto no-scrollbar">
-        {orderInfo.status === 'success' ? renderSuccess() : renderFailure()}
+    <div className="relative flex h-full flex-1 flex-col overflow-hidden bg-white">
+      {renderHeader('支付结果')}
+      <div className="no-scrollbar flex-1 overflow-y-auto">
+        {orderInfo.status === 'success' ? renderMallSuccess(orderInfo) : renderMallFailure(orderInfo)}
       </div>
     </div>
   );
 };
+
+export default PaymentResultPage;

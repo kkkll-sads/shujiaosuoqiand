@@ -247,6 +247,18 @@ export interface CancelAccountPayload {
   reason?: string;
 }
 
+export interface RechargeServiceFeePayload {
+  amount: number;
+  remark?: string;
+  source?: 'balance_available' | 'withdrawable_money';
+}
+
+export interface RechargeServiceFeeResult {
+  balanceAvailable?: string;
+  serviceFeeBalance?: string;
+  withdrawableMoney?: string;
+}
+
 export interface AccountMoneyLogDetail {
   accountType?: string;
   afterValue: number;
@@ -579,6 +591,35 @@ export const accountApi = {
       },
       useMock: false,
     });
+  },
+
+  async rechargeServiceFee(
+    payload: RechargeServiceFeePayload,
+    options: AccountRequestOptions = {},
+  ): Promise<RechargeServiceFeeResult> {
+    const response = await http.post<Record<string, unknown>, RechargeServiceFeePayload>(
+      '/api/Account/rechargeServiceFee',
+      payload,
+      {
+        headers: createApiHeaders(options),
+        signal: options.signal,
+        query: {
+          amount: payload.amount,
+          remark: payload.remark,
+        },
+      },
+    );
+
+    return {
+      balanceAvailable:
+        typeof response.balance_available === 'string' ? readString(response.balance_available) : undefined,
+      serviceFeeBalance:
+        typeof response.service_fee_balance === 'string' ? readString(response.service_fee_balance) : undefined,
+      withdrawableMoney:
+        typeof response.withdrawable_money === 'string'
+          ? readString(response.withdrawable_money)
+          : undefined,
+    };
   },
 
   async getAllLog(

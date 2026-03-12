@@ -41,6 +41,7 @@ const HelpCenterPage = lazy(() => import('../pages/HelpCenter').then(m => ({ def
 const SettingsPage = lazy(() => import('../pages/Settings').then(m => ({ default: m.SettingsPage })));
 const AboutUsPage = lazy(() => import('../pages/AboutUs').then(m => ({ default: m.AboutUsPage })));
 const SecurityPage = lazy(() => import('../pages/Security').then(m => ({ default: m.SecurityPage })));
+const AgentAuthPage = lazy(() => import('../pages/AgentAuth').then(m => ({ default: m.AgentAuthPage })));
 const ChangePasswordPage = lazy(() => import('../pages/ChangePassword').then(m => ({ default: m.ChangePasswordPage })));
 const ChangePayPasswordPage = lazy(() => import('../pages/ChangePayPassword').then(m => ({ default: m.ChangePayPasswordPage })));
 const ResetPasswordBySmsPage = lazy(() => import('../pages/ResetPasswordBySms').then(m => ({ default: m.ResetPasswordBySmsPage })));
@@ -61,6 +62,7 @@ const AccumulatedRightsPage = lazy(() => import('../pages/AccumulatedRights').th
 const GrowthRightsPage = lazy(() => import('../pages/GrowthRights/Page').then(m => ({ default: m.GrowthRightsPage })));
 const MyCollectionPage = lazy(() => import('../pages/MyCollection').then(m => ({ default: m.MyCollectionPage })));
 const RechargePage = lazy(() => import('../pages/Recharge').then(m => ({ default: m.RechargePage })));
+const ServiceFeeRechargePage = lazy(() => import('../pages/ServiceFeeRecharge').then(m => ({ default: m.ServiceFeeRechargePage })));
 const TransferPage = lazy(() => import('../pages/Transfer').then(m => ({ default: m.TransferPage })));
 const RightsTransferPage = lazy(() => import('../pages/RightsTransfer').then(m => ({ default: m.RightsTransferPage })));
 const WithdrawPage = lazy(() => import('../pages/Withdraw').then(m => ({ default: m.WithdrawPage })));
@@ -215,6 +217,7 @@ export const router = createHashRouter([
       { path: 'growth_rights', element: <Lazy><GrowthRightsPage /></Lazy> },
       { path: 'growth-rights', element: <Lazy><GrowthRightsPage /></Lazy> },
       { path: 'recharge', element: <Lazy><RechargePage /></Lazy> },
+      { path: 'service-recharge', element: <Lazy><ServiceFeeRechargePage /></Lazy> },
       { path: 'transfer', element: <Lazy><TransferPage /></Lazy> },
       { path: 'withdraw', element: <Lazy><WithdrawPage /></Lazy> },
       { path: 'rights/history', element: <Lazy><RightsHistoryPage /></Lazy> },
@@ -231,6 +234,7 @@ export const router = createHashRouter([
       { path: 'settings', element: <Lazy><SettingsPage /></Lazy> },
       { path: 'security', element: <Lazy><SecurityPage /></Lazy> },
       { path: 'auth/real-name', element: <Lazy><RealNameAuthPage /></Lazy> },
+      { path: 'agent-auth', element: <Lazy><AgentAuthPage /></Lazy> },
       { path: 'real_name_auth', element: <Lazy><RealNameAuthPage /></Lazy> },
 
       // ========== 签到 ==========

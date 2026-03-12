@@ -1,34 +1,26 @@
-/**
- * @file Cashier/index.tsx - 收银台页面
- * @description 订单支付页面，支持余额支付、消费金支付、混合支付，
- *              包含支付倒计时、支付方式选择、支付失败重试弹窗。
- */
-
-import React, { useState, useEffect, useMemo } from 'react'; // React 核心 Hook
+import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
-  ChevronLeft,
-  WifiOff,
-  RefreshCcw,
-  Copy,
+  AlertTriangle,
+  ArrowRight,
   CheckCircle2,
+  ChevronLeft,
   Circle,
-  Wallet,
+  Clock3,
   Coins,
+  Copy,
   ShieldCheck,
-  AlertCircle,
+  Wallet,
+  WifiOff,
 } from 'lucide-react';
 import { shopOrderApi } from '../../api';
 import { getErrorMessage } from '../../api/core/errors';
 import { useFeedback } from '../../components/ui/FeedbackProvider';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { copyToClipboard } from '../../lib/clipboard';
+import { openCustomerServiceLink } from '../../lib/customerService';
 import { useAppNavigate } from '../../lib/navigation';
 
-/**
- * 支付方式定义
- * 根据订单的 pay_type 动态决定可选的支付方式
- */
 interface PaymentMethod {
   id: string;
   name: string;
@@ -38,16 +30,222 @@ interface PaymentMethod {
   bg: string;
 }
 
-/**
- * CashierPage - 收银台页面
- * 功能：显示应付金额 → 选择支付方式 → 确认支付 → 跳转结果页
- */
-export const CashierPage = () => {
+function formatMoney(value: number) {
+  return value.toLocaleString('zh-CN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+function formatMinuteClock(seconds: number) {
+  const safeSeconds = Math.max(0, seconds);
+  const minutes = Math.floor(safeSeconds / 60)
+    .toString()
+    .padStart(1, '0');
+  const remain = (safeSeconds % 60).toString().padStart(2, '0');
+  return `${minutes}:${remain}`;
+}
+
+const RechargeCashierView = ({
+  amount,
+  orderNo,
+  payUrl,
+  expireSeconds,
+}: {
+  amount: number;
+  orderNo: string;
+  payUrl?: string;
+  expireSeconds: number;
+}) => {
+  const { goBack, navigate } = useAppNavigate();
+  const { showToast } = useFeedback();
+  const [timeLeft, setTimeLeft] = useState(expireSeconds);
+  const [opening, setOpening] = useState(false);
+  const [hasOpenedPay, setHasOpenedPay] = useState(false);
+
+  useEffect(() => {
+    setTimeLeft(expireSeconds);
+    setHasOpenedPay(false);
+  }, [expireSeconds]);
+
+  useEffect(() => {
+    if (timeLeft <= 0) {
+      return undefined;
+    }
+
+    const timer = window.setInterval(() => {
+      setTimeLeft((current) => Math.max(0, current - 1));
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [timeLeft]);
+
+  const handleCopyOrderNo = () => {
+    if (!orderNo) {
+      return;
+    }
+
+    copyToClipboard(orderNo).then((ok) => {
+      showToast({
+        message: ok ? '已复制订单号' : '复制失败，请稍后重试',
+        type: ok ? 'success' : 'error',
+      });
+    });
+  };
+
+  const handleOpenPay = () => {
+    if (!payUrl || opening || timeLeft <= 0) {
+      return;
+    }
+
+    setOpening(true);
+
+    try {
+      const nextWindow = window.open(payUrl, '_blank', 'noopener,noreferrer');
+      if (!nextWindow) {
+        showToast({
+          message: '支付链接已被拦截，请检查浏览器设置',
+          type: 'warning',
+        });
+        return;
+      }
+
+      showToast({ message: '已打开支付页面', type: 'success' });
+      setHasOpenedPay(true);
+    } finally {
+      window.setTimeout(() => setOpening(false), 600);
+    }
+  };
+
+  const handleOpenResult = (status: 'pending' | 'failure' = 'pending') => {
+    const params = new URLSearchParams({
+      scene: 'recharge',
+      status,
+      amount: String(amount),
+      order_no: orderNo,
+    });
+
+    navigate(`/payment/result?${params.toString()}`, { replace: true });
+  };
+
+  const handleOpenSupport = () => {
+    void openCustomerServiceLink(({ duration, message, type }) => {
+      showToast({ duration, message, type });
+    });
+  };
+
+  return (
+    <div className="relative flex h-full flex-1 flex-col overflow-hidden bg-[#f4f4f5]">
+      <div className="relative z-20 border-b border-[#e7e7ea] bg-white/92 px-4 pt-safe backdrop-blur">
+        <div className="flex h-14 items-center">
+          <button
+            type="button"
+            className="flex w-10 items-center justify-start text-[#5b6472] active:opacity-70"
+            onClick={goBack}
+          >
+            <ChevronLeft size={24} />
+          </button>
+          <h1 className="flex-1 text-center text-[18px] font-semibold text-[#111827]">支付收银台</h1>
+          <div className="flex w-10 justify-end" />
+        </div>
+      </div>
+
+      <div className="pointer-events-none absolute right-4 top-[calc(env(safe-area-inset-top,0px)+16px)] z-30 inline-flex items-center rounded-full bg-white/90 px-2.5 py-1 text-[13px] text-[#6b7280] shadow-sm">
+        <Clock3 size={13} className="mr-1 text-[#6b7280]" />
+        {formatMinuteClock(timeLeft)}
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-4 pb-28 pt-14">
+        <div className="pt-[18vh] text-center">
+          <div className="mb-4 text-[16px] text-[#6b7280]">支付金额</div>
+          <div className="mb-5 flex items-end justify-center text-[#e50019]">
+            <span className="mr-1 pb-1 text-[20px] font-semibold text-[#111827]">¥</span>
+            <span className="text-[62px] font-bold leading-none tracking-tight">
+              {Number.isFinite(amount) ? Math.round(amount).toString() : '0'}
+            </span>
+          </div>
+
+          <button
+            type="button"
+            className="mx-auto flex items-center text-[13px] text-[#9ca3af] active:opacity-70"
+            onClick={handleCopyOrderNo}
+          >
+            <span>订单号：{orderNo || '--'}</span>
+            <Copy size={13} className="ml-1.5" />
+          </button>
+        </div>
+
+        <div className="mt-12 rounded-[20px] border border-[#f2ca77] bg-[#fff6df] px-5 py-4 text-left">
+          <div className="mb-2 flex items-center text-[15px] font-semibold text-[#e46a00]">
+            <AlertTriangle size={16} className="mr-2" />
+            重要提醒：
+          </div>
+          <div className="space-y-1 text-[14px] leading-6 text-[#c75c00]">
+            <div>• 请核对支付金额，否则无法到账</div>
+            <div>• 请勿保存二维码稍后支付</div>
+            <div>• 支付链接 5 分钟内有效</div>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          className="mt-8 flex h-14 w-full items-center justify-center rounded-full bg-gradient-to-r from-[#ff1530] to-[#ff0019] text-[22px] font-semibold text-white shadow-[0_14px_28px_rgba(255,0,25,0.22)] active:scale-[0.99] disabled:opacity-50"
+          onClick={handleOpenPay}
+          disabled={!payUrl || timeLeft <= 0 || opening}
+        >
+          <span className="mr-2 text-[18px]">□</span>
+          去支付
+          <ArrowRight size={19} className="ml-2" />
+        </button>
+
+        {hasOpenedPay ? (
+          <button
+            type="button"
+            className="mt-3 flex h-12 w-full items-center justify-center rounded-full border border-[#d1d5db] bg-white text-[16px] font-medium text-[#374151] active:bg-[#f9fafb]"
+            onClick={() => handleOpenResult('pending')}
+          >
+            已完成支付，返回查看结果
+          </button>
+        ) : null}
+
+        <div className="mt-6 flex items-center justify-center text-[14px] text-[#9ca3af]">
+          <ShieldCheck size={14} className="mr-1.5" />
+          安全支付保障
+        </div>
+      </div>
+
+      <button
+        type="button"
+        className="absolute bottom-20 right-0 z-20 flex h-14 w-14 translate-x-1/3 items-center justify-center rounded-full bg-[#ff8a00] text-white shadow-[0_10px_24px_rgba(255,138,0,0.28)] active:scale-95"
+        onClick={handleOpenSupport}
+        aria-label="联系客服"
+      >
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        </svg>
+      </button>
+
+      {timeLeft <= 0 ? (
+        <div className="absolute inset-x-4 bottom-6 z-30 rounded-2xl border border-[#fecaca] bg-white px-4 py-3 text-sm text-[#b91c1c] shadow-sm">
+          支付链接已过期，请返回重新发起匹配。
+          <button
+            type="button"
+            className="ml-2 font-medium text-[#ef4444]"
+            onClick={() => handleOpenResult('failure')}
+          >
+            查看结果
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+};
+
+const MallCashierView = () => {
   const [searchParams] = useSearchParams();
   const { goBack, navigate } = useAppNavigate();
   const { showToast, showLoading, hideLoading } = useFeedback();
 
-  /* ---- 从 URL 参数获取订单信息 ---- */
   const orderId = Number(searchParams.get('order_id')) || 0;
   const orderNoParam = searchParams.get('order_no') ?? '';
   const amountParam = Number(searchParams.get('amount')) || 0;
@@ -57,14 +255,9 @@ export const CashierPage = () => {
   const scoreBalanceParam = searchParams.get('score_balance') ?? '0';
 
   const displayOrderNo = orderNoParam || '--';
-
-  /* ---- 判断支付类型 ---- */
-  /** 是否为纯消费金支付 */
   const isScoreOnly = payTypeParam === 'score' || (scoreParam > 0 && amountParam <= 0);
-  /** 是否为纯人民币支付 */
   const isMoneyOnly = payTypeParam === 'money' || (amountParam > 0 && scoreParam <= 0);
 
-  /* ---- 状态 ---- */
   const [loading, setLoading] = useState(true);
   const [offline, setOffline] = useState(false);
   const [moduleError, setModuleError] = useState(false);
@@ -73,7 +266,6 @@ export const CashierPage = () => {
   const [showFailureModal, setShowFailureModal] = useState(false);
   const [paying, setPaying] = useState(false);
 
-  /* ---- 根据 pay_type 动态生成支付方式列表 ---- */
   const paymentMethods = useMemo<PaymentMethod[]>(() => {
     if (isScoreOnly) {
       return [
@@ -87,6 +279,7 @@ export const CashierPage = () => {
         },
       ];
     }
+
     if (isMoneyOnly) {
       return [
         {
@@ -99,7 +292,7 @@ export const CashierPage = () => {
         },
       ];
     }
-    // combined 混合支付
+
     return [
       {
         id: 'balance',
@@ -118,44 +311,44 @@ export const CashierPage = () => {
         bg: 'bg-orange-50 dark:bg-orange-500/15',
       },
     ];
-  }, [isScoreOnly, isMoneyOnly, balanceParam, scoreBalanceParam]);
+  }, [isMoneyOnly, isScoreOnly, balanceParam, scoreBalanceParam]);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const timer = window.setTimeout(() => {
       setLoading(false);
     }, 600);
-    return () => clearTimeout(timer);
+    return () => window.clearTimeout(timer);
   }, []);
 
   useEffect(() => {
-    if (timeLeft <= 0 || loading || moduleError) return;
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => prev - 1);
+    if (timeLeft <= 0 || loading || moduleError) {
+      return undefined;
+    }
+
+    const timer = window.setInterval(() => {
+      setTimeLeft((current) => current - 1);
     }, 1000);
-    return () => clearInterval(timer);
-  }, [timeLeft, loading, moduleError]);
 
-  const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60)
-      .toString()
-      .padStart(2, '0');
-    const s = (seconds % 60).toString().padStart(2, '0');
-    return `${m}:${s}`;
-  };
-
-  const handleBack = () => {
-    goBack();
-  };
+    return () => window.clearInterval(timer);
+  }, [loading, moduleError, timeLeft]);
 
   const handleCopy = () => {
-    if (!displayOrderNo || displayOrderNo === '--') return;
+    if (!displayOrderNo || displayOrderNo === '--') {
+      return;
+    }
+
     copyToClipboard(displayOrderNo).then((ok) => {
-      showToast({ message: ok ? '已复制订单号' : '复制失败，请长按手动复制', type: ok ? 'success' : 'error' });
+      showToast({
+        message: ok ? '已复制订单号' : '复制失败，请手动复制',
+        type: ok ? 'success' : 'error',
+      });
     });
   };
 
   const handlePay = async () => {
-    if (paying) return;
+    if (paying) {
+      return;
+    }
 
     if (orderId <= 0) {
       showToast({ message: '订单信息无效，请返回重新下单', type: 'error' });
@@ -164,6 +357,7 @@ export const CashierPage = () => {
 
     setPaying(true);
     showLoading('支付中...');
+
     try {
       const payParams: { order_id: number; pay_money?: number; pay_score?: number } = {
         order_id: orderId,
@@ -176,18 +370,17 @@ export const CashierPage = () => {
         payParams.pay_money = amountParam;
         payParams.pay_score = 0;
       } else {
-        // 混合支付
         payParams.pay_money = amountParam;
         payParams.pay_score = scoreParam;
       }
 
       const result = await shopOrderApi.pay(payParams);
-
       const params = new URLSearchParams({
         status: 'success',
         order_no: result.order_no,
         pay_type: payTypeParam,
       });
+
       if (isScoreOnly) {
         params.set('amount', String(result.pay_score ?? 0));
       } else if (isMoneyOnly) {
@@ -196,10 +389,10 @@ export const CashierPage = () => {
         params.set('amount', String(result.pay_money ?? 0));
         params.set('total_score', String(result.pay_score ?? 0));
       }
+
       navigate(`/payment/result?${params.toString()}`, { replace: true });
     } catch (error) {
-      const msg = getErrorMessage(error);
-      showToast({ message: msg, type: 'error', duration: 3000 });
+      showToast({ message: getErrorMessage(error), type: 'error', duration: 3000 });
       setShowFailureModal(true);
     } finally {
       hideLoading();
@@ -207,216 +400,178 @@ export const CashierPage = () => {
     }
   };
 
-  /* ---- 渲染应付金额显示 ---- */
   const renderAmountDisplay = () => {
     if (isScoreOnly) {
       return (
-        <div className="text-primary-start font-bold mb-4 flex items-baseline">
+        <div className="mb-4 flex items-baseline font-bold text-primary-start">
           <span className="text-7xl leading-none">{scoreParam}</span>
-          <span className="text-2xl ml-1">消费金</span>
+          <span className="ml-1 text-2xl">消费金</span>
         </div>
       );
     }
+
     if (isMoneyOnly) {
       return (
-        <div className="text-primary-start font-bold mb-4 flex items-baseline">
-          <span className="text-3xl mr-0.5">¥</span>
+        <div className="mb-4 flex items-baseline font-bold text-primary-start">
+          <span className="mr-0.5 text-3xl">¥</span>
           <span className="text-7xl leading-none">{amountParam.toFixed(2).split('.')[0]}</span>
           <span className="text-3xl">.{amountParam.toFixed(2).split('.')[1]}</span>
         </div>
       );
     }
-    // 混合支付：显示两行
+
     return (
       <div className="mb-4 flex flex-col items-center gap-1">
-        <div className="text-primary-start font-bold flex items-baseline">
-          <span className="text-2xl mr-0.5">¥</span>
+        <div className="flex items-baseline font-bold text-primary-start">
+          <span className="mr-0.5 text-2xl">¥</span>
           <span className="text-5xl leading-none">{amountParam.toFixed(2).split('.')[0]}</span>
           <span className="text-2xl">.{amountParam.toFixed(2).split('.')[1]}</span>
         </div>
-        <div className="text-orange-500 font-bold flex items-baseline">
+        <div className="flex items-baseline font-bold text-orange-500">
           <span className="text-3xl leading-none">+{scoreParam}</span>
-          <span className="text-lg ml-1">消费金</span>
+          <span className="ml-1 text-lg">消费金</span>
         </div>
       </div>
     );
   };
 
-  /* ---- 底部按钮文字 ---- */
   const payButtonText = () => {
     if (isScoreOnly) return `确认支付 ${scoreParam}消费金`;
     if (isMoneyOnly) return `确认支付 ¥${amountParam.toFixed(2)}`;
     return `确认支付 ¥${amountParam.toFixed(2)} + ${scoreParam}消费金`;
   };
 
-  const renderHeader = () => (
-    <div className="bg-white dark:bg-gray-900 z-40 relative shrink-0 border-b border-border-light">
-      {offline && (
-        <div className="bg-red-50 dark:bg-red-900/30 text-primary-start dark:text-red-300 px-4 py-2 flex items-center justify-between text-sm">
-          <div className="flex items-center">
-            <WifiOff size={14} className="mr-2" />
-            <span>网络不稳定，请检查网络设置</span>
-          </div>
-          <button
-            onClick={() => setOffline(false)}
-            className="font-medium px-2 py-1 bg-white dark:bg-gray-800 dark:text-gray-100 rounded shadow-sm"
-          >
-            刷新
-          </button>
-        </div>
-      )}
-      <div className="h-12 flex items-center justify-between px-3 pt-safe">
-        <div className="flex items-center w-1/3">
-          <button onClick={handleBack} className="p-1 -ml-1 text-text-main active:opacity-70">
-            <ChevronLeft size={24} />
-          </button>
-        </div>
-        <h1 className="text-xl font-bold text-text-main text-center w-1/3">收银台</h1>
-        <div className="w-1/3"></div>
-      </div>
-    </div>
-  );
-
-  const renderSkeleton = () => (
-    <div className="p-3">
-      <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 mb-3 shadow-sm flex flex-col items-center">
-        <Skeleton className="w-16 h-4 mb-3" />
-        <Skeleton className="w-32 h-10 mb-4" />
-        <Skeleton className="w-48 h-6 rounded-full" />
-      </div>
-      <div className="bg-white dark:bg-gray-900 rounded-2xl p-2 mb-3 shadow-sm">
-        {[1, 2].map((i) => (
-          <div key={i} className="flex items-center p-3">
-            <Skeleton className="w-6 h-6 rounded-full mr-3 shrink-0" />
-            <div className="flex-1">
-              <Skeleton className="w-24 h-4 mb-1" />
-              <Skeleton className="w-32 h-3" />
+  if (moduleError) {
+    return (
+      <div className="flex flex-1 flex-col bg-bg-base">
+        <div className="bg-white dark:bg-gray-900 z-40 relative shrink-0 border-b border-border-light">
+          <div className="h-12 flex items-center justify-between px-3 pt-safe">
+            <div className="flex items-center w-1/3">
+              <button onClick={goBack} className="p-1 -ml-1 text-text-main active:opacity-70">
+                <ChevronLeft size={24} />
+              </button>
             </div>
-            <Skeleton className="w-5 h-5 rounded-full shrink-0" />
+            <h1 className="text-xl font-bold text-text-main text-center w-1/3">收银台</h1>
+            <div className="w-1/3" />
           </div>
-        ))}
-      </div>
-    </div>
-  );
-
-  const renderContent = () => {
-    if (moduleError) {
-      return (
-        <div className="flex-1 flex flex-col items-center justify-center p-4">
-          <RefreshCcw size={32} className="text-text-aux mb-3" />
-          <p className="text-md text-text-sub mb-4">加载失败，请检查网络</p>
+        </div>
+        <div className="flex flex-1 items-center justify-center p-4">
           <button
             onClick={() => {
               setLoading(true);
               setModuleError(false);
             }}
-            className="px-6 py-2 border border-border-light rounded-full text-base text-text-main bg-white dark:bg-gray-900 shadow-sm active:bg-bg-base"
+            className="rounded-full border border-border-light px-6 py-2 text-base text-text-main"
           >
             重试
           </button>
         </div>
-      );
-    }
-
-    if (loading) {
-      return renderSkeleton();
-    }
-
-    return (
-      <div className="p-3 pb-24">
-        {/* Countdown */}
-        <div className="flex justify-center mb-3">
-          <div className="bg-orange-50 text-orange-600 px-3 py-1 rounded-full text-sm font-medium flex items-center dark:bg-orange-500/15 dark:text-orange-200">
-            支付剩余时间 {formatTime(timeLeft)}
-          </div>
-        </div>
-
-        {/* Amount Card */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm mb-3 p-6 flex flex-col items-center">
-          <span className="text-base text-text-sub mb-2">应付金额</span>
-          {renderAmountDisplay()}
-          <div className="flex items-center text-sm text-text-sub bg-bg-base px-3 py-1.5 rounded-full max-w-full cursor-pointer" onClick={handleCopy}>
-            <span className="truncate mr-2">订单号：{displayOrderNo}</span>
-            <span className="flex items-center text-text-main font-medium shrink-0 whitespace-nowrap">
-              <Copy size={12} className="mr-1" />
-              复制
-            </span>
-          </div>
-        </div>
-
-        {/* Payment Methods Card */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm mb-4 overflow-hidden">
-          {paymentMethods.map((method, index) => (
-            <div
-              key={method.id}
-              className={`flex items-center p-4 active:bg-bg-base transition-colors cursor-pointer ${
-                index !== paymentMethods.length - 1 ? 'border-b border-border-light/50' : ''
-              }`}
-              onClick={() => setSelectedMethod(method.id)}
-            >
-              <div
-                className={`w-6 h-6 rounded-full ${method.bg} flex items-center justify-center shrink-0`}
-              >
-                <method.icon size={14} className={method.color} />
-              </div>
-
-              <div className="flex-1 ml-3 min-w-0">
-                <div className="text-md text-text-main font-medium truncate">{method.name}</div>
-                <div className="text-sm text-text-sub truncate mt-0.5">{method.desc}</div>
-              </div>
-
-              <div className="ml-3 shrink-0">
-                {selectedMethod === method.id ? (
-                  <CheckCircle2 size={20} className="text-primary-start fill-primary-start/10" />
-                ) : (
-                  <Circle size={20} className="text-text-aux" />
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Security Hint */}
-        <div className="flex items-center justify-center text-text-sub text-s">
-          <ShieldCheck size={12} className="mr-1" />
-          <span>支付安全由树交所及合作机构保障</span>
-        </div>
       </div>
     );
-  };
+  }
 
   return (
     <div className="flex-1 flex flex-col bg-bg-base relative h-full overflow-hidden">
-      {renderHeader()}
-
-      <div className="flex-1 overflow-y-auto no-scrollbar relative">{renderContent()}</div>
-
-      {/* Bottom Fixed Bar */}
-      {!moduleError && (
-        <div className="absolute bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-border-light px-4 py-3 z-40 pb-safe">
-          <button
-            onClick={handlePay}
-            disabled={paying || orderId <= 0}
-            className="w-full h-11 rounded-full bg-gradient-to-r from-primary-start to-primary-end text-white text-lg font-medium shadow-sm active:opacity-80 flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {paying ? (
-              <>
-                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
-                支付中...
-              </>
-            ) : (
-              payButtonText()
-            )}
-          </button>
+      <div className="bg-white dark:bg-gray-900 z-40 relative shrink-0 border-b border-border-light">
+        {offline ? (
+          <div className="bg-red-50 dark:bg-red-900/30 text-primary-start dark:text-red-300 px-4 py-2 flex items-center justify-between text-sm">
+            <div className="flex items-center">
+              <WifiOff size={14} className="mr-2" />
+              <span>网络不稳定，请检查网络设置</span>
+            </div>
+            <button onClick={() => setOffline(false)} className="font-medium px-2 py-1 bg-white dark:bg-gray-800 rounded shadow-sm">
+              刷新
+            </button>
+          </div>
+        ) : null}
+        <div className="h-12 flex items-center justify-between px-3 pt-safe">
+          <div className="flex items-center w-1/3">
+            <button onClick={goBack} className="p-1 -ml-1 text-text-main active:opacity-70">
+              <ChevronLeft size={24} />
+            </button>
+          </div>
+          <h1 className="text-xl font-bold text-text-main text-center w-1/3">收银台</h1>
+          <div className="w-1/3" />
         </div>
-      )}
+      </div>
 
-      {/* Payment Failure Modal */}
-      {showFailureModal && (
+      <div className="flex-1 overflow-y-auto no-scrollbar relative">
+        {loading ? (
+          <div className="p-3">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 mb-3 shadow-sm flex flex-col items-center">
+              <Skeleton className="w-16 h-4 mb-3" />
+              <Skeleton className="w-32 h-10 mb-4" />
+              <Skeleton className="w-48 h-6 rounded-full" />
+            </div>
+          </div>
+        ) : (
+          <div className="p-3 pb-24">
+            <div className="mb-3 flex justify-center">
+              <div className="bg-orange-50 text-orange-600 px-3 py-1 rounded-full text-sm font-medium flex items-center">
+                支付剩余时间 {formatMinuteClock(timeLeft)}
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm mb-3 p-6 flex flex-col items-center">
+              <span className="text-base text-text-sub mb-2">应付金额</span>
+              {renderAmountDisplay()}
+              <div className="flex items-center text-sm text-text-sub bg-bg-base px-3 py-1.5 rounded-full max-w-full cursor-pointer" onClick={handleCopy}>
+                <span className="truncate mr-2">订单号：{displayOrderNo}</span>
+                <span className="flex items-center text-text-main font-medium shrink-0 whitespace-nowrap">
+                  <Copy size={12} className="mr-1" />
+                  复制
+                </span>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm mb-4 overflow-hidden">
+              {paymentMethods.map((method, index) => (
+                <div
+                  key={method.id}
+                  className={`flex items-center p-4 cursor-pointer ${
+                    index !== paymentMethods.length - 1 ? 'border-b border-border-light/50' : ''
+                  }`}
+                  onClick={() => setSelectedMethod(method.id)}
+                >
+                  <div className={`w-6 h-6 rounded-full ${method.bg} flex items-center justify-center shrink-0`}>
+                    <method.icon size={14} className={method.color} />
+                  </div>
+                  <div className="flex-1 ml-3 min-w-0">
+                    <div className="text-md text-text-main font-medium truncate">{method.name}</div>
+                    <div className="text-sm text-text-sub truncate mt-0.5">{method.desc}</div>
+                  </div>
+                  {selectedMethod === method.id ? (
+                    <CheckCircle2 size={20} className="text-primary-start fill-primary-start/10" />
+                  ) : (
+                    <Circle size={20} className="text-text-aux" />
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <div className="flex items-center justify-center text-text-sub text-s">
+              <ShieldCheck size={12} className="mr-1" />
+              <span>支付安全由树交所及合作机构保障</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="absolute bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-border-light px-4 py-3 z-40 pb-safe">
+        <button
+          onClick={handlePay}
+          disabled={paying || orderId <= 0}
+          className="w-full h-11 rounded-full bg-gradient-to-r from-primary-start to-primary-end text-white text-lg font-medium shadow-sm active:opacity-80 flex items-center justify-center disabled:opacity-60"
+        >
+          {paying ? '支付中...' : payButtonText()}
+        </button>
+      </div>
+
+      {showFailureModal ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-10">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl w-full overflow-hidden flex flex-col items-center pt-6 pb-5 px-5 animate-in fade-in zoom-in duration-200">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl w-full overflow-hidden flex flex-col items-center pt-6 pb-5 px-5">
             <div className="w-12 h-12 rounded-full bg-red-50 dark:bg-red-500/15 flex items-center justify-center mb-3">
-              <AlertCircle size={24} className="text-primary-start" />
+              <AlertTriangle size={24} className="text-primary-start" />
             </div>
             <h3 className="text-xl font-bold text-text-main mb-2">支付失败</h3>
             <p className="text-base text-text-sub text-center mb-6 leading-relaxed">
@@ -432,17 +587,41 @@ export const CashierPage = () => {
               <button
                 onClick={() => {
                   setShowFailureModal(false);
-                  handlePay();
+                  void handlePay();
                 }}
-                className="flex-1 h-10 rounded-full bg-gradient-to-r from-primary-start to-primary-end text-md font-medium text-white active:opacity-80 shadow-sm"
+                className="flex-1 h-10 rounded-full bg-gradient-to-r from-primary-start to-primary-end text-md font-medium text-white"
               >
                 重新支付
               </button>
             </div>
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 };
 
+export const CashierPage = () => {
+  const [searchParams] = useSearchParams();
+
+  const scene = searchParams.get('scene') ?? '';
+  const payUrl = searchParams.get('pay_url') ?? '';
+  const amount = Number(searchParams.get('amount')) || 0;
+  const orderNo = searchParams.get('order_no') ?? '';
+  const expireSeconds = Number(searchParams.get('expire_seconds')) || 300;
+
+  if (scene === 'recharge' || payUrl) {
+    return (
+      <RechargeCashierView
+        amount={amount}
+        orderNo={orderNo}
+        payUrl={payUrl || undefined}
+        expireSeconds={expireSeconds}
+      />
+    );
+  }
+
+  return <MallCashierView />;
+};
+
+export default CashierPage;

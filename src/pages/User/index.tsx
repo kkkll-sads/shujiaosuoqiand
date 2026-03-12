@@ -1,10 +1,11 @@
 /**
- * @file User/index.tsx - 个人中心页面
- * @description 用户个人中心，展示个人信息、余额、订单入口、功能菜单等。
+ * @file User/index.tsx
+ * @description 用户中心页面。未登录时直接跳转登录页，避免显示过期用户数据。
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react'; // React 核心 Hook
-import { ChevronRight, HeadphonesIcon, LogOut, MessageSquare, Settings } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { ChevronRight, LogOut } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { accountApi, userApi } from '../../api';
 import { messageApi } from '../../api/modules/message';
 import { OfflineBanner } from '../../components/layout/OfflineBanner';
@@ -31,6 +32,8 @@ import {
 
 export const UserPage = () => {
   const { goTo } = useAppNavigate();
+  const navigate = useNavigate();
+  const location = useLocation();
   const { showToast } = useFeedback();
   const { clearAuthSession, isAuthenticated, session } = useAuthSession();
   const { isOffline, refreshStatus } = useNetworkStatus();
@@ -41,38 +44,73 @@ export const UserPage = () => {
 
   const isLoggedIn = isAuthenticated;
   const profileRequest = useRequest((signal) => accountApi.getProfile({ signal }), {
+    cache: isLoggedIn,
     cacheKey: 'user:profile',
     deps: [isLoggedIn],
     manual: !isLoggedIn,
   });
   const accountOverviewRequest = useRequest((signal) => accountApi.getAccountOverview({ signal }), {
+    cache: isLoggedIn,
     cacheKey: 'user:account-overview',
     deps: [isLoggedIn],
     manual: !isLoggedIn,
   });
   const realNameRequest = useRequest((signal) => userApi.getRealNameStatus({ signal }), {
+    cache: isLoggedIn,
     cacheKey: 'user:real-name-status',
     deps: [isLoggedIn],
     manual: !isLoggedIn,
   });
   const unreadRequest = useRequest((signal) => messageApi.unreadCount(signal), {
+    cache: isLoggedIn,
     cacheKey: 'messages:unread',
     deps: [isLoggedIn],
     manual: !isLoggedIn,
   });
 
-  const profile = profileRequest.data;
+  const profile = isLoggedIn ? profileRequest.data : undefined;
   const profileLoading = profileRequest.loading;
   const accountOverviewLoading = accountOverviewRequest.loading;
   const realNameLoading = realNameRequest.loading;
-  const unreadTotal = unreadRequest.data?.total ?? 0;
+  const unreadTotal = isLoggedIn ? unreadRequest.data?.total ?? 0 : 0;
+  const clearProfile = profileRequest.setData;
+  const clearAccountOverview = accountOverviewRequest.setData;
+  const clearRealName = realNameRequest.setData;
+  const clearUnread = unreadRequest.setData;
+  const reloadProfile = profileRequest.reload;
+  const reloadAccountOverview = accountOverviewRequest.reload;
+  const reloadRealName = realNameRequest.reload;
+  const reloadUnread = unreadRequest.reload;
+
   const openSupport = useCallback(() => {
     void openCustomerServiceLink(({ duration, message, type }) => {
       showToast({ duration, message, type });
     });
   }, [showToast]);
 
-  const profileUserInfo = profile?.userInfo ?? session?.userInfo;
+  useEffect(() => {
+    if (isLoggedIn) {
+      return;
+    }
+
+    clearProfile(undefined);
+    clearAccountOverview(undefined);
+    clearRealName(undefined);
+    clearUnread(undefined);
+  }, [clearAccountOverview, clearProfile, clearRealName, clearUnread, isLoggedIn]);
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      return;
+    }
+
+    navigate('/login', {
+      replace: true,
+      state: { from: `${location.pathname}${location.search}${location.hash}` },
+    });
+  }, [isLoggedIn, location.hash, location.pathname, location.search, navigate]);
+
+  const profileUserInfo = isLoggedIn ? (profile?.userInfo ?? session?.userInfo) : undefined;
   const userInfo = (profileUserInfo ?? {}) as Record<string, unknown>;
   const displayName = String(userInfo.nickname ?? userInfo.username ?? userInfo.mobile ?? '会员用户');
   const displayUid = String(userInfo.uid ?? userInfo.id ?? '--');
@@ -81,7 +119,7 @@ export const UserPage = () => {
 
   const isHeaderLoading =
     loading || (isLoggedIn && (profileLoading || accountOverviewLoading || realNameLoading));
-  const showContentSkeleton = isHeaderLoading;
+  const showContentSkeleton = isLoggedIn && isHeaderLoading;
 
   useEffect(() => {
     setLoading(true);
@@ -96,26 +134,33 @@ export const UserPage = () => {
     containerRef: scrollContainerRef,
     namespace: 'user-page',
     restoreDeps: [isHeaderLoading, isLoggedIn, loading],
-    restoreWhen: !loading && !isHeaderLoading,
+    restoreWhen: isLoggedIn && !loading && !isHeaderLoading,
   });
 
-  const handleRefresh = useCallback(
-    () =>
-      Promise.allSettled([
-        profileRequest.reload(),
-        accountOverviewRequest.reload(),
-        realNameRequest.reload(),
-      ]),
-    [profileRequest, accountOverviewRequest, realNameRequest],
-  );
+  const handleRefresh = useCallback(() => {
+    if (!isLoggedIn) {
+      return Promise.resolve([]);
+    }
+
+    return Promise.allSettled([
+      reloadProfile(),
+      reloadAccountOverview(),
+      reloadRealName(),
+      reloadUnread(),
+    ]);
+  }, [isLoggedIn, reloadAccountOverview, reloadProfile, reloadRealName, reloadUnread]);
 
   const handleLogout = () => {
     setIsLoggingOut(true);
     window.setTimeout(() => {
       clearAuthSession();
+      clearProfile(undefined);
+      clearAccountOverview(undefined);
+      clearRealName(undefined);
+      clearUnread(undefined);
       setIsLoggingOut(false);
       setShowLogoutSheet(false);
-      goTo('login');
+      navigate('/login', { replace: true });
     }, 300);
   };
 
@@ -133,32 +178,6 @@ export const UserPage = () => {
               <Skeleton className="h-6 w-32" />
               <Skeleton className="h-4 w-24" />
               <Skeleton className="h-4 w-16 rounded-full" />
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    if (!isLoggedIn) {
-      return (
-        <div className="relative px-4 pt-4 pb-2">
-          <div className="absolute top-4 right-4 flex space-x-4 text-text-main">
-            <Settings size={22} />
-            <MessageSquare size={22} />
-          </div>
-          <div className="mt-4 flex items-center space-x-4">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-white bg-border-light shadow-sm">
-              <HeadphonesIcon size={28} className="text-text-sub" />
-            </div>
-            <div className="flex flex-col items-start">
-              <h2 className="mb-1 text-2xl font-bold text-text-main">未登录</h2>
-              <p className="mb-2 text-sm text-text-sub">登录后查看账户信息和业务数据</p>
-              <button
-                onClick={() => goTo('login')}
-                className="rounded-full bg-gradient-to-r from-primary-start to-primary-end px-5 py-1.5 text-sm font-medium text-white shadow-sm"
-              >
-                登录 / 注册
-              </button>
             </div>
           </div>
         </div>
@@ -196,8 +215,8 @@ export const UserPage = () => {
     <div className="relative z-10 px-4 transition-transform">
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-red-600 to-red-500 p-4 text-white shadow-xl">
         <div className="absolute inset-0 z-0 overflow-hidden">
-          <div className="absolute top-0 right-0 h-48 w-48 translate-x-1/2 -translate-y-1/2 rounded-full bg-white/10 blur-3xl"></div>
-          <div className="absolute bottom-0 left-0 h-40 w-40 -translate-x-1/4 translate-y-1/4 rounded-full bg-orange-300/20 blur-2xl"></div>
+          <div className="absolute top-0 right-0 h-48 w-48 translate-x-1/2 -translate-y-1/2 rounded-full bg-white/10 blur-3xl" />
+          <div className="absolute bottom-0 left-0 h-40 w-40 -translate-x-1/4 translate-y-1/4 rounded-full bg-orange-300/20 blur-2xl" />
         </div>
 
         <div className="relative z-10">
@@ -240,7 +259,7 @@ export const UserPage = () => {
         <>
           {renderAssetSkeleton()}
 
-          <div className="px-4 space-y-4">
+          <div className="space-y-4 px-4">
             {renderSectionSkeleton('w-28')}
             {renderSectionSkeleton('w-28')}
 
@@ -259,7 +278,7 @@ export const UserPage = () => {
       <>
         <ProfileBalanceCard userInfo={profile?.userInfo} onNavigate={goTo} />
 
-        <div className="px-4 space-y-4">
+        <div className="space-y-4 px-4">
           <Card className="hidden">
             <div
               className="mb-4 flex cursor-pointer items-center justify-between"
@@ -288,12 +307,15 @@ export const UserPage = () => {
 
           <Card className="p-4">
             <h3 className="mb-4 text-base font-bold text-text-main">服务与帮助</h3>
-          <ProfileSectionGrid items={buildServiceManagement({ navigate: goTo, openSupport })} columns={4} />
+            <ProfileSectionGrid
+              items={buildServiceManagement({ navigate: goTo, openSupport })}
+              columns={4}
+            />
           </Card>
         </div>
 
-        {isLoggedIn && !loading && (
-          <div className="px-4 pt-4 pb-8">
+        {!loading && (
+          <div className="px-4 pb-8 pt-4">
             <button
               onClick={() => setShowLogoutSheet(true)}
               className="flex h-[44px] w-full items-center justify-center rounded-xl border border-border-light bg-bg-card text-base font-medium text-text-main shadow-sm transition-colors active:bg-bg-base"
@@ -306,15 +328,19 @@ export const UserPage = () => {
     );
   };
 
+  if (!isLoggedIn) {
+    return null;
+  }
+
   return (
     <div className="relative flex flex-1 flex-col overflow-hidden bg-bg-base">
       {isOffline && (
-        <OfflineBanner onAction={refreshStatus} className="absolute top-0 right-0 left-0 z-50" />
+        <OfflineBanner onAction={refreshStatus} className="absolute left-0 right-0 top-0 z-50" />
       )}
 
       <PullToRefreshContainer onRefresh={handleRefresh} disabled={isOffline || !isLoggedIn}>
         <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-y-auto no-scrollbar">
-          <div className="pointer-events-none absolute top-0 left-0 right-0 z-0 h-48 scale-x-110 rounded-b-[40px] bg-gradient-to-b from-red-50 to-bg-base dark:from-red-950/20"></div>
+          <div className="pointer-events-none absolute left-0 right-0 top-0 z-0 h-48 scale-x-110 rounded-b-[40px] bg-gradient-to-b from-red-50 to-bg-base dark:from-red-950/20" />
 
           {renderHeader()}
 
@@ -345,4 +371,3 @@ export const UserPage = () => {
 };
 
 export default UserPage;
-

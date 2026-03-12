@@ -1,14 +1,30 @@
-/**
- * @file Matching/index.tsx - 匹配等待页面
- * @description 展示交易匹配中的等待动画与状态。
- */
-
+import { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Radar } from 'lucide-react';
+import { useAppNavigate } from '../../lib/navigation';
 
-/**
- * MatchingView - 匹配中视图组件
- */
+interface MatchingLocationState {
+  nextPath?: string;
+  delayMs?: number;
+}
+
 export const MatchingPage = () => {
+  const location = useLocation();
+  const { navigate } = useAppNavigate();
+
+  useEffect(() => {
+    const state = (location.state ?? {}) as MatchingLocationState;
+    if (!state.nextPath) {
+      return undefined;
+    }
+
+    const timer = window.setTimeout(() => {
+      navigate(state.nextPath, { replace: true });
+    }, Math.max(600, state.delayMs ?? 1800));
+
+    return () => window.clearTimeout(timer);
+  }, [location.state, navigate]);
+
   return (
     <div className="relative flex flex-1 items-center justify-center overflow-hidden bg-gradient-to-br from-gray-900 to-black p-6">
       <div className="absolute left-0 top-0 h-full w-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-red-900/20 via-black to-black" />
@@ -20,7 +36,6 @@ export const MatchingPage = () => {
           <div className="absolute inset-[15%] rounded-full border border-red-600/30" />
           <div className="absolute inset-[30%] rounded-full border border-red-600/40" />
           <div className="absolute inset-[45%] rounded-full bg-red-600/10 blur-xl" />
-
           <div className="absolute left-1/2 top-1/2 h-[2px] w-[50%] origin-left animate-[spin_1.5s_linear_infinite] bg-gradient-to-r from-transparent via-red-400 to-red-600 shadow-[0_0_15px_rgba(220,38,38,0.8)]" />
 
           <div className="absolute inset-0 flex items-center justify-center">

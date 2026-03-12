@@ -6,6 +6,7 @@ import { BottomTab } from './BottomTab';
 import { FeedbackProvider, useFeedback } from '../ui/FeedbackProvider';
 import { isTabPage, PATH_TO_TAB } from '../../lib/navigation';
 import { useAuthSession } from '../../hooks/useAuthSession';
+import { persistAuthRedirectPath } from '../../lib/auth';
 
 const PUBLIC_EXACT_PATHS = new Set([
   '/store',
@@ -59,9 +60,10 @@ function AppLayoutContent() {
     }
 
     blockedPathRef.current = location.pathname;
+    persistAuthRedirectPath(`${location.pathname}${location.search}${location.hash}`);
     showToast({ message: '请先登录后再进入该页面', type: 'warning' });
     navigate('/login', { replace: true });
-  }, [isBlocked, location.pathname, navigate, showToast]);
+  }, [isBlocked, location.hash, location.pathname, location.search, navigate, showToast]);
 
   return (
     <div className="app-viewport-height flex w-full flex-col overflow-hidden bg-bg-base">

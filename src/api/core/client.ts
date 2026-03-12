@@ -1,6 +1,6 @@
 ﻿import { ApiError, isAbortError } from './errors';
 import { appendQueryParams, type QueryParams } from './query';
-import { clearAuthSession } from '../../lib/auth';
+import { clearAuthSession, persistAuthRedirectPath } from '../../lib/auth';
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
@@ -181,6 +181,10 @@ function redirectToLogin() {
     return;
   }
 
+  const currentPath = window.location.hash.startsWith('#')
+    ? window.location.hash.slice(1)
+    : window.location.pathname;
+  persistAuthRedirectPath(currentPath || '/');
   clearAuthSession();
 
   if (window.location.hash === '#/login') {

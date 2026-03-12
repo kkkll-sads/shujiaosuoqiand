@@ -2,6 +2,7 @@ import { apiConfig } from '../api/config';
 import type { CheckInResponseData, UserInfo } from '../api/modules/auth';
 
 const AUTH_SESSION_STORAGE_KEY = 'member_auth_session';
+const AUTH_REDIRECT_PATH_STORAGE_KEY = 'member_auth_redirect_path';
 export const AUTH_SESSION_CHANGE_EVENT = 'member-auth-session-change';
 
 export const MOBILE_PATTERN = /^1\d{10}$/;
@@ -114,6 +115,27 @@ function getBrowserStorages() {
   };
 }
 
+function resolveSafeRedirectPath(value: string | undefined): string | null {
+  const nextPath = value?.trim();
+  if (!nextPath) {
+    return null;
+  }
+
+  if (/^https?:\/\//i.test(nextPath)) {
+    return null;
+  }
+
+  if (nextPath.startsWith('#/')) {
+    return nextPath.slice(1);
+  }
+
+  if (nextPath.startsWith('/')) {
+    return nextPath;
+  }
+
+  return `/${nextPath.replace(/^\/+/, '')}`;
+}
+
 export function getAuthSessionSnapshot(): AuthSession | null {
   const storages = getBrowserStorages();
   if (!storages) {
@@ -200,6 +222,27 @@ export function clearAuthSession() {
   dispatchAuthSessionChange();
 }
 
+export function persistAuthRedirectPath(path: string) {
+  const storages = getBrowserStorages();
+  const nextPath = resolveSafeRedirectPath(path);
+  if (!storages || !nextPath || nextPath === '/login' || nextPath === '/register') {
+    return;
+  }
+
+  storages.session.setItem(AUTH_REDIRECT_PATH_STORAGE_KEY, nextPath);
+}
+
+export function consumeAuthRedirectPath() {
+  const storages = getBrowserStorages();
+  if (!storages) {
+    return null;
+  }
+
+  const value = storages.session.getItem(AUTH_REDIRECT_PATH_STORAGE_KEY);
+  storages.session.removeItem(AUTH_REDIRECT_PATH_STORAGE_KEY);
+  return resolveSafeRedirectPath(value);
+}
+
 export function getAuthHeaders(): Record<string, string> {
   const session = getAuthSessionSnapshot();
   if (!session) {
@@ -236,22 +279,9 @@ export function subscribeAuthSessionChange(listener: () => void) {
 }
 
 export function resolveAuthRedirectPath(routePath?: string) {
-  const nextPath = routePath?.trim();
+  const nextPath = resolveSafeRedirectPath(routePath) ?? consumeAuthRedirectPath();
   if (!nextPath) {
     return '/user';
   }
-
-  if (/^https?:\/\//i.test(nextPath)) {
-    return '/user';
-  }
-
-  if (nextPath.startsWith('#/')) {
-    return nextPath.slice(1);
-  }
-
-  if (nextPath.startsWith('/')) {
-    return nextPath;
-  }
-
-  return `/${nextPath.replace(/^\/+/, '')}`;
+  return nextPath;
 }
