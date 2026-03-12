@@ -88,7 +88,7 @@ export function MyCardPacksPage() {
   const { goBack, goTo } = useAppNavigate();
   const { isAuthenticated } = useAuthSession();
   const { isOffline, refreshStatus } = useNetworkStatus();
-  const { showLoading, hideLoading, showToast } = useFeedback();
+  const { showLoading, hideLoading, showToast, showConfirm } = useFeedback();
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const [activeTab, setActiveTab] = useSessionState<CardTab>('my-card-packs:tab', 'owned');
 
@@ -148,10 +148,12 @@ export function MyCardPacksPage() {
       return;
     }
 
-    const confirmed = window.confirm(
-      `确认购买「${product.name}」？\n\n专项金支付：¥${formatMoney(plan.supplyPay)}\n待激活确权金支付：¥${formatMoney(plan.pendingPay)}`,
-    );
-
+    const confirmed = await showConfirm({
+      title: '购买卡包',
+      message: `确认购买“${product.name}”吗？\n\n专项金支付：￥${formatMoney(plan.supplyPay)}\n待激活确权金支付：￥${formatMoney(plan.pendingPay)}`,
+      confirmText: '确认购买',
+      cancelText: '取消',
+    });
     if (!confirmed) return;
 
     showLoading({ message: '正在购买卡包', subMessage: '余额扣减与开卡会一起处理' });

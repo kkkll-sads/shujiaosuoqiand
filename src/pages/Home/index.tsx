@@ -29,7 +29,6 @@ import { openCustomerServiceLink } from '../../lib/customerService';
 export const HomePage = () => {
   const { goTo } = useAppNavigate();
   const { showToast } = useFeedback();
-  const [loading, setLoading] = useState(true);
   const [offline, setOffline] = useState(false);
   const [error, setError] = useState(false);
   const [activeBannerIndex, setActiveBannerIndex] = useState(0);
@@ -127,7 +126,6 @@ export const HomePage = () => {
 
   /** 下拉刷新回调 */
   const handleRefresh = useCallback(async () => {
-    setLoading(true);
     await Promise.allSettled([
       fetchBanners(),
       reservationsRequest.reload(),
@@ -135,15 +133,7 @@ export const HomePage = () => {
       profileRequest.reload(),
       popupRequest.reload(),
     ]);
-    setLoading(false);
   }, [fetchBanners, reservationsRequest, scrollAnnouncementsRequest, profileRequest, popupRequest]);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, []);
 
   /* 自动轮播：依赖 banners 长度 */
   useEffect(() => {
@@ -157,8 +147,8 @@ export const HomePage = () => {
   useRouteScrollRestoration({
     containerRef: scrollContainerRef,
     namespace: 'home-page',
-    restoreDeps: [error, loading],
-    restoreWhen: !error && !loading,
+    restoreDeps: [error, bannersLoading, reservationsRequest.loading, scrollAnnouncementsRequest.loading],
+    restoreWhen: !error && !bannersLoading && !reservationsRequest.loading && !scrollAnnouncementsRequest.loading,
   });
 
   /** 解析轮播图图片地址（支持后端返回相对路径） */
@@ -173,6 +163,78 @@ export const HomePage = () => {
       showToast({ duration, message, type });
     });
   }, [showToast]);
+
+  const isInitialLoading =
+    bannersLoading ||
+    reservationsRequest.loading ||
+    scrollAnnouncementsRequest.loading ||
+    profileRequest.loading ||
+    popupRequest.loading;
+
+  const hasInitialContent =
+    banners.length > 0 ||
+    scrollAnnouncements.length > 0 ||
+    reservations.length > 0 ||
+    Boolean(userAvatar) ||
+    popupList.length > 0;
+
+  const renderHomeSkeleton = () => (
+    <div ref={scrollContainerRef} className="flex-1 overflow-y-auto no-scrollbar pb-4">
+      <div className="mx-4 mt-4 mb-4">
+        <Skeleton className="h-[168px] w-full rounded-[24px]" />
+      </div>
+
+      <div className="grid grid-cols-5 gap-2 px-4 mb-4">
+        {[1, 2, 3, 4, 5].map((item) => (
+          <div key={item} className="flex flex-col items-center">
+            <Skeleton className="mb-1.5 h-11 w-11 rounded-[14px]" />
+            <Skeleton className="h-3 w-8 rounded-full" />
+          </div>
+        ))}
+      </div>
+
+      <div className="mx-4 mb-4">
+        <Skeleton className="h-9 w-full rounded-full" />
+      </div>
+
+      <div className="mx-4 mb-4">
+        <Skeleton className="h-[88px] w-full rounded-[16px]" />
+      </div>
+
+      <div className="mx-4 mb-4 rounded-[16px] bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 py-4">
+        <div className="flex justify-around">
+          {[1, 2, 3, 4].map((item) => (
+            <div key={item} className="flex w-1/4 flex-col items-center">
+              <Skeleton className="mb-1.5 h-6 w-6 rounded-full" />
+              <Skeleton className="h-3 w-10 rounded-full" />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="px-4 mb-4">
+        <div className="mb-3 flex items-center justify-between">
+          <Skeleton className="h-5 w-28" />
+          <Skeleton className="h-4 w-16" />
+        </div>
+        <div className="space-y-3">
+          {[1, 2, 3].map((item) => (
+            <div
+              key={item}
+              className="bg-white dark:bg-gray-900 rounded-[14px] p-4 border border-gray-100 dark:border-gray-800 shadow-sm"
+            >
+              <div className="mb-3 flex items-start justify-between">
+                <Skeleton className="h-4 w-36" />
+                <Skeleton className="h-5 w-14 rounded-full" />
+              </div>
+              <Skeleton className="mb-2 h-3 w-24" />
+              <Skeleton className="h-3 w-32" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 
   const renderHeader = () => (
     <div className="sticky top-0 z-40 bg-white dark:bg-gray-900/90 backdrop-blur-md px-4 py-2 flex items-center space-x-3 border-b border-gray-100 dark:border-gray-800">
@@ -203,13 +265,19 @@ export const HomePage = () => {
   );
 
   const renderContent = () => {
+    if (isInitialLoading && !hasInitialContent) {
+      return renderHomeSkeleton();
+    }
     if (error) {
       return (
         <div className="flex-1 flex flex-col items-center justify-center p-4 pt-20">
           <RefreshCcw size={40} className="text-gray-300 dark:text-gray-600 dark:text-gray-400 mb-4" />
           <p className="text-[14px] text-gray-500 dark:text-gray-400 mb-6">页面加载失败，请检查网络后重试</p>
-          <button 
-            onClick={() => { setLoading(true); setError(false); setTimeout(() => setLoading(false), 1000); }} 
+          <button
+            onClick={() => {
+              setError(false);
+              void handleRefresh();
+            }}
             className="px-6 py-2 border border-gray-200 dark:border-gray-700 rounded-full text-[13px] text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 shadow-sm active:bg-gray-50 dark:active:bg-gray-700"
           >
             重新加载
@@ -238,7 +306,7 @@ export const HomePage = () => {
                     return (
                       <div
                         key={banner.id}
-                        className="relative min-h-[168px] w-full shrink-0 overflow-hidden bg-gradient-to-r from-[#171717] via-[#2D1B69] to-[#FF4B2B]"
+                        className="relative aspect-[750/336] min-h-[168px] w-full shrink-0 overflow-hidden bg-gradient-to-r from-[#171717] via-[#2D1B69] to-[#FF4B2B]"
                         aria-label={banner.title || '轮播图'}
                       >
                         {/* 有图片则展示图片，否则展示渐变背景 + 文字 */}
@@ -246,7 +314,7 @@ export const HomePage = () => {
                           <img
                             src={imageUrl}
                             alt={banner.title || '轮播图'}
-                            className="absolute inset-0 h-full w-full object-cover"
+                            className="absolute inset-0 h-full w-full object-contain"
                             loading="lazy"
                           />
                         ) : (

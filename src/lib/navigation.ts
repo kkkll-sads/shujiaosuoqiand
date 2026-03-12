@@ -53,7 +53,7 @@ export const VIEW_TO_PATH: Record<string, string> = {
   my_collection: '/my-collection',
   my_card_packs: '/my-card-packs',
   accumulated_rights: '/accumulated-rights',
-  growth_rights: '/accumulated-rights',
+  growth_rights: '/growth_rights',
   real_name_auth: '/auth/real-name',
   invite: '/invite',
   friends: '/friends',
@@ -68,6 +68,8 @@ export const VIEW_TO_PATH: Record<string, string> = {
   live: '/live',
   live_webview: '/live/view',
   reservations: '/reservations',
+  item_detail: '/item-detail/0/0',
+  matching: '/matching',
   flash_sale: '/flash-sale',
   product_qa: '/product/0/qa',         // 榛樿 ID
   reviews: '/product/0/reviews',       // 榛樿 ID

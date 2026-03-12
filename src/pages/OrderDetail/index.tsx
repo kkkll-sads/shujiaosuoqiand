@@ -66,7 +66,7 @@ export const OrderDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const orderId = id ? parseInt(id, 10) : 0;
   const { goBackOr, navigate } = useAppNavigate();
-  const { showToast, showLoading, hideLoading } = useFeedback();
+  const { showToast, showLoading, hideLoading, showConfirm } = useFeedback();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -139,7 +139,14 @@ export const OrderDetailPage = () => {
 
   const handleCancelOrder = async () => {
     if (orderId <= 0) return;
-    if (!window.confirm('确定要取消该订单吗？')) return;
+    const confirmed = await showConfirm({
+      title: '取消订单',
+      message: '确定要取消这笔商城订单吗？',
+      confirmText: '确认取消',
+      cancelText: '再想想',
+      danger: true,
+    });
+    if (!confirmed) return;
     showLoading('取消中...');
     try {
       await shopOrderApi.cancel({ order_id: orderId });
@@ -154,7 +161,13 @@ export const OrderDetailPage = () => {
 
   const handleApplyAfterSale = async () => {
     if (orderId <= 0) return;
-    if (!window.confirm('确定要提交售后申请吗？')) return;
+    const confirmed = await showConfirm({
+      title: '申请售后',
+      message: '确定要提交这笔商城订单的售后申请吗？',
+      confirmText: '提交申请',
+      cancelText: '取消',
+    });
+    if (!confirmed) return;
     showLoading('提交售后申请中...');
     try {
       await shopOrderApi.applyAfterSale({ order_id: orderId, reason: '买家申请退货' });
@@ -169,7 +182,14 @@ export const OrderDetailPage = () => {
 
   const handleCancelAfterSale = async () => {
     if (orderId <= 0 || !order?.after_sale_id) return;
-    if (!window.confirm('确定要取消当前售后申请吗？')) return;
+    const confirmed = await showConfirm({
+      title: '取消申请',
+      message: '确定要取消当前商城订单的售后申请吗？',
+      confirmText: '确认取消',
+      cancelText: '保留申请',
+      danger: true,
+    });
+    if (!confirmed) return;
     showLoading('取消售后申请中...');
     try {
       await shopOrderApi.cancelAfterSale({ after_sale_id: order.after_sale_id });

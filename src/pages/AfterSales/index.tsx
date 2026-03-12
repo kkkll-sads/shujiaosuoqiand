@@ -63,7 +63,7 @@ function getOrderSummary(order: ShopOrderListItem): string {
  */
 export const AfterSalesPage = () => {
   const { goBack, navigate } = useAppNavigate();
-  const { showToast, showLoading, hideLoading } = useFeedback();
+  const { showToast, showLoading, hideLoading, showConfirm } = useFeedback();
   const [activeTab, setActiveTab] = useState<AfterSaleTab>('all');
   const [selectedId, setSelectedId] = useState<number>(0);
 
@@ -124,7 +124,14 @@ export const AfterSalesPage = () => {
   const handleCancelAfterSale = useCallback(
     async (order: ShopOrderListItem) => {
       if (!order.after_sale_id) return;
-      if (!window.confirm('确定要取消当前售后申请吗？')) return;
+      const confirmed = await showConfirm({
+        title: '取消申请',
+        message: '确定要取消当前售后申请吗？',
+        confirmText: '确认取消',
+        cancelText: '保留申请',
+        danger: true,
+      });
+      if (!confirmed) return;
       showLoading('取消售后申请中...');
       try {
         await shopOrderApi.cancelAfterSale({ after_sale_id: order.after_sale_id });

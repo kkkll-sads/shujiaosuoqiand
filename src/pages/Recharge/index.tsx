@@ -602,12 +602,6 @@ export function RechargePage() {
               ))}
             </div>
 
-            <div className="flex items-start text-sm text-text-sub">
-              <Info size={14} className="mt-0.5 mr-1.5 shrink-0 text-text-aux" />
-              <span>
-                选择支付方式后，系统会自动匹配线上或线下充值通道；若为线下转账，匹配成功后再上传付款截图。
-              </span>
-            </div>
           </Card>
 
           <Card className="overflow-hidden p-0">
@@ -665,9 +659,6 @@ export function RechargePage() {
                         <div className="min-w-0">
                           <div className="truncate text-md font-medium text-text-main">
                             {account.typeText || account.title}
-                          </div>
-                          <div className="truncate text-sm text-text-sub">
-                            系统将自动分配具体收款账户
                           </div>
                         </div>
                       </div>

@@ -259,7 +259,7 @@ export function PaymentAccountsPage() {
   const { goBackOr, goTo } = useAppNavigate();
   const { isAuthenticated } = useAuthSession();
   const { isOffline, refreshStatus } = useNetworkStatus();
-  const { showToast } = useFeedback();
+  const { showToast, showConfirm } = useFeedback();
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [view, setView] = useState<ViewMode>('list');
@@ -577,7 +577,14 @@ export function PaymentAccountsPage() {
       return;
     }
 
-    if (!window.confirm('确定删除这个账户吗？')) {
+    const confirmed = await showConfirm({
+      title: '删除账户',
+      message: '确定要删除这个收款账户吗？',
+      confirmText: '确认删除',
+      cancelText: '取消',
+      danger: true,
+    });
+    if (!confirmed) {
       return;
     }
 

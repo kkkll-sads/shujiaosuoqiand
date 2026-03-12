@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { getErrorMessage } from '../api/core/errors';
 import { smsApi, type SmsEvent } from '../api/modules/sms';
+import { useFeedback } from '../components/ui/FeedbackProvider';
 
 const MOBILE_PATTERN = /^1\d{10}$/;
 
@@ -10,6 +11,7 @@ interface UseSmsCodeOptions {
 }
 
 export function useSmsCode({ countdownSeconds = 60, event }: UseSmsCodeOptions) {
+  const { showToast } = useFeedback();
   const [countdown, setCountdown] = useState(0);
   const [sending, setSending] = useState(false);
   const [message, setMessage] = useState('');
@@ -66,7 +68,8 @@ export function useSmsCode({ countdownSeconds = 60, event }: UseSmsCodeOptions) 
         event,
       });
       setCountdown(countdownSeconds);
-      setMessage('验证码已发送，请注意查收');
+      setMessage('');
+      showToast({ message: '验证码已发送，请注意查收', type: 'success' });
       return true;
     } catch (error) {
       setMessage(getErrorMessage(error));

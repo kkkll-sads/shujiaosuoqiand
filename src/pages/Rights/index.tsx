@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file Rights/index.tsx - 确权中心页面
  * @description 资产确权中心，展示寄售、藏品管理、成长权益等功能。
  */
@@ -612,43 +612,55 @@ export function RightsPage() {
         }
       />
 
-      <div className="sticky top-0 z-10 flex border-b border-border-light bg-white px-4 dark:border-gray-800 dark:bg-gray-900">
-        <button
-          type="button"
-          className={`relative flex-1 pb-3 text-lg font-bold transition-colors ${
-            activeTab === 'apply' ? 'text-text-main' : 'text-text-sub'
-          }`}
-          onClick={() => setActiveTab('apply')}
-        >
-          确权申请
-          {activeTab === 'apply' ? (
-            <div className="absolute bottom-0 left-1/2 h-[3px] w-8 -translate-x-1/2 rounded-full bg-red-500" />
-          ) : null}
-        </button>
-        <button
-          type="button"
-          className={`relative flex-1 pb-3 text-lg font-bold transition-colors ${
-            activeTab === 'unlock' ? 'text-text-main' : 'text-text-sub'
-          }`}
-          onClick={() => setActiveTab('unlock')}
-        >
-          旧资产解锁
-          {activeTab === 'unlock' ? (
-            <div className="absolute bottom-0 left-1/2 h-[3px] w-8 -translate-x-1/2 rounded-full bg-red-500" />
-          ) : null}
-        </button>
-        <button
-          type="button"
-          className={`relative flex-1 pb-3 text-lg font-bold transition-colors ${
-            activeTab === 'growth' ? 'text-text-main' : 'text-text-sub'
-          }`}
-          onClick={() => setActiveTab('growth')}
-        >
-          成长权益
-          {activeTab === 'growth' ? (
-            <div className="absolute bottom-0 left-1/2 h-[3px] w-8 -translate-x-1/2 rounded-full bg-red-500" />
-          ) : null}
-        </button>
+      <div className="sticky top-0 z-10 border-b border-border-light bg-white/96 px-4 py-3 backdrop-blur-md dark:border-gray-800 dark:bg-gray-900/96">
+        <div className="mb-2 flex items-center justify-between">
+          <div className="text-[15px] font-semibold text-text-main">内容切换</div>
+          <div className="text-[12px] font-medium text-primary-start">点击标签即可切换</div>
+        </div>
+        <div className="grid grid-cols-3 gap-2 rounded-[22px] bg-[#F7F1F1] p-2 shadow-inner dark:bg-gray-800/80">
+          <button
+            type="button"
+            className={`rounded-[16px] px-2 py-3 text-left transition-all ${
+              activeTab === 'apply'
+                ? 'bg-gradient-to-r from-primary-start to-primary-end text-white shadow-[0_10px_24px_rgba(239,68,68,0.22)]'
+                : 'bg-transparent text-text-sub'
+            }`}
+            onClick={() => setActiveTab('apply')}
+          >
+            <div className="text-[15px] font-bold leading-5">确权申请</div>
+            <div className="mt-1 text-[11px] leading-4 opacity-90">
+              提交审核材料
+            </div>
+          </button>
+          <button
+            type="button"
+            className={`rounded-[16px] px-2 py-3 text-left transition-all ${
+              activeTab === 'unlock'
+                ? 'bg-gradient-to-r from-primary-start to-primary-end text-white shadow-[0_10px_24px_rgba(239,68,68,0.22)]'
+                : 'bg-transparent text-text-sub'
+            }`}
+            onClick={() => setActiveTab('unlock')}
+          >
+            <div className="text-[15px] font-bold leading-5">旧资产解锁</div>
+            <div className="mt-1 text-[11px] leading-4 opacity-90">
+              查看解锁条件
+            </div>
+          </button>
+          <button
+            type="button"
+            className={`rounded-[16px] px-2 py-3 text-left transition-all ${
+              activeTab === 'growth'
+                ? 'bg-gradient-to-r from-primary-start to-primary-end text-white shadow-[0_10px_24px_rgba(239,68,68,0.22)]'
+                : 'bg-transparent text-text-sub'
+            }`}
+            onClick={() => setActiveTab('growth')}
+          >
+            <div className="text-[15px] font-bold leading-5">成长权益</div>
+            <div className="mt-1 text-[11px] leading-4 opacity-90">
+              查看权益规则
+            </div>
+          </button>
+        </div>
       </div>
 
       <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-4 pb-24 pt-4">
@@ -682,5 +694,6 @@ export function RightsPage() {
     </div>
   );
 }
+
 
 

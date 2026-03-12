@@ -26,12 +26,21 @@ export interface LoadingHUDOptions {
   cancelable?: boolean;
 }
 
+export interface ConfirmOptions {
+  title?: string;
+  message: React.ReactNode;
+  confirmText?: string;
+  cancelText?: string;
+  danger?: boolean;
+}
+
 interface FeedbackContextType {
   showNoticeBar: (options: NoticeBarOptions) => void;
   hideNoticeBar: () => void;
   showToast: (options: ToastOptions | string) => void;
   showLoading: (options?: LoadingHUDOptions | string) => void;
   hideLoading: () => void;
+  showConfirm: (options: ConfirmOptions | string) => Promise<boolean>;
 }
 
 const FeedbackContext = createContext<FeedbackContextType | null>(null);
@@ -57,6 +66,8 @@ export const FeedbackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [loading, setLoading] = useState<LoadingHUDOptions | null>(null);
   const [loadingTimeoutReached, setLoadingTimeoutReached] = useState(false);
   const loadingTimerRef = useRef<NodeJS.Timeout>();
+  const [confirm, setConfirm] = useState<ConfirmOptions | null>(null);
+  const confirmResolverRef = useRef<((result: boolean) => void) | null>(null);
 
   // --- NoticeBar Methods ---
   const showNoticeBar = useCallback((options: NoticeBarOptions) => {
@@ -112,6 +123,28 @@ export const FeedbackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setLoading(null);
     setLoadingTimeoutReached(false);
     if (loadingTimerRef.current) clearTimeout(loadingTimerRef.current);
+  }, []);
+
+  const resolveConfirm = useCallback((result: boolean) => {
+    if (confirmResolverRef.current) {
+      confirmResolverRef.current(result);
+      confirmResolverRef.current = null;
+    }
+    setConfirm(null);
+  }, []);
+
+  const showConfirm = useCallback((options: ConfirmOptions | string) => {
+    const opts = typeof options === 'string' ? { message: options } : options;
+    setConfirm({
+      title: '提示',
+      confirmText: '确定',
+      cancelText: '取消',
+      ...opts,
+    });
+
+    return new Promise<boolean>((resolve) => {
+      confirmResolverRef.current = resolve;
+    });
   }, []);
 
   // --- Renderers ---
@@ -248,12 +281,65 @@ export const FeedbackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     );
   };
 
+  const renderConfirmDialog = () => {
+    if (!confirm) return null;
+
+    return (
+      <div className="fixed inset-0 z-[130] flex items-center justify-center px-6">
+        <button
+          type="button"
+          aria-label="关闭确认弹窗"
+          className="absolute inset-0 bg-black/45"
+          onClick={() => resolveConfirm(false)}
+        />
+        <div className="relative z-10 w-full max-w-[320px] overflow-hidden rounded-[24px] bg-white shadow-xl dark:bg-gray-800">
+          <div className="px-5 pb-4 pt-5 text-center">
+            <div className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              {confirm.title}
+            </div>
+            <div className="mt-2 text-sm leading-6 text-gray-500 dark:text-gray-300">
+              {confirm.message}
+            </div>
+          </div>
+          <div className="grid grid-cols-2 border-t border-gray-100 dark:border-gray-700">
+            <button
+              type="button"
+              className="h-12 text-base font-medium text-gray-500 transition-colors active:bg-gray-50 dark:text-gray-300 dark:active:bg-gray-700"
+              onClick={() => resolveConfirm(false)}
+            >
+              {confirm.cancelText}
+            </button>
+            <button
+              type="button"
+              className={`h-12 border-l border-gray-100 text-base font-semibold transition-colors active:opacity-80 dark:border-gray-700 ${
+                confirm.danger ? 'text-red-500' : 'text-[#f2270c]'
+              }`}
+              onClick={() => resolveConfirm(true)}
+            >
+              {confirm.confirmText}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  useEffect(() => {
+    return () => {
+      if (confirmResolverRef.current) {
+        confirmResolverRef.current(false);
+        confirmResolverRef.current = null;
+      }
+    };
+  }, []);
+
   return (
-    <FeedbackContext.Provider value={{ showNoticeBar, hideNoticeBar, showToast, showLoading, hideLoading }}>
+    <FeedbackContext.Provider value={{ showNoticeBar, hideNoticeBar, showToast, showLoading, hideLoading, showConfirm }}>
       {children}
       {renderNoticeBar()}
       {renderToast()}
       {renderLoadingHUD()}
+      {renderConfirmDialog()}
     </FeedbackContext.Provider>
   );
 };

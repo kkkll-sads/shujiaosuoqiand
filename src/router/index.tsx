@@ -58,11 +58,14 @@ const ReservationDetailPage = lazy(() => import('../pages/ReservationDetail').th
 const FlashSalePage = lazy(() => import('../pages/FlashSale').then(m => ({ default: m.FlashSalePage })));
 const RightsHistoryPage = lazy(() => import('../pages/RightsHistory').then(m => ({ default: m.RightsHistoryPage })));
 const AccumulatedRightsPage = lazy(() => import('../pages/AccumulatedRights').then(m => ({ default: m.AccumulatedRightsPage })));
+const GrowthRightsPage = lazy(() => import('../pages/GrowthRights/Page').then(m => ({ default: m.GrowthRightsPage })));
 const MyCollectionPage = lazy(() => import('../pages/MyCollection').then(m => ({ default: m.MyCollectionPage })));
 const RechargePage = lazy(() => import('../pages/Recharge').then(m => ({ default: m.RechargePage })));
 const TransferPage = lazy(() => import('../pages/Transfer').then(m => ({ default: m.TransferPage })));
 const RightsTransferPage = lazy(() => import('../pages/RightsTransfer').then(m => ({ default: m.RightsTransferPage })));
 const WithdrawPage = lazy(() => import('../pages/Withdraw').then(m => ({ default: m.WithdrawPage })));
+const MatchingPage = lazy(() => import('../pages/Matching').then(m => ({ default: m.MatchingPage })));
+const ItemDetailPage = lazy(() => import('../pages/ItemDetail').then(m => ({ default: m.ItemDetailPage })));
 const LivePage = lazy(() => import('../pages/Live').then(m => ({ default: m.LivePage })));
 const LiveWebViewPage = lazy(() => import('../pages/LiveWebView').then(m => ({ default: m.LiveWebViewPage })));
 const ServiceDescriptionPage = lazy(() => import('../pages/ServiceDescription').then(m => ({ default: m.ServiceDescriptionPage })));
@@ -96,8 +99,8 @@ const Lazy = ({ children }: { children: React.ReactNode }) => (
 const LegacyTradingItemRedirect = () => {
   const { packageId, sessionId } = useParams();
   const targetPath = packageId
-    ? `/trading/pre-order/${sessionId || 0}?package_id=${packageId}`
-    : `/trading/pre-order/${sessionId || 0}`;
+    ? `/trading/detail/${sessionId || 0}/items/${packageId}`
+    : `/trading/detail/${sessionId || 0}`;
 
   return <Navigate replace to={targetPath} />;
 };
@@ -193,7 +196,9 @@ export const router = createHashRouter([
       // ========== 交易区 ==========
       { path: 'trading', element: <Lazy><TradingZonePage /></Lazy> },
       { path: 'trading/detail/:id', element: <Lazy><TradingDetailPage /></Lazy> },
-      { path: 'trading/detail/:sessionId/items/:packageId', element: <LegacyTradingItemRedirect /> },
+      { path: 'trading/detail/:sessionId/items/:packageId', element: <Lazy><ItemDetailPage /></Lazy> },
+      { path: 'item-detail/:sessionId/:packageId', element: <Lazy><ItemDetailPage /></Lazy> },
+      { path: 'legacy/trading/detail/:sessionId/items/:packageId', element: <LegacyTradingItemRedirect /> },
       { path: 'trading/pre-order/:id', element: <Lazy><PreOrderPage /></Lazy> },
       { path: 'reservations', element: <Lazy><ReservationsPage /></Lazy> },
       { path: 'reservation_detail/:id', element: <Lazy><ReservationDetailPage /></Lazy> },
@@ -207,12 +212,14 @@ export const router = createHashRouter([
       { path: 'my-collection', element: <Lazy><MyCollectionPage /></Lazy> },
       { path: 'my-card-packs', element: <Lazy><MyCardPacksPage /></Lazy> },
       { path: 'accumulated-rights', element: <Lazy><AccumulatedRightsPage /></Lazy> },
-      { path: 'growth_rights', element: <Lazy><AccumulatedRightsPage /></Lazy> },
+      { path: 'growth_rights', element: <Lazy><GrowthRightsPage /></Lazy> },
+      { path: 'growth-rights', element: <Lazy><GrowthRightsPage /></Lazy> },
       { path: 'recharge', element: <Lazy><RechargePage /></Lazy> },
       { path: 'transfer', element: <Lazy><TransferPage /></Lazy> },
       { path: 'withdraw', element: <Lazy><WithdrawPage /></Lazy> },
       { path: 'rights/history', element: <Lazy><RightsHistoryPage /></Lazy> },
       { path: 'rights/transfer', element: <Lazy><RightsTransferPage /></Lazy> },
+      { path: 'rights_transfer', element: <Lazy><RightsTransferPage /></Lazy> },
 
       // ========== 用户中心 ==========
       { path: 'address', element: <Lazy><AddressPage /></Lazy> },
@@ -238,6 +245,7 @@ export const router = createHashRouter([
       // ========== 直播 ==========
       { path: 'live', element: <Lazy><LivePage /></Lazy> },
       { path: 'live/view', element: <Lazy><LiveWebViewPage /></Lazy> },
+      { path: 'matching', element: <Lazy><MatchingPage /></Lazy> },
 
       // ========== 认证与登录 ==========
       { path: 'login', element: <Lazy><LoginPage /></Lazy> },

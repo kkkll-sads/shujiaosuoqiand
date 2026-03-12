@@ -14,6 +14,7 @@ import {
 import { shopProductApi, type ShopProductItem } from '../../api';
 import { OfflineBanner } from '../../components/layout/OfflineBanner';
 import { Card } from '../../components/ui/Card';
+import { CartCountBadge } from '../../components/ui/CartCountBadge';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { ErrorState } from '../../components/ui/ErrorState';
 import { Skeleton } from '../../components/ui/Skeleton';
@@ -27,6 +28,7 @@ import {
   resolveShopProductImageUrl,
 } from '../../features/shop-product/utils';
 import { useInfiniteScroll } from '../../hooks/useInfiniteScroll';
+import { useCartCount } from '../../hooks/useCartCount';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 import { useRequest } from '../../hooks/useRequest';
 import { useRouteScrollRestoration } from '../../hooks/useRouteScrollRestoration';
@@ -66,6 +68,7 @@ function mergeProducts(previous: ShopProductItem[], next: ShopProductItem[]) {
 export const CategoryPage = () => {
   const { goBack, goTo } = useAppNavigate();
   const { isOffline, refreshStatus } = useNetworkStatus();
+  const { cartCount } = useCartCount();
   const [activeCategory, setActiveCategory] = useSessionState('category-page:active-category', '全部');
   const [products, setProducts] = useState<ShopProductItem[]>([]);
   const [page, setPage] = useState(1);
@@ -262,9 +265,10 @@ export const CategoryPage = () => {
           </button>
           <button
             type="button"
-            className="p-1 text-text-main active:opacity-70"
+            className="relative p-1 text-text-main active:opacity-70"
             onClick={() => goTo('cart')}
           >
+            <CartCountBadge count={cartCount} />
             <ShoppingCart size={22} />
           </button>
         </div>

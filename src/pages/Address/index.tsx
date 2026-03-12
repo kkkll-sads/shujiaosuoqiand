@@ -38,7 +38,7 @@ const emptyForm: AddressForm = {
  */
 export const AddressPage = () => {
   const { goBack } = useAppNavigate();
-  const { showToast } = useFeedback();
+  const { showToast, showConfirm } = useFeedback();
 
   const [view, setView] = useState<'list' | 'edit'>('list');
   const [addresses, setAddresses] = useState<AddressItem[]>([]);
@@ -177,7 +177,14 @@ export const AddressPage = () => {
   /** 删除地址：确认后调用删除 API */
   const handleDelete = async () => {
     if (!editingAddress || deleting) return;
-    if (!window.confirm('确定删除该地址吗？')) return;
+    const confirmed = await showConfirm({
+      title: '删除地址',
+      message: '确定要删除这条收货地址吗？',
+      confirmText: '确认删除',
+      cancelText: '取消',
+      danger: true,
+    });
+    if (!confirmed) return;
 
     setDeleting(true);
     try {

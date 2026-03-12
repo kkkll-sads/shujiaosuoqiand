@@ -1,5 +1,6 @@
 import { MessageCircle, ShoppingCart, Store } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
+import { CartCountBadge } from '../../../components/ui/CartCountBadge';
 
 interface ProductPurchaseBarProps {
   onAddToCart: () => void;
@@ -7,6 +8,7 @@ interface ProductPurchaseBarProps {
   onOpenCart: () => void;
   onOpenHelp: () => void;
   onOpenStore: () => void;
+  cartCount?: number;
 }
 
 export const ProductPurchaseBar = ({
@@ -15,6 +17,7 @@ export const ProductPurchaseBar = ({
   onOpenCart,
   onOpenHelp,
   onOpenStore,
+  cartCount = 0,
 }: ProductPurchaseBarProps) => (
   <div className="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-between border-t border-border-light bg-white px-2 py-2 pb-safe dark:bg-gray-900">
     <div className="flex items-center space-x-4 px-2">
@@ -36,9 +39,10 @@ export const ProductPurchaseBar = ({
       </button>
       <button
         type="button"
-        className="flex flex-col items-center text-text-main active:opacity-70"
+        className="relative flex flex-col items-center text-text-main active:opacity-70"
         onClick={onOpenCart}
       >
+        <CartCountBadge count={cartCount} />
         <ShoppingCart size={20} className="mb-0.5" />
         <span className="text-xs">购物车</span>
       </button>

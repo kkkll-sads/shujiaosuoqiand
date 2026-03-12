@@ -55,7 +55,7 @@ const EMPTY_ADDRESS_FORM: ProductAddressFormValue = {
 export const ProductDetailPage = () => {
   const params = useParams();
   const { goBack, goTo, navigate } = useAppNavigate();
-  const { showToast } = useFeedback();
+  const { showToast, showConfirm } = useFeedback();
   const { isOffline, refreshStatus } = useNetworkStatus();
 
   const routeProductId = Number(params.id);
@@ -285,7 +285,14 @@ export const ProductDetailPage = () => {
     if (!editingAddress || deletingAddress) {
       return;
     }
-    if (!window.confirm('确定删除该地址吗？')) {
+    const confirmed = await showConfirm({
+      title: '删除地址',
+      message: '确定要删除这条收货地址吗？',
+      confirmText: '确认删除',
+      cancelText: '取消',
+      danger: true,
+    });
+    if (!confirmed) {
       return;
     }
 

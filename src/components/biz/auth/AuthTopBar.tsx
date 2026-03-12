@@ -45,9 +45,9 @@ export const AuthTopBar = ({ onBack, showSupport = true }: AuthTopBarProps) => {
           size="sm"
           fullWidth={false}
           className={supportButtonClassName}
+          leftIcon={<Headset size={14} />}
           onClick={handleOpenSupport}
         >
-          <Headset size={14} />
           客服
         </Button>
       ) : (

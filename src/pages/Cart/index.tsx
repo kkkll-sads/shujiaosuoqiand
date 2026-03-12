@@ -8,6 +8,7 @@ import { ChevronLeft, CheckCircle2, Circle, Minus, Plus, Heart, Store, ChevronRi
 import { getErrorMessage } from '../../api/core/errors';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { useFeedback } from '../../components/ui/FeedbackProvider';
+import { notifyCartCountSync } from '../../hooks/useCartCount';
 import { useAppNavigate } from '../../lib/navigation';
 import { useRouteScrollRestoration } from '../../hooks/useRouteScrollRestoration';
 import { useRequest } from '../../hooks/useRequest';
@@ -190,6 +191,7 @@ export const CartPage = () => {
     try {
       await shopCartApi.update({ id: target.id, quantity });
       await refetch();
+      notifyCartCountSync();
     } catch (error) {
       showToast({ message: getErrorMessage(error) || '更新数量失败', type: 'error' });
     } finally {
@@ -212,6 +214,7 @@ export const CartPage = () => {
       await shopCartApi.remove({ ids });
       setSelectedItems(new Set());
       setIsEditMode(false);
+      notifyCartCountSync();
       await refetch();
       showToast({ message: '删除成功', type: 'success' });
     } catch (error) {

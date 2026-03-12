@@ -25,6 +25,7 @@ import { flashSaleApi, shopProductApi, type FlashSaleProduct, type ShopProductIt
 import { resolveUploadUrl } from '../../api/modules/upload';
 import { OfflineBanner } from '../../components/layout/OfflineBanner';
 import { Card } from '../../components/ui/Card';
+import { CartCountBadge } from '../../components/ui/CartCountBadge';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { ErrorState } from '../../components/ui/ErrorState';
 import { Skeleton } from '../../components/ui/Skeleton';
@@ -36,6 +37,7 @@ import {
   resolveShopProductImageUrl,
 } from '../../features/shop-product/utils';
 import { useInfiniteScroll } from '../../hooks/useInfiniteScroll';
+import { useCartCount } from '../../hooks/useCartCount';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 import { useRequest } from '../../hooks/useRequest';
 import { useRouteScrollRestoration } from '../../hooks/useRouteScrollRestoration';
@@ -132,6 +134,7 @@ function GridProductSkeleton() {
 export const StorePage = () => {
   const { goTo } = useAppNavigate();
   const { isOffline, refreshStatus } = useNetworkStatus();
+  const { cartCount } = useCartCount();
 
   const [latestProducts, setLatestProducts] = useState<ShopProductItem[]>([]);
   const [flashSaleCountdown, setFlashSaleCountdown] = useState(0);
@@ -345,9 +348,10 @@ export const StorePage = () => {
         <div className="flex shrink-0 items-center space-x-1">
           <button
             type="button"
-            className="flex h-8 w-8 items-center justify-center text-text-main active:opacity-70"
+            className="relative flex h-8 w-8 items-center justify-center text-text-main active:opacity-70"
             onClick={() => goTo('cart')}
           >
+            <CartCountBadge count={cartCount} />
             <ShoppingCart size={20} />
           </button>
           <button

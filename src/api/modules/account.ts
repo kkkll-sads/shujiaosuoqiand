@@ -242,6 +242,11 @@ export interface ChangePasswordPayload {
   newPassword: string;
 }
 
+export interface CancelAccountPayload {
+  password: string;
+  reason?: string;
+}
+
 export interface AccountMoneyLogDetail {
   accountType?: string;
   afterValue: number;
@@ -557,6 +562,21 @@ export const accountApi = {
     await http.post<null, ChangePasswordPayload>('/api/Account/changePassword', payload, {
       headers: createApiHeaders(options),
       signal: options.signal,
+      useMock: false,
+    });
+  },
+
+  async cancelAccount(
+    payload: CancelAccountPayload,
+    options: AccountRequestOptions = {},
+  ): Promise<void> {
+    await http.post<null, CancelAccountPayload>('/api/Account/cancelAccount', payload, {
+      headers: createApiHeaders(options),
+      signal: options.signal,
+      query: {
+        password: payload.password,
+        reason: payload.reason,
+      },
       useMock: false,
     });
   },

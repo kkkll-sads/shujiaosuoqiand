@@ -184,7 +184,6 @@ export const MallOrderCard: FC<MallOrderCardProps> = ({
           )}
           {actions.showRefund && onRefund && (
             <Button
-              variant="secondary"
               fullWidth={false}
               className={ACTION_BTN}
               onClick={() => onRefund(order.id)}
