@@ -138,42 +138,42 @@ export const AccumulatedRightsPage = () => {
       {
         description: '申购、购买等场景使用',
         icon: Wallet,
-        iconClassName: 'bg-rose-50 text-rose-600',
+        iconClassName: 'bg-rose-50 text-rose-600 dark:bg-rose-500/12 dark:text-rose-300',
         label: '专项金余额',
         value: formatMoney(accountOverview?.balance.balanceAvailable),
       },
       {
         description: '可直接发起提现申请',
         icon: Banknote,
-        iconClassName: 'bg-emerald-50 text-emerald-600',
+        iconClassName: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/12 dark:text-emerald-300',
         label: '可提现余额',
         value: formatMoney(accountOverview?.balance.withdrawableMoney),
       },
       {
         description: '从资料接口补齐展示',
         icon: Layers3,
-        iconClassName: 'bg-amber-50 text-amber-600',
+        iconClassName: 'bg-amber-50 text-amber-600 dark:bg-amber-500/12 dark:text-amber-300',
         label: '待激活金',
         value: formatMoney(profile?.userInfo?.pendingActivationGold),
       },
       {
         description: '用于商城消费',
         icon: Coins,
-        iconClassName: 'bg-sky-50 text-sky-600',
+        iconClassName: 'bg-sky-50 text-sky-600 dark:bg-sky-500/12 dark:text-sky-300',
         label: '消费金',
         value: formatCount(accountOverview?.balance.score),
       },
       {
         description: '用于寄售等服务费场景',
         icon: ShieldCheck,
-        iconClassName: 'bg-violet-50 text-violet-600',
+        iconClassName: 'bg-violet-50 text-violet-600 dark:bg-violet-500/12 dark:text-violet-300',
         label: '确权金',
         value: formatMoney(accountOverview?.balance.serviceFeeBalance),
       },
       {
         description: '绿色算力余额',
         icon: Zap,
-        iconClassName: 'bg-lime-50 text-lime-600',
+        iconClassName: 'bg-lime-50 text-lime-600 dark:bg-lime-500/12 dark:text-lime-300',
         label: '绿色算力',
         value: formatMoney(accountOverview?.balance.greenPower),
       },
@@ -389,7 +389,7 @@ export const AccumulatedRightsPage = () => {
               <h2 className="text-base font-semibold text-text-main">藏品资产</h2>
               <p className="mt-1 text-xs text-text-aux">持有、寄售、售出和矿机数量汇总</p>
             </div>
-            <div className="rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700">
+            <div className="rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">
               藏品统计
             </div>
           </div>

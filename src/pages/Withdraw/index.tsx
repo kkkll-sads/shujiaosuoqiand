@@ -1,8 +1,3 @@
-/**
- * @file Withdraw/index.tsx - 提现页面
- * @description 用户提现页面，支持选择提现方式、输入金额、提交提现申请。
- */
-
 import type { ChangeEvent } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
@@ -20,14 +15,14 @@ import {
 } from 'lucide-react';
 import { accountApi, rechargeApi, userApi, type PaymentAccount } from '../../api';
 import { getErrorMessage } from '../../api/core/errors';
+import { WalletPageHeader } from '../../components/layout/WalletPageHeader';
 import { Card } from '../../components/ui/Card';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { ErrorState } from '../../components/ui/ErrorState';
 import { useFeedback } from '../../components/ui/FeedbackProvider';
 import { Input } from '../../components/ui/Input';
-import { Skeleton } from '../../components/ui/Skeleton';
-import { WalletPageHeader } from '../../components/layout/WalletPageHeader';
 import { PullToRefreshContainer } from '../../components/ui/PullToRefreshContainer';
+import { Skeleton } from '../../components/ui/Skeleton';
 import { useAuthSession } from '../../hooks/useAuthSession';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 import { useRequest } from '../../hooks/useRequest';
@@ -35,7 +30,7 @@ import { useRouteScrollRestoration } from '../../hooks/useRouteScrollRestoration
 import { getBillingPath } from '../../lib/billing';
 import { useAppNavigate } from '../../lib/navigation';
 
-const MIN_WITHDRAW_AMOUNT = 10;
+const BANK_CARD_MIN_WITHDRAW_AMOUNT = 100;
 const ESTIMATED_FEE_RATE = 0.001;
 const ESTIMATED_MIN_FEE = 0.1;
 
@@ -99,6 +94,10 @@ function buildPaymentSubtitle(account: PaymentAccount) {
   return maskAccountNumber(account.accountNumber);
 }
 
+function isBankCardPaymentType(type: string | undefined) {
+  return type === 'bank_card' || type === 'unionpay';
+}
+
 export const WithdrawPage = () => {
   const { goTo, goBack } = useAppNavigate();
   const { showToast } = useFeedback();
@@ -123,6 +122,7 @@ export const WithdrawPage = () => {
     deps: [isAuthenticated],
     manual: !isAuthenticated,
   });
+
   const {
     data: paymentAccounts,
     error: paymentAccountsError,
@@ -133,14 +133,15 @@ export const WithdrawPage = () => {
     deps: [isAuthenticated],
     manual: !isAuthenticated,
   });
-  const paymentAccountList = Array.isArray(paymentAccounts) ? paymentAccounts : [];
 
+  const paymentAccountList = Array.isArray(paymentAccounts) ? paymentAccounts : [];
   const paymentMethods = useMemo(
     () =>
       paymentAccountList.map((account) => ({
         ...account,
-        color: getPaymentColor(account.type),
+        colorClassName: getPaymentColor(account.type),
         iconComponent: getPaymentIcon(account.type),
+        iconUrl: account.icon,
         subtitle: buildPaymentSubtitle(account),
         title: account.accountName || account.typeText || '收款账户',
       })),
@@ -158,18 +159,17 @@ export const WithdrawPage = () => {
         return current;
       }
 
-      return paymentMethods[0].id;
+      const defaultMethod = paymentMethods.find((item) => item.isDefault);
+      return defaultMethod?.id ?? paymentMethods[0].id;
     });
   }, [paymentMethods]);
 
   const selectedMethod =
     paymentMethods.find((item) => item.id === selectedMethodId) ?? paymentMethods[0] ?? null;
   const withdrawableBalance = Number(accountOverview?.balance.withdrawableMoney ?? 0);
-  const feePreview =
-    (parseFloat(amount) || 0) > 0
-      ? Math.max((parseFloat(amount) || 0) * ESTIMATED_FEE_RATE, ESTIMATED_MIN_FEE)
-      : 0;
   const numAmount = parseFloat(amount) || 0;
+  const feePreview =
+    numAmount > 0 ? Math.max(numAmount * ESTIMATED_FEE_RATE, ESTIMATED_MIN_FEE) : 0;
   const actualArrival = Math.max(0, numAmount - feePreview);
   const hasBlockingError =
     isAuthenticated &&
@@ -177,14 +177,27 @@ export const WithdrawPage = () => {
     paymentAccountList.length === 0 &&
     (Boolean(accountOverviewError) || Boolean(paymentAccountsError));
   const isLoading = isAuthenticated && (accountOverviewLoading || paymentAccountsLoading);
-  const isAmountValid = numAmount >= MIN_WITHDRAW_AMOUNT && numAmount <= withdrawableBalance;
+  const isBankCardWithdraw = isBankCardPaymentType(selectedMethod?.type);
+  const isPayPasswordValid = /^\d{6}$/.test(payPassword.trim());
+  const amountValidationMessage =
+    numAmount > withdrawableBalance
+      ? '输入金额超过可提现余额'
+      : numAmount > 0 && isBankCardWithdraw && numAmount < BANK_CARD_MIN_WITHDRAW_AMOUNT
+        ? `银行卡提现金额不得低于 ${BANK_CARD_MIN_WITHDRAW_AMOUNT} 元`
+        : '';
+  const payPasswordValidationMessage =
+    payPassword.trim().length > 0 && !isPayPasswordValid ? '请输入 6 位数字支付密码' : '';
+  const isAmountValid =
+    numAmount > 0 &&
+    numAmount <= withdrawableBalance &&
+    (!isBankCardWithdraw || numAmount >= BANK_CARD_MIN_WITHDRAW_AMOUNT);
   const canSubmit =
     isAuthenticated &&
     !isOffline &&
     !submitting &&
     Boolean(selectedMethod) &&
     isAmountValid &&
-    payPassword.trim().length > 0;
+    isPayPasswordValid;
 
   useRouteScrollRestoration({
     containerRef: scrollContainerRef,
@@ -196,13 +209,19 @@ export const WithdrawPage = () => {
 
   const handleAmountChange = (value: string) => {
     if (value === '' || /^\d*\.?\d{0,2}$/.test(value)) {
+      const nextAmount = value === '' ? 0 : Number.parseFloat(value);
+      if (Number.isFinite(nextAmount) && nextAmount > withdrawableBalance) {
+        setAmount(withdrawableBalance.toFixed(2));
+        return;
+      }
+
       setAmount(value);
     }
   };
 
   const handleReload = () => {
     refreshStatus();
-    void Promise.allSettled([reloadAccountOverview(), reloadPaymentAccounts()]);
+    return Promise.allSettled([reloadAccountOverview(), reloadPaymentAccounts()]);
   };
 
   const handleSelectMethod = async (methodId: number) => {
@@ -220,7 +239,31 @@ export const WithdrawPage = () => {
   };
 
   const handleSubmit = async () => {
-    if (!selectedMethod || !canSubmit) {
+    if (!selectedMethod) {
+      showToast({ message: '请选择收款账户', type: 'warning' });
+      return;
+    }
+
+    if (numAmount <= 0) {
+      showToast({ message: '请输入有效的提现金额', type: 'warning' });
+      return;
+    }
+
+    if (numAmount > withdrawableBalance) {
+      showToast({ message: '提现金额不能超过可提现余额', type: 'warning' });
+      return;
+    }
+
+    if (isBankCardPaymentType(selectedMethod.type) && numAmount < BANK_CARD_MIN_WITHDRAW_AMOUNT) {
+      showToast({
+        message: `银行卡提现金额不得低于 ${BANK_CARD_MIN_WITHDRAW_AMOUNT} 元`,
+        type: 'warning',
+      });
+      return;
+    }
+
+    if (!isPayPasswordValid) {
+      showToast({ message: '请输入 6 位数字支付密码', type: 'warning' });
       return;
     }
 
@@ -235,7 +278,10 @@ export const WithdrawPage = () => {
       });
 
       showToast({
-        message: `提现已提交，预计到账 ${formatMoney(result.actualAmount)} 元`,
+        message:
+          typeof result.actualAmount === 'number' && Number.isFinite(result.actualAmount) && result.actualAmount > 0
+            ? `提现已提交，预计到账 ${formatMoney(result.actualAmount)} 元`
+            : '提现申请已提交，请等待审核',
         type: 'success',
         duration: 3000,
       });
@@ -270,7 +316,7 @@ export const WithdrawPage = () => {
     return (
       <div className="flex h-full flex-1 flex-col bg-bg-base">
         {renderHeader()}
-        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto no-scrollbar px-4 pb-10">
+        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-4 pb-10">
           <EmptyState
             message="登录后才能发起提现申请"
             actionText="去登录"
@@ -286,10 +332,12 @@ export const WithdrawPage = () => {
     return (
       <div className="flex h-full flex-1 flex-col bg-bg-base">
         {renderHeader()}
-        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto no-scrollbar">
+        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto">
           <ErrorState
             message={getErrorMessage(accountOverviewError || paymentAccountsError)}
-            onRetry={handleReload}
+            onRetry={() => {
+              void handleReload();
+            }}
           />
         </div>
       </div>
@@ -299,13 +347,15 @@ export const WithdrawPage = () => {
   return (
     <div className="relative flex h-full flex-1 flex-col bg-bg-base">
       {isOffline && (
-        <div className="absolute top-12 right-0 left-0 z-50 flex items-center justify-between border-b border-red-100 bg-red-50 px-4 py-2 text-sm text-primary-start dark:border-red-500/15 dark:bg-red-500/12 dark:text-red-300">
+        <div className="absolute left-0 right-0 top-12 z-50 flex items-center justify-between border-b border-red-100 bg-red-50 px-4 py-2 text-sm text-primary-start">
           <div className="flex items-center">
             <WifiOff size={14} className="mr-2" />
-            <span>网络不稳定，请检查网络设置</span>
+            <span>网络不稳定，请检查后重试</span>
           </div>
           <button
-            onClick={handleReload}
+            onClick={() => {
+              void handleReload();
+            }}
             className="rounded bg-bg-card px-2 py-1 font-medium text-text-main shadow-soft"
           >
             刷新
@@ -317,196 +367,204 @@ export const WithdrawPage = () => {
 
       <PullToRefreshContainer
         className="flex-1 overflow-y-auto no-scrollbar"
-        onRefresh={async () => {
-          handleReload();
-        }}
+        onRefresh={handleReload}
         disabled={isOffline}
       >
         <div ref={scrollContainerRef} className="pb-[112px]">
           <div className="space-y-3 px-4 py-4">
-          <Card className="relative overflow-hidden p-4">
-            <div className="pointer-events-none absolute top-0 right-0 h-24 w-24 rounded-bl-full bg-gradient-to-bl from-primary-start/5 to-transparent" />
-            {isLoading ? (
-              <div className="space-y-3">
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-8 w-40" />
-                <Skeleton className="h-3 w-36" />
-              </div>
-            ) : (
-              <div>
-                <div className="mb-1 flex items-center justify-between">
-                  <span className="text-base text-text-sub">可提现余额(元)</span>
-                  <button
-                    className="flex items-center text-sm text-text-aux active:opacity-70"
-                    onClick={() => setShowRulesModal(true)}
-                  >
-                    提现规则 <Info size={12} className="ml-1" />
-                  </button>
+            <Card className="relative overflow-hidden p-4">
+              <div className="pointer-events-none absolute right-0 top-0 h-24 w-24 rounded-bl-full bg-gradient-to-bl from-primary-start/5 to-transparent" />
+              {isLoading ? (
+                <div className="space-y-3">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-8 w-40" />
+                  <Skeleton className="h-3 w-36" />
                 </div>
-                <div className="mb-2 text-7xl font-bold tracking-tight text-primary-start">
-                  {formatMoney(withdrawableBalance)}
+              ) : (
+                <div>
+                  <div className="mb-1 flex items-center justify-between">
+                    <span className="text-base text-text-sub">可提现余额（元）</span>
+                    <button
+                      className="flex items-center text-sm text-text-aux active:opacity-70"
+                      onClick={() => setShowRulesModal(true)}
+                    >
+                      提现规则 <Info size={12} className="ml-1" />
+                    </button>
+                  </div>
+                  <div className="mb-2 text-7xl font-bold tracking-tight text-primary-start">
+                    {formatMoney(withdrawableBalance)}
+                  </div>
+                  <div className="text-sm text-text-sub">
+                    可提现收益总额：{formatMoney(accountOverview?.income.totalIncomeWithdrawable)}
+                  </div>
                 </div>
-                <div className="text-sm text-text-sub">
-                  可提现收益总额：{formatMoney(accountOverview?.income.totalIncomeWithdrawable)}
-                </div>
-              </div>
-            )}
-          </Card>
+              )}
+            </Card>
 
-          <Card className="overflow-hidden p-0">
-            {isLoading ? (
-              <div className="flex items-center justify-between p-4">
-                <div className="flex items-center">
-                  <Skeleton className="mr-3 h-8 w-8 rounded-full" />
-                  <div className="space-y-1.5">
-                    <Skeleton className="h-4 w-24" />
-                    <Skeleton className="h-3 w-32" />
-                  </div>
-                </div>
-                <Skeleton className="h-4 w-4" />
-              </div>
-            ) : selectedMethod ? (
-              <button
-                type="button"
-                className="flex w-full items-center justify-between p-4 text-left transition-colors active:bg-bg-base"
-                onClick={() => setShowMethodModal(true)}
-              >
-                <div className="flex items-center">
-                  <div
-                    className={`mr-3 flex h-8 w-8 items-center justify-center rounded-full bg-bg-base ${selectedMethod.color}`}
-                  >
-                    {selectedMethod.icon ? (
-                      <img
-                        src={selectedMethod.icon}
-                        alt={selectedMethod.title}
-                        className="h-5 w-5 rounded-full object-cover"
-                        referrerPolicy="no-referrer"
-                      />
-                    ) : (
-                      <selectedMethod.iconComponent size={18} />
-                    )}
-                  </div>
-                  <div>
-                    <div className="mb-0.5 text-lg font-medium text-text-main">
-                      {selectedMethod.title}
+            <Card className="overflow-hidden p-0">
+              {isLoading ? (
+                <div className="flex items-center justify-between p-4">
+                  <div className="flex items-center">
+                    <Skeleton className="mr-3 h-8 w-8 rounded-full" />
+                    <div className="space-y-1.5">
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-3 w-32" />
                     </div>
-                    <div className="text-sm text-text-sub">{selectedMethod.subtitle}</div>
                   </div>
+                  <Skeleton className="h-4 w-4" />
                 </div>
-                <div className="flex items-center text-text-aux">
-                  <span className="mr-1 text-sm">切换</span>
-                  <ChevronRight size={16} />
-                </div>
-              </button>
-            ) : (
-              <div className="p-4">
-                <EmptyState
-                  message="暂无收款账户"
-                  actionText="去添加账户"
-                  onAction={() => goTo('payment_accounts')}
-                />
-              </div>
-            )}
-          </Card>
-
-          <Card className="p-4">
-            {isLoading ? (
-              <div className="space-y-4">
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-3 w-40" />
-              </div>
-            ) : (
-              <>
-                <div className="mb-3 text-md font-medium text-text-main">提现金额</div>
-                <div className="mb-3 flex items-center border-b border-border-light pb-2">
-                  <span className="mr-2 shrink-0 text-5xl font-medium text-text-main">￥</span>
-                  <input
-                    type="text"
-                    value={amount}
-                    onChange={(event) => handleAmountChange(event.target.value)}
-                    placeholder={`最低提现 ${MIN_WITHDRAW_AMOUNT} 元`}
-                    className="min-w-0 flex-1 bg-transparent text-6xl font-bold text-text-main outline-none placeholder:text-xl placeholder:font-normal placeholder:text-text-aux"
+              ) : selectedMethod ? (
+                <button
+                  type="button"
+                  className="flex w-full items-center justify-between p-4 text-left transition-colors active:bg-bg-base"
+                  onClick={() => setShowMethodModal(true)}
+                >
+                  <div className="flex items-center">
+                    <div
+                      className={`mr-3 flex h-8 w-8 items-center justify-center rounded-full bg-bg-base ${selectedMethod.colorClassName}`}
+                    >
+                      {selectedMethod.iconUrl ? (
+                        <img
+                          src={selectedMethod.iconUrl}
+                          alt={selectedMethod.title}
+                          className="h-5 w-5 rounded-full object-cover"
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <selectedMethod.iconComponent size={18} />
+                      )}
+                    </div>
+                    <div>
+                      <div className="mb-0.5 text-lg font-medium text-text-main">
+                        {selectedMethod.title}
+                      </div>
+                      <div className="text-sm text-text-sub">{selectedMethod.subtitle}</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center text-text-aux">
+                    <span className="mr-1 text-sm">切换</span>
+                    <ChevronRight size={16} />
+                  </div>
+                </button>
+              ) : (
+                <div className="p-4">
+                  <EmptyState
+                    message="暂无收款账户"
+                    actionText="去添加账户"
+                    onAction={() => goTo('payment_accounts')}
                   />
-                  {amount && (
+                </div>
+              )}
+            </Card>
+
+            <Card className="p-4">
+              {isLoading ? (
+                <div className="space-y-4">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-3 w-40" />
+                </div>
+              ) : (
+                <>
+                  <div className="mb-3 text-md font-medium text-text-main">提现金额</div>
+                  <div className="mb-3 flex items-center border-b border-border-light pb-2">
+                    <span className="mr-2 shrink-0 text-5xl font-medium text-text-main">¥</span>
+                    <input
+                      type="text"
+                      value={amount}
+                      onChange={(event) => handleAmountChange(event.target.value)}
+                      placeholder={
+                        isBankCardWithdraw
+                          ? `银行卡最低提现 ${BANK_CARD_MIN_WITHDRAW_AMOUNT} 元`
+                          : '请输入提现金额'
+                      }
+                      className="min-w-0 flex-1 bg-transparent text-6xl font-bold text-text-main outline-none placeholder:text-xl placeholder:font-normal placeholder:text-text-aux"
+                    />
+                    {amount && (
+                      <button
+                        type="button"
+                        onClick={() => setAmount('')}
+                        className="shrink-0 p-1 text-text-aux active:text-text-sub"
+                      >
+                        <XCircle size={16} />
+                      </button>
+                    )}
+                    <div className="mx-3 h-4 w-px shrink-0 bg-border-light" />
                     <button
                       type="button"
-                      onClick={() => setAmount('')}
-                      className="shrink-0 p-1 text-text-aux active:text-text-sub"
+                      onClick={() => setAmount(withdrawableBalance.toFixed(2))}
+                      className="shrink-0 whitespace-nowrap text-md font-medium text-primary-start active:opacity-70"
                     >
-                      <XCircle size={16} />
+                      全部
                     </button>
-                  )}
-                  <div className="mx-3 h-4 w-px shrink-0 bg-border-light" />
-                  <button
-                    type="button"
-                    onClick={() => setAmount(withdrawableBalance.toFixed(2))}
-                    className="shrink-0 whitespace-nowrap text-md font-medium text-primary-start active:opacity-70"
-                  >
-                    全部
-                  </button>
-                </div>
-                <div className="min-h-[18px]">
-                  {numAmount > withdrawableBalance ? (
-                    <div className="flex items-center text-sm text-primary-start">
-                      <AlertCircle size={12} className="mr-1" /> 输入金额超过可提现余额
-                    </div>
-                  ) : numAmount > 0 && numAmount < MIN_WITHDRAW_AMOUNT ? (
-                    <div className="flex items-center text-sm text-primary-start">
-                      <AlertCircle size={12} className="mr-1" /> 最低提现金额为 {MIN_WITHDRAW_AMOUNT} 元
-                    </div>
-                  ) : numAmount > 0 ? (
-                    <div className="flex items-center justify-between text-sm text-text-sub">
-                      <span>预计手续费 ￥{formatMoney(feePreview)}</span>
-                      <span className="text-text-main">预计 T+1 到账</span>
-                    </div>
-                  ) : (
-                    <div className="text-sm text-text-aux">
-                      预计手续费 {ESTIMATED_FEE_RATE * 100}% ，最低 ￥{ESTIMATED_MIN_FEE}
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-          </Card>
+                  </div>
+                  <div className="min-h-[18px]">
+                    {amountValidationMessage ? (
+                      <div className="flex items-center text-sm text-primary-start">
+                        <AlertCircle size={12} className="mr-1" />
+                        {amountValidationMessage}
+                      </div>
+                    ) : numAmount > 0 ? (
+                      <div className="flex items-center justify-between text-sm text-text-sub">
+                        <span>预计手续费：¥{formatMoney(feePreview)}</span>
+                        <span className="text-text-main">预计 T+1 到账</span>
+                      </div>
+                    ) : (
+                      <div className="text-sm text-text-aux">
+                        预计手续费 {ESTIMATED_FEE_RATE * 100}% ，最低 ¥{ESTIMATED_MIN_FEE}
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </Card>
 
-          <Card className="space-y-3 p-4">
-            <div>
-              <div className="mb-2 text-md font-medium text-text-main">支付密码</div>
-              <Input
-                type="password"
-                placeholder="请输入支付密码"
-                value={payPassword}
-                onChange={(event: ChangeEvent<HTMLInputElement>) => setPayPassword(event.target.value)}
-              />
-            </div>
-            <div>
-              <div className="mb-2 text-md font-medium text-text-main">备注</div>
-              <Input
-                type="text"
-                placeholder="选填"
-                value={remark}
-                onChange={(event: ChangeEvent<HTMLInputElement>) => setRemark(event.target.value)}
-              />
-            </div>
-          </Card>
+            <Card className="space-y-3 p-4">
+              <div>
+                <div className="mb-2 text-md font-medium text-text-main">支付密码</div>
+                <Input
+                  type="password"
+                  placeholder="请输入 6 位数字支付密码"
+                  value={payPassword}
+                  onChange={(event: ChangeEvent<HTMLInputElement>) => setPayPassword(event.target.value)}
+                />
+                <div className="mt-2 min-h-[18px] text-sm text-primary-start">
+                  {payPasswordValidationMessage ? (
+                    <span className="flex items-center">
+                      <AlertCircle size={12} className="mr-1" />
+                      {payPasswordValidationMessage}
+                    </span>
+                  ) : null}
+                </div>
+              </div>
 
-          <div className="mt-4 flex items-start px-1">
-            <ShieldCheck size={14} className="mr-1.5 mt-0.5 shrink-0 text-green-500" />
-            <p className="text-s leading-relaxed text-text-sub">
-              为保障资金安全，提现可能触发短信或支付密码校验，请确保为本人操作。
-            </p>
+              <div>
+                <div className="mb-2 text-md font-medium text-text-main">备注</div>
+                <Input
+                  type="text"
+                  placeholder="选填"
+                  value={remark}
+                  onChange={(event: ChangeEvent<HTMLInputElement>) => setRemark(event.target.value)}
+                />
+              </div>
+            </Card>
+
+            <div className="mt-4 flex items-start px-1">
+              <ShieldCheck size={14} className="mr-1.5 mt-0.5 shrink-0 text-green-500" />
+              <p className="text-s leading-relaxed text-text-sub">
+                为保障资金安全，提现可能触发短信或支付密码校验，请确认由本人操作。
+              </p>
+            </div>
           </div>
-        </div>
         </div>
       </PullToRefreshContainer>
 
-      <div className="fixed right-0 bottom-0 left-0 z-40 border-t border-border-light bg-bg-card pb-safe">
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-border-light bg-bg-card pb-safe">
         <div className="mx-auto flex w-full items-center justify-between px-4 py-3 sm:max-w-[430px]">
           <div className="flex flex-col">
             <span className="mb-0.5 text-s text-text-sub">预计到账</span>
             <div className="flex items-baseline text-primary-start">
-              <span className="mr-0.5 text-md font-medium">￥</span>
+              <span className="mr-0.5 text-md font-medium">¥</span>
               <span className="text-4xl font-bold">{formatMoney(actualArrival)}</span>
             </div>
           </div>
@@ -541,7 +599,7 @@ export const WithdrawPage = () => {
                 <XCircle size={20} />
               </button>
             </div>
-            <div className="overflow-y-auto no-scrollbar p-2">
+            <div className="overflow-y-auto p-2">
               {paymentMethods.map((method) => (
                 <button
                   key={method.id}
@@ -551,11 +609,11 @@ export const WithdrawPage = () => {
                 >
                   <div className="flex items-center">
                     <div
-                      className={`mr-3 flex h-8 w-8 items-center justify-center rounded-full bg-bg-base ${method.color}`}
+                      className={`mr-3 flex h-8 w-8 items-center justify-center rounded-full bg-bg-base ${method.colorClassName}`}
                     >
-                      {method.icon ? (
+                      {method.iconUrl ? (
                         <img
-                          src={method.icon}
+                          src={method.iconUrl}
                           alt={method.title}
                           className="h-5 w-5 rounded-full object-cover"
                           referrerPolicy="no-referrer"
@@ -565,9 +623,7 @@ export const WithdrawPage = () => {
                       )}
                     </div>
                     <div>
-                      <div className="mb-0.5 text-lg font-medium text-text-main">
-                        {method.title}
-                      </div>
+                      <div className="mb-0.5 text-lg font-medium text-text-main">{method.title}</div>
                       <div className="text-sm text-text-sub">{method.subtitle}</div>
                     </div>
                   </div>
@@ -598,16 +654,16 @@ export const WithdrawPage = () => {
                 <XCircle size={20} />
               </button>
             </div>
-            <div className="max-h-[60vh] space-y-4 overflow-y-auto no-scrollbar text-base text-text-sub">
+            <div className="max-h-[60vh] space-y-4 overflow-y-auto text-base text-text-sub">
               <div>
                 <h4 className="mb-1 font-medium text-text-main">1. 提现金额</h4>
-                <p>单笔最低提现金额为 {MIN_WITHDRAW_AMOUNT} 元。</p>
+                <p>银行卡收款时，单笔提现金额不得低于 {BANK_CARD_MIN_WITHDRAW_AMOUNT} 元。</p>
               </div>
               <div>
-                <h4 className="mb-1 font-medium text-text-main">2. 提现手续费</h4>
+                <h4 className="mb-1 font-medium text-text-main">2. 手续费</h4>
                 <p>
-                  当前页面按 {ESTIMATED_FEE_RATE * 100}% 进行预估，最低手续费 ￥
-                  {ESTIMATED_MIN_FEE}，实际金额以后端返回为准。
+                  当前页面按 {ESTIMATED_FEE_RATE * 100}% 进行预估，最低 ¥{ESTIMATED_MIN_FEE}，
+                  实际到账金额以后端返回为准。
                 </p>
               </div>
               <div>
@@ -629,6 +685,4 @@ export const WithdrawPage = () => {
   );
 };
 
-
-
-
+export default WithdrawPage;

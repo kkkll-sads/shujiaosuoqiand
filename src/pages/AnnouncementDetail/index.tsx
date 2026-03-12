@@ -35,12 +35,12 @@ function renderContent(content: string) {
 function AnnouncementDetailSkeleton() {
   return (
     <div className="space-y-4 px-4 py-4">
-      <div className="rounded-[28px] bg-white p-5 shadow-soft">
+      <div className="rounded-[28px] border border-border-light bg-bg-card p-5 shadow-soft">
         <div className="mb-3 h-5 w-20 animate-pulse rounded-full bg-border-light" />
         <div className="mb-3 h-8 w-4/5 animate-pulse rounded-2xl bg-border-light" />
         <div className="h-4 w-2/5 animate-pulse rounded-xl bg-border-light" />
       </div>
-      <div className="rounded-[28px] bg-white p-5 shadow-soft">
+      <div className="rounded-[28px] border border-border-light bg-bg-card p-5 shadow-soft">
         {[0, 1, 2, 3, 4].map((item) => (
           <div key={item} className="mb-3 h-4 animate-pulse rounded-xl bg-border-light last:mb-0" />
         ))}
@@ -100,19 +100,19 @@ export const AnnouncementDetailPage = () => {
 
     return (
       <div className="space-y-4 px-4 py-4 pb-8">
-        <section className="relative overflow-hidden rounded-[28px] border border-white/60 bg-white shadow-[0_18px_44px_rgba(15,23,42,0.08)]">
-          <div className="absolute inset-x-0 top-0 h-28 bg-[radial-gradient(circle_at_top_right,rgba(255,106,92,0.18),transparent_48%),linear-gradient(135deg,rgba(255,247,237,0.9),rgba(255,255,255,0))]" />
+        <section className="relative overflow-hidden rounded-[28px] border border-border-light bg-bg-card shadow-[0_18px_44px_rgba(15,23,42,0.08)] dark:shadow-[0_18px_44px_rgba(0,0,0,0.22)]">
+          <div className="absolute inset-x-0 top-0 h-28 bg-[radial-gradient(circle_at_top_right,rgba(255,106,92,0.18),transparent_48%),linear-gradient(135deg,rgba(255,247,237,0.9),rgba(255,255,255,0))] dark:bg-[radial-gradient(circle_at_top_right,rgba(239,68,68,0.18),transparent_48%),linear-gradient(135deg,rgba(127,29,29,0.22),rgba(15,23,42,0))]" />
           <div className="relative px-5 pb-6 pt-5">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-full bg-[#fff0ec] px-3 py-1 text-[12px] font-medium text-[#d94f33]">
+              <span className="rounded-full bg-primary-start/10 px-3 py-1 text-[12px] font-medium text-primary-start">
                 {announcement.typeText}
               </span>
               {announcement.isPinned && (
-                <span className="rounded-full bg-[#fff6dd] px-3 py-1 text-[12px] font-medium text-[#b7791f]">
+                <span className="rounded-full bg-amber-50 px-3 py-1 text-[12px] font-medium text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">
                   置顶
                 </span>
               )}
-              <span className="inline-flex items-center gap-1 rounded-full bg-white/80 px-3 py-1 text-[12px] text-text-aux backdrop-blur">
+              <span className="inline-flex items-center gap-1 rounded-full border border-border-light bg-bg-base px-3 py-1 text-[12px] text-text-aux backdrop-blur">
                 <Sparkles size={12} />
                 <span>平台通知</span>
               </span>
@@ -130,7 +130,7 @@ export const AnnouncementDetailPage = () => {
           </div>
         </section>
 
-        <section className="rounded-[28px] bg-white px-5 py-6 shadow-soft">
+        <section className="rounded-[28px] border border-border-light bg-bg-card px-5 py-6 shadow-soft">
           {renderContent(announcement.content)}
         </section>
       </div>

@@ -25,36 +25,36 @@ import { useAppNavigate } from '../../lib/navigation';
 function getStatusStyle(data: ShopOrderLogisticsResponse | null) {
   if (!data) {
     return {
-      accent: 'text-slate-600',
-      chip: 'bg-slate-100 text-slate-700',
-      panel: 'from-slate-50 via-white to-slate-100',
-      border: 'border-slate-200/80',
+      accent: 'text-slate-600 dark:text-slate-300',
+      chip: 'bg-slate-100 text-slate-700 dark:bg-slate-500/12 dark:text-slate-300',
+      panel: 'from-slate-50 via-white to-slate-100 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800',
+      border: 'border-slate-200/80 dark:border-slate-500/25',
     };
   }
 
   if (data.status_is_final) {
     return {
-      accent: 'text-emerald-600',
-      chip: 'bg-emerald-100 text-emerald-700',
-      panel: 'from-emerald-50 via-white to-emerald-100',
-      border: 'border-emerald-200/80',
+      accent: 'text-emerald-600 dark:text-emerald-300',
+      chip: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/12 dark:text-emerald-300',
+      panel: 'from-emerald-50 via-white to-emerald-100 dark:from-emerald-950 dark:via-slate-900 dark:to-emerald-900/60',
+      border: 'border-emerald-200/80 dark:border-emerald-500/25',
     };
   }
 
   if (data.query_success) {
     return {
-      accent: 'text-sky-600',
-      chip: 'bg-sky-100 text-sky-700',
-      panel: 'from-sky-50 via-white to-cyan-100',
-      border: 'border-sky-200/80',
+      accent: 'text-sky-600 dark:text-sky-300',
+      chip: 'bg-sky-100 text-sky-700 dark:bg-sky-500/12 dark:text-sky-300',
+      panel: 'from-sky-50 via-white to-cyan-100 dark:from-sky-950 dark:via-slate-900 dark:to-cyan-900/60',
+      border: 'border-sky-200/80 dark:border-sky-500/25',
     };
   }
 
   return {
-    accent: 'text-amber-600',
-    chip: 'bg-amber-100 text-amber-700',
-    panel: 'from-amber-50 via-white to-orange-100',
-    border: 'border-amber-200/80',
+    accent: 'text-amber-600 dark:text-amber-300',
+    chip: 'bg-amber-100 text-amber-700 dark:bg-amber-500/12 dark:text-amber-300',
+    panel: 'from-amber-50 via-white to-orange-100 dark:from-amber-950 dark:via-slate-900 dark:to-orange-900/60',
+    border: 'border-amber-200/80 dark:border-amber-500/25',
   };
 }
 
@@ -76,8 +76,8 @@ function StatusIcon({ data }: { data: ShopOrderLogisticsResponse | null }) {
 function LogisticsSkeleton() {
   return (
     <div className="space-y-3 p-4">
-      <Card className="overflow-hidden border border-border-light bg-white p-0">
-        <div className="bg-gradient-to-br from-slate-50 via-white to-slate-100 p-5">
+      <Card className="overflow-hidden border border-border-light bg-bg-card p-0">
+        <div className="bg-gradient-to-br from-slate-50 via-white to-slate-100 p-5 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800">
           <Skeleton className="mb-3 h-6 w-32" />
           <Skeleton className="mb-2 h-4 w-5/6" />
           <div className="flex gap-2">
@@ -87,13 +87,13 @@ function LogisticsSkeleton() {
         </div>
       </Card>
 
-      <Card className="border border-border-light bg-white">
+      <Card className="border border-border-light bg-bg-card">
         <Skeleton className="mb-3 h-5 w-24" />
         <Skeleton className="mb-2 h-4 w-full" />
         <Skeleton className="h-4 w-2/3" />
       </Card>
 
-      <Card className="border border-border-light bg-white">
+      <Card className="border border-border-light bg-bg-card">
         <Skeleton className="mb-4 h-5 w-24" />
         {[1, 2, 3, 4].map((item) => (
           <div key={item} className="mb-5 flex last:mb-0">
@@ -208,9 +208,9 @@ export const LogisticsPage = () => {
 
           {!loading && data ? (
             <div className="space-y-3 p-4">
-              <Card className={`overflow-hidden border bg-white p-0 shadow-soft ${styles.border}`}>
+              <Card className={`overflow-hidden border bg-bg-card p-0 shadow-soft ${styles.border}`}>
                 <div className={`relative bg-gradient-to-br ${styles.panel} p-5`}>
-                  <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-white/60 blur-2xl" />
+                  <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-white/60 blur-2xl dark:bg-white/8" />
                   <div className="relative z-[1]">
                     <div className="mb-4 flex items-start justify-between gap-3">
                       <div className="min-w-0">
@@ -231,17 +231,17 @@ export const LogisticsPage = () => {
                       <button
                         type="button"
                         onClick={() => void handleCopy(data.shipping_no, '物流单号')}
-                        className="inline-flex items-center rounded-full border border-white/70 bg-white/80 px-3 py-1.5 text-sm text-text-main shadow-sm transition active:scale-[0.98]"
+                        className="inline-flex items-center rounded-full border border-white/70 bg-white/80 px-3 py-1.5 text-sm text-text-main shadow-sm transition active:scale-[0.98] dark:border-white/10 dark:bg-black/25 dark:text-white"
                       >
                         <Copy size={14} className="mr-1.5" />
                         {data.shipping_no}
                       </button>
-                      <div className="rounded-full border border-white/70 bg-white/70 px-3 py-1.5 text-sm text-text-sub">
+                      <div className="rounded-full border border-white/70 bg-white/70 px-3 py-1.5 text-sm text-text-sub dark:border-white/10 dark:bg-black/20 dark:text-slate-200">
                         {data.shipping_company}
                         {data.shipping_company_code ? ` · ${data.shipping_company_code}` : ''}
                       </div>
                       {data.status_is_final ? (
-                        <div className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-sm text-emerald-700">
+                        <div className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-sm text-emerald-700 dark:border-emerald-500/25 dark:bg-emerald-500/12 dark:text-emerald-300">
                           <ShieldCheck size={14} className="mr-1.5" />
                           轨迹已稳定
                         </div>
@@ -251,7 +251,7 @@ export const LogisticsPage = () => {
                 </div>
               </Card>
 
-              <Card className="border border-border-light bg-white">
+              <Card className="border border-border-light bg-bg-card">
                 <div className="mb-3 flex items-center gap-2">
                   <MapPin size={16} className="text-text-sub" />
                   <span className="text-sm font-semibold text-text-main">收货地址</span>
@@ -268,7 +268,7 @@ export const LogisticsPage = () => {
               </Card>
 
               {!data.query_success || data.requires_phone_suffix ? (
-                <Card className="border border-border-light bg-white">
+                <Card className="border border-border-light bg-bg-card">
                   <div className="space-y-3">
                     <div className="flex items-start gap-2">
                       <CircleAlert size={18} className="mt-0.5 shrink-0 text-amber-500" />
@@ -305,7 +305,7 @@ export const LogisticsPage = () => {
                 </Card>
               ) : null}
 
-              <Card className="border border-border-light bg-white">
+              <Card className="border border-border-light bg-bg-card">
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <div>
                     <h3 className="text-base font-bold text-text-main">物流轨迹</h3>

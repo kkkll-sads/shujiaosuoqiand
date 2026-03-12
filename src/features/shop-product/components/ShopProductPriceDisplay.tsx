@@ -27,18 +27,11 @@ function ScorePriceChip({
           +
         </span>
       ) : null}
-      <span
-        className={`mr-1 flex shrink-0 items-center justify-center rounded-full bg-[#ffe0d6] font-bold text-[#d53c22] ${
-          compact ? 'h-3.5 w-3.5 text-[8px]' : 'h-4 w-4 text-[9px]'
-        }`}
-      >
-        金
-      </span>
       <span className={`tabular-nums font-semibold ${compact ? 'text-[10px]' : 'text-[11px]'}`}>
         {amount}
       </span>
       <span className={`ml-1 font-medium text-[#ef755c] ${compact ? 'text-[9px]' : 'text-[10px]'}`}>
-        消费金
+        {"\u6d88\u8d39\u91d1"}
       </span>
     </span>
   );

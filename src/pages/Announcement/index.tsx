@@ -14,13 +14,13 @@ import { useAppNavigate } from '../../lib/navigation';
 function AnnouncementSkeleton() {
   return (
     <div className="space-y-4 px-4 py-4">
-      <div className="rounded-[28px] bg-white p-5 shadow-soft">
+      <div className="rounded-[28px] border border-border-light bg-bg-card p-5 shadow-soft">
         <div className="mb-3 h-6 w-32 animate-pulse rounded-2xl bg-border-light" />
         <div className="mb-3 h-8 w-4/5 animate-pulse rounded-2xl bg-border-light" />
         <div className="h-4 w-2/5 animate-pulse rounded-xl bg-border-light" />
       </div>
       {[0, 1, 2].map((item) => (
-        <div key={item} className="rounded-[28px] bg-white p-5 shadow-soft">
+        <div key={item} className="rounded-[28px] border border-border-light bg-bg-card p-5 shadow-soft">
           <div className="mb-4 h-5 w-20 animate-pulse rounded-full bg-border-light" />
           <div className="mb-3 h-6 w-4/5 animate-pulse rounded-2xl bg-border-light" />
           <div className="mb-3 h-4 w-2/5 animate-pulse rounded-xl bg-border-light" />
@@ -88,11 +88,11 @@ export const AnnouncementPage = () => {
 
     return (
       <div className="space-y-4 px-4 py-4 pb-8">
-        <section className="relative overflow-hidden rounded-[28px] border border-white/60 bg-white shadow-[0_18px_44px_rgba(15,23,42,0.08)]">
-          <div className="absolute inset-y-0 right-0 w-32 bg-[radial-gradient(circle_at_center,rgba(255,106,92,0.18),transparent_70%)]" />
+        <section className="relative overflow-hidden rounded-[28px] border border-border-light bg-bg-card shadow-[0_18px_44px_rgba(15,23,42,0.08)] dark:shadow-[0_18px_44px_rgba(0,0,0,0.22)]">
+          <div className="absolute inset-y-0 right-0 w-32 bg-[radial-gradient(circle_at_center,rgba(255,106,92,0.18),transparent_70%)] dark:bg-[radial-gradient(circle_at_center,rgba(239,68,68,0.18),transparent_70%)]" />
           <div className="relative flex items-start justify-between gap-4 px-5 py-5">
             <div>
-              <div className="inline-flex items-center gap-2 rounded-full bg-[#fff1ee] px-3 py-1 text-[12px] font-medium text-[#db5b38]">
+              <div className="inline-flex items-center gap-2 rounded-full bg-primary-start/10 px-3 py-1 text-[12px] font-medium text-primary-start">
                 <BellRing size={13} />
                 <span>公告中心</span>
               </div>
@@ -109,14 +109,14 @@ export const AnnouncementPage = () => {
             key={item.id}
             type="button"
             onClick={() => navigate(`/announcement/${item.id}`)}
-            className="group block w-full rounded-[28px] border border-white/60 bg-white px-5 py-5 text-left shadow-[0_16px_36px_rgba(15,23,42,0.06)] transition-transform active:scale-[0.99]"
+            className="group block w-full rounded-[28px] border border-border-light bg-bg-card px-5 py-5 text-left shadow-[0_16px_36px_rgba(15,23,42,0.06)] transition-transform active:scale-[0.99] dark:shadow-[0_16px_36px_rgba(0,0,0,0.18)]"
           >
             <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-full bg-[#fff4ef] px-3 py-1 text-[12px] font-medium text-[#da5a38]">
+              <span className="rounded-full bg-primary-start/10 px-3 py-1 text-[12px] font-medium text-primary-start">
                 {item.typeText}
               </span>
               {item.isPinned && (
-                <span className="rounded-full bg-[#fff7df] px-3 py-1 text-[12px] font-medium text-[#b7791f]">
+                <span className="rounded-full bg-amber-50 px-3 py-1 text-[12px] font-medium text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">
                   置顶
                 </span>
               )}

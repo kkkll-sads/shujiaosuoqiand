@@ -1,5 +1,5 @@
 import type { MockHandlerMap } from '../core/client';
-import type { MessageTab } from '../modules/message';
+import type { MessageCategory, MessageScope, MessageSummary } from '../modules/message';
 
 /**
  * Mock 请求处理器映射表
@@ -38,6 +38,186 @@ const mockAnnouncements = [
     is_read: true,
   },
 ];
+
+type MockMessageType =
+  | 'system'
+  | 'order'
+  | 'activity'
+  | 'notice'
+  | 'recharge'
+  | 'withdraw'
+  | 'shop_order';
+
+interface MockMessageItem {
+  id: string;
+  message_key: string;
+  source_type: string;
+  source_id: number;
+  category: MessageCategory;
+  type: MockMessageType;
+  scene: string;
+  title: string;
+  content: string;
+  action_path: string;
+  biz_type: string;
+  biz_id: number;
+  is_broadcast: 0 | 1;
+  create_time: number;
+  create_time_text: string;
+}
+
+const mockMessageItems: MockMessageItem[] = [
+  {
+    id: 'manual:301',
+    message_key: 'manual:301',
+    source_type: 'manual',
+    source_id: 301,
+    category: 'system',
+    type: 'system',
+    scene: 'system',
+    title: '账户安全提醒',
+    content: '检测到你的账户刚刚更新了支付密码，如非本人操作请立即联系客服。',
+    action_path: '/security',
+    biz_type: 'manual',
+    biz_id: 301,
+    is_broadcast: 0,
+    create_time: 1773278400,
+    create_time_text: '2026-03-11 20:00:00',
+  },
+  {
+    id: 'announcement:101',
+    message_key: 'announcement:101',
+    source_type: 'announcement',
+    source_id: 101,
+    category: 'system',
+    type: 'notice',
+    scene: 'announcement',
+    title: '平台公告',
+    content: '平台系统升级通知',
+    action_path: '/announcement/101',
+    biz_type: 'announcement',
+    biz_id: 101,
+    is_broadcast: 1,
+    create_time: 1773273000,
+    create_time_text: '2026-03-11 18:30:00',
+  },
+  {
+    id: 'shop_order:pending_confirm:208',
+    message_key: 'shop_order:pending_confirm:208',
+    source_type: 'shop_order',
+    source_id: 208,
+    category: 'order',
+    type: 'shop_order',
+    scene: 'pending_confirm',
+    title: '订单已发货',
+    content: '订单 SO202603120208 已发货，请及时查收并确认收货。',
+    action_path: '/order/208',
+    biz_type: 'shop_order',
+    biz_id: 208,
+    is_broadcast: 0,
+    create_time: 1773267600,
+    create_time_text: '2026-03-11 17:00:00',
+  },
+  {
+    id: 'manual:401',
+    message_key: 'manual:401',
+    source_type: 'manual',
+    source_id: 401,
+    category: 'activity',
+    type: 'activity',
+    scene: 'dynamic',
+    title: '问卷奖励已开放',
+    content: '本周问卷已上线，完成后可领取积分奖励。',
+    action_path: '/pages/questionnaire/index',
+    biz_type: 'questionnaire',
+    biz_id: 401,
+    is_broadcast: 1,
+    create_time: 1773262200,
+    create_time_text: '2026-03-11 15:30:00',
+  },
+  {
+    id: 'recharge:approved:55',
+    message_key: 'recharge:approved:55',
+    source_type: 'recharge_order',
+    source_id: 55,
+    category: 'finance',
+    type: 'recharge',
+    scene: 'approved',
+    title: '充值到账',
+    content: '充值订单 R202603120055 已审核通过，资金已到账。',
+    action_path: '/recharge-order/55',
+    biz_type: 'recharge_order',
+    biz_id: 55,
+    is_broadcast: 0,
+    create_time: 1773256800,
+    create_time_text: '2026-03-11 14:00:00',
+  },
+  {
+    id: 'withdraw:pending_review:87',
+    message_key: 'withdraw:pending_review:87',
+    source_type: 'user_withdraw',
+    source_id: 87,
+    category: 'finance',
+    type: 'withdraw',
+    scene: 'pending_review',
+    title: '提现审核中',
+    content: '提现申请 W202603120087 正在审核，请耐心等待。',
+    action_path: '/withdraw-order/87',
+    biz_type: 'user_withdraw',
+    biz_id: 87,
+    is_broadcast: 0,
+    create_time: 1773251400,
+    create_time_text: '2026-03-11 12:30:00',
+  },
+];
+
+const mockReadMessageKeys = new Set<string>(['announcement:101']);
+
+function buildMessageSummary(messages: Array<{ category: MessageCategory; is_read: boolean | number }>): MessageSummary {
+  const summary: MessageSummary = {
+    system: 0,
+    order: 0,
+    activity: 0,
+    finance: 0,
+    total: 0,
+  };
+
+  messages.forEach((message) => {
+    if (message.is_read) {
+      return;
+    }
+
+    summary[message.category] += 1;
+    summary.total += 1;
+  });
+
+  return summary;
+}
+
+function buildMockMessageFeed() {
+  return mockMessageItems.map((item) => ({
+    ...item,
+    is_read: mockReadMessageKeys.has(item.message_key),
+  }));
+}
+
+function filterMockMessages(
+  messages: ReturnType<typeof buildMockMessageFeed>,
+  scope: MessageScope,
+  category: MessageCategory | '',
+) {
+  return messages.filter((message) => {
+    if (scope === 'unread' && message.is_read) {
+      return false;
+    }
+
+    if (category && message.category !== category) {
+      return false;
+    }
+
+    return true;
+  });
+}
 
 export const mockHandlers: MockHandlerMap = {
   'GET /api/Announcement/index': ({ url }) => {
@@ -94,6 +274,111 @@ export const mockHandlers: MockHandlerMap = {
     message: 'ok',
     data: { list: [] },
   }),
+
+  'GET /api/messageCenter/list': ({ url }) => {
+    const scopeParam = url.searchParams.get('scope');
+    const categoryParam = url.searchParams.get('category');
+    const page = Math.max(1, Number(url.searchParams.get('page') || '1'));
+    const limit = Math.min(50, Math.max(1, Number(url.searchParams.get('limit') || '20')));
+    const scope: MessageScope = scopeParam === 'unread' ? 'unread' : 'all';
+    const category: MessageCategory | '' =
+      categoryParam === 'system' ||
+      categoryParam === 'order' ||
+      categoryParam === 'activity' ||
+      categoryParam === 'finance'
+        ? categoryParam
+        : '';
+
+    const feed = buildMockMessageFeed();
+    const summary = buildMessageSummary(feed);
+    const filtered = filterMockMessages(feed, scope, category);
+    const offset = (page - 1) * limit;
+
+    return {
+      code: 1,
+      message: 'ok',
+      data: {
+        list: filtered.slice(offset, offset + limit),
+        total: filtered.length,
+        page,
+        limit,
+        has_more: offset + limit < filtered.length,
+        summary,
+      },
+    };
+  },
+
+  'GET /api/messageCenter/detail': ({ url }) => {
+    const messageKey = readValue(url.searchParams.get('message_key'));
+    const feed = buildMockMessageFeed();
+    const message = feed.find((item) => item.message_key === messageKey);
+
+    if (!message) {
+      return {
+        code: 0,
+        message: '消息不存在',
+        data: null,
+      };
+    }
+
+    mockReadMessageKeys.add(message.message_key);
+
+    return {
+      code: 1,
+      message: 'ok',
+      data: {
+        ...message,
+        is_read: true,
+      },
+    };
+  },
+
+  'GET /api/messageCenter/unreadCount': () => ({
+    code: 1,
+    message: 'ok',
+    data: buildMessageSummary(buildMockMessageFeed()),
+  }),
+
+  'POST /api/messageCenter/markRead': ({ body }) => {
+    const payload = asRecord(body);
+    const messageKey = readValue(payload.message_key);
+    const category = readValue(payload.category);
+    const feed = buildMockMessageFeed();
+
+    let count = 0;
+
+    if (messageKey) {
+      const target = feed.find((item) => item.message_key === messageKey);
+      if (target && !mockReadMessageKeys.has(target.message_key)) {
+        mockReadMessageKeys.add(target.message_key);
+        count = 1;
+      }
+    } else {
+      feed.forEach((message) => {
+        if (message.is_read) {
+          return;
+        }
+
+        if (category && message.category !== category) {
+          return;
+        }
+
+        if (!mockReadMessageKeys.has(message.message_key)) {
+          mockReadMessageKeys.add(message.message_key);
+          count += 1;
+        }
+      });
+    }
+
+    return {
+      code: 1,
+      message: 'ok',
+      data: {
+        count,
+        summary: buildMessageSummary(buildMockMessageFeed()),
+      },
+    };
+  },
 
   // ─── 消息列表 ───
   'GET /messages': () => ({

@@ -223,9 +223,9 @@ export const PaymentResultPage = () => {
   };
 
   const renderHeader = (title: string) => (
-    <div className="relative z-40 shrink-0 border-b border-border-light bg-white">
+    <div className="relative z-40 shrink-0 border-b border-border-light bg-bg-card">
       {offline ? (
-        <div className="flex items-center justify-between bg-red-50 px-4 py-2 text-sm text-primary-start">
+        <div className="flex items-center justify-between bg-primary-start/10 px-4 py-2 text-sm text-primary-start">
           <div className="flex items-center">
             <WifiOff size={14} className="mr-2" />
             <span>网络不稳定，请检查网络设置</span>
@@ -233,7 +233,7 @@ export const PaymentResultPage = () => {
           <button
             type="button"
             onClick={() => setOffline(false)}
-            className="rounded bg-white px-2 py-1 font-medium shadow-sm"
+            className="rounded border border-border-light bg-bg-card px-2 py-1 font-medium text-text-main shadow-sm"
           >
             刷新
           </button>
@@ -270,12 +270,12 @@ export const PaymentResultPage = () => {
         title: '支付状态已提交',
         description: '请等待系统确认，支付成功后可在资产明细查看订单。',
         icon: (
-          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#fff3d8]">
-            <Clock3 size={40} className="text-[#f59e0b]" />
+          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-amber-50 dark:bg-amber-500/12">
+            <Clock3 size={40} className="text-amber-500 dark:text-amber-300" />
           </div>
         ),
-        accentClass: 'text-[#f59e0b]',
-        amountClass: 'text-[#e50019]',
+        accentClass: 'text-amber-500 dark:text-amber-300',
+        amountClass: 'text-primary-start',
         primaryText: '查看充值记录',
         primaryAction: () => goTo(getBillingPath('recharge')),
         secondaryText: '返回专项金',
@@ -285,12 +285,12 @@ export const PaymentResultPage = () => {
         title: '支付成功',
         description: '订单已提交成功，到账后可在资产明细中查看。',
         icon: (
-          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#ecfdf3]">
-            <CheckCircle2 size={40} className="text-[#16a34a]" />
+          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-50 dark:bg-emerald-500/12">
+            <CheckCircle2 size={40} className="text-emerald-600 dark:text-emerald-300" />
           </div>
         ),
-        accentClass: 'text-[#16a34a]',
-        amountClass: 'text-[#e50019]',
+        accentClass: 'text-emerald-600 dark:text-emerald-300',
+        amountClass: 'text-primary-start',
         primaryText: '查看充值记录',
         primaryAction: () => goTo(getBillingPath('recharge')),
         secondaryText: '继续充值',
@@ -300,12 +300,12 @@ export const PaymentResultPage = () => {
         title: '支付未完成',
         description: orderInfo.errorMessage,
         icon: (
-          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#fef2f2]">
+          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary-start/10">
             <AlertCircle size={40} className="text-primary-start" />
           </div>
         ),
         accentClass: 'text-primary-start',
-        amountClass: 'text-[#111827]',
+        amountClass: 'text-text-main',
         primaryText: '重新发起支付',
         primaryAction: () => goTo('recharge'),
         secondaryText: '联系客服',
@@ -316,28 +316,28 @@ export const PaymentResultPage = () => {
     const meta = statusMeta[orderInfo.status];
 
     return (
-      <div className="flex flex-1 flex-col bg-[#f4f4f5]">
+      <div className="flex flex-1 flex-col bg-bg-base">
         {renderHeader('支付结果')}
         <div className="flex-1 overflow-y-auto px-4 pb-10 pt-10">
-          <div className="rounded-[28px] bg-white px-5 pb-6 pt-8 shadow-[0_18px_44px_rgba(15,23,42,0.06)]">
+          <div className="rounded-[28px] border border-border-light bg-bg-card px-5 pb-6 pt-8 shadow-[0_18px_44px_rgba(15,23,42,0.06)] dark:shadow-[0_18px_44px_rgba(0,0,0,0.22)]">
             <div className="flex flex-col items-center text-center">
               {polling ? (
-                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#f0f4ff]">
-                  <Loader2 size={40} className="animate-spin text-[#6366f1]" />
+                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-info/10 dark:bg-info/20">
+                  <Loader2 size={40} className="animate-spin text-info" />
                 </div>
               ) : (
                 meta.icon
               )}
-              <h2 className={`mt-5 text-[28px] font-semibold ${polling ? 'text-[#6b7280]' : meta.accentClass}`}>
+              <h2 className={`mt-5 text-[28px] font-semibold ${polling ? 'text-text-sub' : meta.accentClass}`}>
                 {polling ? '查询中...' : meta.title}
               </h2>
-              <p className="mt-3 max-w-[280px] text-[14px] leading-6 text-[#6b7280]">{meta.description}</p>
+              <p className="mt-3 max-w-[280px] text-[14px] leading-6 text-text-sub">{meta.description}</p>
             </div>
 
-            <div className="mt-8 rounded-[22px] bg-[#f8fafc] px-5 py-5">
-              <div className="text-center text-[14px] text-[#6b7280]">支付金额</div>
+            <div className="mt-8 rounded-[22px] border border-border-light bg-bg-base px-5 py-5">
+              <div className="text-center text-[14px] text-text-sub">支付金额</div>
               <div className={`mt-3 flex items-end justify-center ${meta.amountClass}`}>
-                <span className="mr-1 pb-1 text-[22px] font-semibold text-[#111827]">¥</span>
+                <span className="mr-1 pb-1 text-[22px] font-semibold text-text-main">¥</span>
                 <span className="text-[44px] font-bold leading-none">
                   {Number.isFinite(orderInfo.amount) ? Math.round(orderInfo.amount).toString() : '0'}
                 </span>
@@ -346,16 +346,16 @@ export const PaymentResultPage = () => {
               <button
                 type="button"
                 onClick={() => handleCopy(orderInfo.orderNo, '已复制订单号')}
-                className="mx-auto mt-4 flex items-center text-[13px] text-[#9ca3af] active:opacity-70"
+                className="mx-auto mt-4 flex items-center text-[13px] text-text-aux active:opacity-70"
               >
                 <span>订单号：{orderInfo.orderNo || '--'}</span>
                 <Copy size={13} className="ml-1.5" />
               </button>
             </div>
 
-            <div className="mt-6 rounded-[20px] border border-[#e5e7eb] bg-[#f9fafb] px-4 py-4 text-[13px] leading-6 text-[#6b7280]">
-              <div className="mb-1 flex items-center text-[14px] font-medium text-[#374151]">
-                <ShieldCheck size={14} className="mr-2 text-[#9ca3af]" />
+            <div className="mt-6 rounded-[20px] border border-border-light bg-bg-base px-4 py-4 text-[13px] leading-6 text-text-sub">
+              <div className="mb-1 flex items-center text-[14px] font-medium text-text-main">
+                <ShieldCheck size={14} className="mr-2 text-text-aux" />
                 支付提示
               </div>
               <div>支付成功后，返回 APP 查看订单。</div>
@@ -374,7 +374,7 @@ export const PaymentResultPage = () => {
               <button
                 type="button"
                 onClick={meta.secondaryAction}
-                className="flex h-12 w-full items-center justify-center rounded-full border border-[#d1d5db] bg-white text-[16px] font-medium text-[#374151] active:bg-[#f9fafb]"
+                className="flex h-12 w-full items-center justify-center rounded-full border border-border-light bg-bg-card text-[16px] font-medium text-text-main active:bg-bg-hover"
               >
                 {meta.secondaryText}
               </button>
@@ -387,14 +387,14 @@ export const PaymentResultPage = () => {
 
   const renderMallPending = () => (
     <div className="flex flex-col items-center px-6 pt-12">
-      <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-[#fff3d8]">
+      <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-amber-50 dark:bg-amber-500/12">
         {polling ? (
-          <Loader2 size={48} className="animate-spin text-[#f59e0b]" />
+          <Loader2 size={48} className="animate-spin text-amber-500 dark:text-amber-300" />
         ) : (
-          <Clock3 size={48} className="text-[#f59e0b]" />
+          <Clock3 size={48} className="text-amber-500 dark:text-amber-300" />
         )}
       </div>
-      <h2 className="mb-2 text-4xl font-bold text-[#f59e0b]">{polling ? '查询中...' : '待支付'}</h2>
+      <h2 className="mb-2 text-4xl font-bold text-amber-500 dark:text-amber-300">{polling ? '查询中...' : '待支付'}</h2>
       <p className="mb-6 text-base text-text-sub">订单尚未支付，请前往收银台完成支付。</p>
 
       <div className="mb-10 flex items-center text-base text-text-sub">
@@ -428,7 +428,7 @@ export const PaymentResultPage = () => {
 
   const renderMallSuccess = (info: MallResultInfo) => (
     <div className="flex flex-col items-center px-6 pt-12">
-      <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-[#00C853]/10">
+      <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-success/10 dark:bg-success/20">
         <CheckCircle2 size={48} className="text-success" />
       </div>
       <h2 className="mb-2 text-4xl font-bold text-text-main">支付成功</h2>
@@ -531,7 +531,7 @@ export const PaymentResultPage = () => {
   }
 
   return (
-    <div className="relative flex h-full flex-1 flex-col overflow-hidden bg-white">
+    <div className="relative flex h-full flex-1 flex-col overflow-hidden bg-bg-base">
       {renderHeader('支付结果')}
       <div className="no-scrollbar flex-1 overflow-y-auto">
         {orderInfo.status === 'pending'

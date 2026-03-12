@@ -58,6 +58,38 @@ function formatCurrencyAmount(value: number) {
   });
 }
 
+function parseZoneAmount(zoneName?: string | number | null) {
+  const rawValue = `${zoneName ?? ''}`.trim();
+  if (!rawValue) return 0;
+
+  const kMatch = rawValue.toUpperCase().match(/(\d+(?:\.\d+)?)\s*K/);
+  if (kMatch) {
+    return roundCurrency(Number.parseFloat(kMatch[1]) * 1000);
+  }
+
+  const numericMatch = rawValue.match(/(\d+(?:\.\d+)?)/);
+  return numericMatch ? roundCurrency(Number.parseFloat(numericMatch[1])) : 0;
+}
+
+function resolveZoneFreezeUnitAmount(zone?: Pick<CollectionZone, 'zone_name' | 'max_price'> | null) {
+  const zoneAmount = parseZoneAmount(zone?.zone_name);
+  if (zoneAmount > 0) {
+    return zoneAmount;
+  }
+
+  return roundCurrency(Number(zone?.max_price ?? 0));
+}
+
+function formatZoneAmountLabel(zone?: Pick<CollectionZone, 'zone_name' | 'max_price'> | null) {
+  const zoneAmount = resolveZoneFreezeUnitAmount(zone);
+  if (zoneAmount > 0) {
+    return formatCurrencyAmount(zoneAmount);
+  }
+
+  const rawValue = `${zone?.zone_name ?? ''}`.trim();
+  return rawValue || '--';
+}
+
 function parseMixedPaymentRatio(ratio?: string) {
   const match = `${ratio ?? ''}`.trim().match(/^(\d+)\s*:\s*(\d+)$/);
   const balanceWeight = Math.max(0, Number.parseInt(match?.[1] ?? '9', 10));
@@ -250,8 +282,8 @@ export const PreOrderPage = () => {
   const extraHashrateError = config ? numExtraHashrate > config.max_extra_hashrate : false;
 
   // 本地价格计算
-  const unitPrice = selectedZone ? selectedZone.max_price : 0;
-  const subtotal = unitPrice * numQuantity;
+  const unitPrice = resolveZoneFreezeUnitAmount(selectedZone);
+  const estimatedFreezeAmount = roundCurrency(unitPrice * numQuantity);
   const hashrateCost = config ? config.base_hashrate_cost * numQuantity + numExtraHashrate : 0;
   const mixedPaymentInfo = detailData?.mixed_payment;
   const supportsMixedPayment =
@@ -264,7 +296,7 @@ export const PreOrderPage = () => {
   const balanceAvailable = Number(userInfo?.balance_available ?? 0);
   const pendingActivationGold = Number(userInfo?.pending_activation_gold ?? 0);
   const fundingPlan = resolveReservationFundingPlan({
-    totalAmount: subtotal,
+    totalAmount: estimatedFreezeAmount,
     balanceAvailable,
     pendingActivationGold,
     canUseMixedPayment:
@@ -288,6 +320,17 @@ export const PreOrderPage = () => {
       ? `当前申购数量已超过混合支付剩余次数 ${mixedPaymentRemainingTimes} 次，本次按专项金支付。`
       : supportsMixedPayment && mixedPaymentInfo?.available === false && mixedPaymentInfo?.reason === 'daily_limit_reached'
         ? '今日混合支付次数已用完，本次按专项金支付。'
+      : '';
+
+  const estimatedFreezeSummary = fundingPlan.useMixedPayment
+    ? `\u9884\u8ba1\u51bb\u7ed3\uff1a\u4e13\u9879\u91d1 \u00a5${formatCurrencyAmount(fundingPlan.balanceAmount)} + \u5f85\u6fc0\u6d3b\u786e\u6743\u91d1 \u00a5${formatCurrencyAmount(fundingPlan.pendingAmount)}`
+    : fundingPlan.requiresPendingActivationGold
+      ? `\u9884\u8ba1\u51bb\u7ed3\uff1a\u4e13\u9879\u91d1 \u00a5${formatCurrencyAmount(fundingPlan.balanceAmount)} + \u5f85\u6fc0\u6d3b\u786e\u6743\u91d1 \u00a5${formatCurrencyAmount(fundingPlan.pendingRequiredAmount)}`
+      : `\u9884\u8ba1\u51bb\u7ed3\uff1a\u4e13\u9879\u91d1 \u00a5${formatCurrencyAmount(estimatedFreezeAmount)}`;
+  const estimatedFreezeNotice = exceedsMixedPaymentTimes
+    ? `\u7533\u8d2d\u6570\u91cf\u8d85\u8fc7\u6df7\u5408\u652f\u4ed8\u5269\u4f59\u6b21\u6570 ${mixedPaymentRemainingTimes} \u6b21\uff0c\u5df2\u5207\u6362\u4e13\u9879\u91d1\u652f\u4ed8\u3002`
+    : fundingPlan.fallbackToBalanceOnly
+      ? '\u5f85\u6fc0\u6d3b\u786e\u6743\u91d1\u4e0d\u8db3\uff0c\u5df2\u5207\u6362\u4e13\u9879\u91d1\u652f\u4ed8\u3002'
       : '';
 
   const canSubmit =
@@ -450,7 +493,7 @@ export const PreOrderPage = () => {
                 <WheelPicker
                   items={zones.map((zone) => ({
                     value: zone.zone_id,
-                    label: `${Math.floor(Number(zone.zone_name))}${zone.stock <= 0 ? ' (售罄)' : ''}`,
+                    label: `${formatZoneAmountLabel(zone)}${zone.stock <= 0 ? ' (售罄)' : ''}`,
                     disabled: zone.stock <= 0,
                   }))}
                   value={selectedZone?.zone_id}
@@ -535,15 +578,9 @@ export const PreOrderPage = () => {
                 </div>
               </div>
 
-              {supportsMixedPayment ? (
+              {selectedZone ? (
                 <div className="mt-3 rounded-2xl bg-[#FFF7F4] px-3 py-2 text-xs text-text-sub dark:bg-white/[0.05] dark:text-white/65">
-                  {fundingPlan.useMixedPayment
-                    ? `预计冻结：专项金 ¥${formatCurrencyAmount(fundingPlan.balanceAmount)} + 待激活确权金 ¥${formatCurrencyAmount(fundingPlan.pendingAmount)}`
-                    : fundingPlan.fallbackToBalanceOnly || exceedsMixedPaymentTimes
-                      ? exceedsMixedPaymentTimes
-                        ? `申购数量超过混合支付剩余次数 ${mixedPaymentRemainingTimes} 次，已切换专项金支付。`
-                        : '待激活确权金不足，已切换专项金支付。'
-                      : '当前按专项金校验冻结金额。'}
+                  {estimatedFreezeNotice ? `${estimatedFreezeNotice} ${estimatedFreezeSummary}` : estimatedFreezeSummary}
                 </div>
               ) : null}
             </div>
@@ -618,7 +655,8 @@ export const PreOrderPage = () => {
           setExtraHashrate={setExtraHashrate}
           maxQuantity={maxQuantity}
           config={config}
-          subtotal={subtotal}
+          estimatedFreezeAmount={estimatedFreezeAmount}
+          fundingPlan={fundingPlan}
           numQuantity={numQuantity}
           numExtraHashrate={numExtraHashrate}
           sessionId={sessionId}
@@ -664,7 +702,8 @@ interface PreviewSheetProps {
   setExtraHashrate: (v: number | string) => void;
   maxQuantity: number;
   config: CollectionDetailResponse['config'] | undefined;
-  subtotal: number;
+  estimatedFreezeAmount: number;
+  fundingPlan: ReturnType<typeof resolveReservationFundingPlan>;
   numQuantity: number;
   numExtraHashrate: number;
   sessionId: number;
@@ -685,7 +724,8 @@ const PreviewSheet: React.FC<PreviewSheetProps> = ({
   setExtraHashrate,
   maxQuantity,
   config,
-  subtotal,
+  estimatedFreezeAmount,
+  fundingPlan,
   numQuantity,
   numExtraHashrate,
   sessionId,
@@ -702,6 +742,7 @@ const PreviewSheet: React.FC<PreviewSheetProps> = ({
   const [isClosing, setIsClosing] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const { showToast } = useFeedback();
+  const mixedPaymentRatioText = previewData?.payment?.mixed_payment_ratio || detailData?.mixed_payment?.ratio || '9:1';
 
   // 数量/算力变更时重新预览
   const refreshPreview = useCallback(async () => {
@@ -898,7 +939,7 @@ const PreviewSheet: React.FC<PreviewSheetProps> = ({
             <Card className="p-4 border border-border-light/50">
               <div className="flex justify-between items-center mb-3">
                 <span className="text-base text-text-sub">分区</span>
-                <span className="text-xl font-bold text-primary-start">¥{Math.floor(Number(selectedZone?.zone_name))}</span>
+                <span className="text-xl font-bold text-primary-start">¥{formatZoneAmountLabel(selectedZone)}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-base text-text-sub">数量</span>
@@ -928,23 +969,23 @@ const PreviewSheet: React.FC<PreviewSheetProps> = ({
               <div className="flex justify-between items-center">
                 <span className="text-base text-text-sub">冻结金额</span>
                 <span className="text-2xl font-bold text-primary-start">
-                  ¥{(previewData?.total_freeze_amount ?? subtotal).toLocaleString('zh-CN', { useGrouping: false })}
+                  ¥{formatCurrencyAmount(estimatedFreezeAmount)}
                 </span>
               </div>
               {/* 混合支付时显示明细 */}
-              {previewData?.payment?.is_mixed && (
+              {fundingPlan.useMixedPayment && (
                 <div className="mt-2 pt-2 border-t border-border-light/50 space-y-1.5">
                   <div className="flex justify-between text-sm">
                     <span className="text-text-sub">专项金</span>
-                    <span className="text-text-main font-medium">¥{previewData.payment.balance_amount.toLocaleString('zh-CN', { useGrouping: false })}</span>
+                    <span className="text-text-main font-medium">¥{formatCurrencyAmount(fundingPlan.balanceAmount)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-text-sub">待激活确权金</span>
-                    <span className="text-text-main font-medium">¥{previewData.payment.pending_activation_gold_amount.toLocaleString('zh-CN', { useGrouping: false })}</span>
+                    <span className="text-text-main font-medium">¥{formatCurrencyAmount(fundingPlan.pendingAmount)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-text-sub">支付方式</span>
-                    <span className="text-text-main font-medium">混合支付（{previewData.payment.mixed_payment_ratio}）</span>
+                    <span className="text-text-main font-medium">混合支付（{mixedPaymentRatioText}）</span>
                   </div>
                 </div>
               )}

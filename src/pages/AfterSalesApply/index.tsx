@@ -253,9 +253,9 @@ export const AfterSalesApplyPage = () => {
     if (!canApplyAfterSale) {
       return (
         <div className="p-4">
-          <Card className="overflow-hidden rounded-[28px] border border-[#e8edf3] p-5">
+          <Card className="overflow-hidden rounded-[28px] border border-border-light p-5">
             <div className="flex items-start gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#eef4ff] text-[#315efb]">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-info/10 text-info">
                 <ShieldCheck size={22} />
               </div>
               <div className="min-w-0 flex-1">
@@ -298,7 +298,7 @@ export const AfterSalesApplyPage = () => {
           </div>
         </section>
 
-        <Card className="overflow-hidden rounded-[28px] border border-[#e8edf3] p-4 shadow-[0_14px_36px_rgba(16,24,40,0.06)]">
+        <Card className="overflow-hidden rounded-[28px] border border-border-light p-4 shadow-[0_14px_36px_rgba(16,24,40,0.06)] dark:shadow-[0_14px_36px_rgba(0,0,0,0.18)]">
           <div className="mb-3 flex items-center justify-between">
             <div>
               <div className="text-sm font-semibold text-text-main">订单商品</div>
@@ -307,18 +307,18 @@ export const AfterSalesApplyPage = () => {
             <button
               type="button"
               onClick={() => navigate(`/order/detail/${numericOrderId}`)}
-              className="inline-flex items-center gap-1 text-sm font-medium text-[#315efb]"
+              className="inline-flex items-center gap-1 text-sm font-medium text-info"
             >
               订单详情
               <ChevronRight size={16} />
             </button>
           </div>
-          <div className="rounded-[24px] bg-[#f8fafc] p-3">
+          <div className="rounded-[24px] border border-border-light bg-bg-base p-3">
             {order.items.map((item) => {
               const imageUrl = item.product_thumbnail ? resolveShopProductImageUrl(item.product_thumbnail) : '';
               return (
                 <div key={item.id} className="flex items-center gap-3 py-2 first:pt-0 last:pb-0">
-                  <div className="h-16 w-16 overflow-hidden rounded-2xl bg-white">
+                  <div className="h-16 w-16 overflow-hidden rounded-2xl bg-bg-card">
                     {imageUrl ? (
                       <img
                         src={imageUrl}
@@ -338,7 +338,7 @@ export const AfterSalesApplyPage = () => {
           </div>
         </Card>
 
-        <Card className="rounded-[28px] border border-[#e8edf3] p-4 shadow-[0_14px_36px_rgba(16,24,40,0.06)]">
+        <Card className="rounded-[28px] border border-border-light p-4 shadow-[0_14px_36px_rgba(16,24,40,0.06)] dark:shadow-[0_14px_36px_rgba(0,0,0,0.18)]">
           <div className="text-sm font-semibold text-text-main">售后类型</div>
           <div className="mt-3 grid gap-3">
             {REFUND_TYPES.map((item) => {
@@ -350,8 +350,8 @@ export const AfterSalesApplyPage = () => {
                   onClick={() => setRefundType(item.key)}
                   className={`rounded-[24px] border px-4 py-4 text-left transition ${
                     active
-                      ? 'border-[#101826] bg-[#101826] text-white shadow-[0_10px_26px_rgba(16,24,38,0.18)]'
-                      : 'border-[#e8edf3] bg-[#fbfcfd] text-text-main'
+                      ? 'border-primary-start bg-primary-start text-white shadow-[0_10px_26px_rgba(233,59,59,0.18)]'
+                      : 'border-border-light bg-bg-base text-text-main'
                   }`}
                 >
                   <div className="flex items-center justify-between gap-3">
@@ -363,10 +363,10 @@ export const AfterSalesApplyPage = () => {
                     </div>
                     <div
                       className={`flex h-5 w-5 items-center justify-center rounded-full border ${
-                        active ? 'border-white bg-white' : 'border-[#cad4e0] bg-white'
+                        active ? 'border-white bg-white' : 'border-border-main bg-bg-card'
                       }`}
                     >
-                      {active ? <div className="h-2.5 w-2.5 rounded-full bg-[#101826]" /> : null}
+                      {active ? <div className="h-2.5 w-2.5 rounded-full bg-primary-start" /> : null}
                     </div>
                   </div>
                 </button>
@@ -375,7 +375,7 @@ export const AfterSalesApplyPage = () => {
           </div>
         </Card>
 
-        <Card className="rounded-[28px] border border-[#e8edf3] p-4 shadow-[0_14px_36px_rgba(16,24,40,0.06)]">
+        <Card className="rounded-[28px] border border-border-light p-4 shadow-[0_14px_36px_rgba(16,24,40,0.06)] dark:shadow-[0_14px_36px_rgba(0,0,0,0.18)]">
           <div className="text-sm font-semibold text-text-main">售后原因</div>
           <div className="mt-3 flex flex-wrap gap-2">
             {REASON_OPTIONS.map((item) => {
@@ -387,8 +387,8 @@ export const AfterSalesApplyPage = () => {
                   onClick={() => setReason(item)}
                   className={`rounded-full px-4 py-2 text-sm transition ${
                     active
-                      ? 'bg-[#101826] text-white shadow-[0_8px_20px_rgba(16,24,38,0.16)]'
-                      : 'bg-[#f3f6f9] text-text-sub'
+                      ? 'bg-primary-start text-white shadow-[0_8px_20px_rgba(233,59,59,0.16)]'
+                      : 'bg-bg-base text-text-sub'
                   }`}
                 >
                   {item}
@@ -406,7 +406,7 @@ export const AfterSalesApplyPage = () => {
               value={description}
               onChange={(event) => setDescription(event.target.value.slice(0, 200))}
               placeholder="请详细说明商品问题、期望处理方式、收到货的状态等，方便平台更快审核。"
-              className="h-32 w-full resize-none rounded-[24px] border border-[#e8edf3] bg-[#fbfcfd] px-4 py-4 text-sm leading-6 text-text-main outline-none placeholder:text-text-aux"
+              className="h-32 w-full resize-none rounded-[24px] border border-border-light bg-bg-base px-4 py-4 text-sm leading-6 text-text-main outline-none placeholder:text-text-aux"
             />
           </div>
 
@@ -419,7 +419,7 @@ export const AfterSalesApplyPage = () => {
               {images.map((image) => (
                 <div
                   key={image.id}
-                  className="relative aspect-square overflow-hidden rounded-[22px] border border-[#e8edf3] bg-[#f3f6f9]"
+                  className="relative aspect-square overflow-hidden rounded-[22px] border border-border-light bg-bg-base"
                 >
                   <img src={image.url} alt="售后凭证" className="h-full w-full object-cover" />
                   <button
@@ -444,7 +444,7 @@ export const AfterSalesApplyPage = () => {
                       <button
                         type="button"
                         onClick={() => retryUpload(image.id)}
-                        className="mt-2 rounded-full bg-white px-3 py-1 text-xs text-[#101826]"
+                        className="mt-2 rounded-full bg-bg-card px-3 py-1 text-xs text-text-main"
                       >
                         重试
                       </button>
@@ -457,7 +457,7 @@ export const AfterSalesApplyPage = () => {
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="flex aspect-square flex-col items-center justify-center rounded-[22px] border border-dashed border-[#cad4e0] bg-[#fbfcfd] text-text-sub"
+                  className="flex aspect-square flex-col items-center justify-center rounded-[22px] border border-dashed border-border-main bg-bg-base text-text-sub"
                 >
                   <ImagePlus size={22} />
                   <span className="mt-2 text-xs">上传图片</span>
@@ -476,8 +476,8 @@ export const AfterSalesApplyPage = () => {
           </div>
         </Card>
 
-        <section className="rounded-[28px] border border-[#eee5cf] bg-[#fff8e8] px-4 py-4 text-sm leading-6 text-[#765d20]">
-          <div className="mb-2 flex items-center gap-2 font-semibold text-[#5f4816]">
+        <section className="rounded-[28px] border border-amber-200 bg-amber-50 px-4 py-4 text-sm leading-6 text-amber-800 dark:border-amber-500/25 dark:bg-amber-500/12 dark:text-amber-200">
+          <div className="mb-2 flex items-center gap-2 font-semibold text-amber-900 dark:text-amber-100">
             <Camera size={16} />
             提交前建议
           </div>
@@ -488,10 +488,10 @@ export const AfterSalesApplyPage = () => {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#f4f6f8]">
-      <PageHeader title="申请售后" onBack={() => goBackOr('order')} className="border-b border-white/60" />
+    <div className="flex min-h-screen flex-col bg-bg-base">
+      <PageHeader title="申请售后" onBack={() => goBackOr('order')} className="border-b border-border-light" />
       <div className="flex-1 overflow-y-auto">{renderContent()}</div>
-      <div className="fixed bottom-0 left-0 right-0 border-t border-[#e8edf3] bg-white/90 px-4 py-3 backdrop-blur-md pb-safe">
+      <div className="fixed bottom-0 left-0 right-0 border-t border-border-light bg-bg-card px-4 py-3 backdrop-blur-md pb-safe">
         <Button loading={submitting} onClick={handleSubmit} disabled={!order}>
           提交售后申请
         </Button>

@@ -120,15 +120,16 @@ export interface SubmitOrderResult {
 export interface SubmitWithdrawPayload {
   amount: number;
   payPassword: string;
-  paymentAccountId: number;
+  paymentAccountId?: number;
+  paymentId?: number;
   remark?: string;
 }
 
 export interface SubmitWithdrawResult {
-  actualAmount: number;
-  fee: number;
-  status: number;
-  withdrawId: number;
+  actualAmount?: number;
+  fee?: number;
+  status?: number;
+  withdrawId?: number;
 }
 
 export interface GetMyOrderListParams {
@@ -336,33 +337,41 @@ export const rechargeApi = {
     payload: SubmitWithdrawPayload,
     options: RechargeRequestOptions = {},
   ): Promise<SubmitWithdrawResult> {
-    const response = await http.post<
-      SubmitWithdrawRaw,
-      {
-        amount: number;
-        pay_password: string;
-        payment_account_id: number;
-        remark?: string;
-      }
-    >(
+    const paymentAccountId = payload.paymentAccountId ?? payload.paymentId;
+    if (!paymentAccountId) {
+      throw new Error('请选择收款账户');
+    }
+
+    const formData = new FormData();
+    formData.append('payment_account_id', String(paymentAccountId));
+    formData.append('amount', String(payload.amount));
+
+    const payPassword = payload.payPassword.trim();
+    if (payPassword) {
+      formData.append('pay_password', payPassword);
+    }
+
+    const remark = payload.remark?.trim();
+    if (remark) {
+      formData.append('remark', remark);
+    }
+
+    const response = await http.post<SubmitWithdrawRaw | null, FormData>(
       '/api/Recharge/submitWithdraw',
-      {
-        amount: payload.amount,
-        pay_password: payload.payPassword,
-        payment_account_id: payload.paymentAccountId,
-        remark: payload.remark?.trim() || undefined,
-      },
+      formData,
       {
         headers: createApiHeaders(options),
         signal: options.signal,
+        useMock: false,
       },
     );
 
     return {
-      actualAmount: readNumber(response.actual_amount),
-      fee: readNumber(response.fee),
-      status: readNumber(response.status),
-      withdrawId: readNumber(response.withdraw_id),
+      actualAmount:
+        response?.actual_amount == null ? undefined : readNumber(response.actual_amount),
+      fee: response?.fee == null ? undefined : readNumber(response.fee),
+      status: response?.status == null ? undefined : readNumber(response.status),
+      withdrawId: response?.withdraw_id == null ? undefined : readNumber(response.withdraw_id),
     };
   },
 

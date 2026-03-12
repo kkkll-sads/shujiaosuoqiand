@@ -399,7 +399,7 @@ export const StorePage = () => {
               </div>
               <button
                 type="button"
-                className="relative z-10 rounded-full bg-white px-3 py-1.5 text-sm font-bold text-primary-start shadow-sm"
+                className="relative z-10 rounded-full border border-white/20 bg-bg-card px-3 py-1.5 text-sm font-bold text-primary-start shadow-sm dark:bg-black/20 dark:text-white"
                 onClick={() => goTo('category')}
               >
                 去逛逛
@@ -423,7 +423,7 @@ export const StorePage = () => {
           ) : (
             <div className="flex items-center rounded-xl border border-border-light bg-bg-card p-3 shadow-soft">
               <div className="flex flex-1 items-center border-r border-dashed border-border-light pr-3">
-                <div className="mr-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-red-50 text-primary-start">
+                <div className="mr-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-start/10 text-primary-start">
                   <Ticket size={22} />
                 </div>
                 <div>

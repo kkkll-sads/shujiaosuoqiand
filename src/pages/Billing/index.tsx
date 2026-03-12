@@ -785,21 +785,19 @@ export function BillingPage() {
                 (() => {
                   const accountLabel = formatAccountTypeLabel(item.accountType);
                   const tone = getAccountTone(item.accountType);
+                  const beforeValueText = formatMoney(item.beforeValue);
+                  const afterValueText = formatMoney(item.afterValue);
 
                   return (
                     <button
                       key={`${item.id}-${item.flowNo ?? item.createTime ?? index}`}
                       type="button"
                       onClick={() => setSelectedLog(item)}
-                      className={`flex w-full items-center justify-between px-4 py-3.5 text-left transition-colors active:bg-bg-base ${
+                      className={`flex w-full items-start justify-between gap-4 px-4 py-3.5 text-left transition-colors active:bg-bg-base ${
                         index < group.rows.length - 1 ? 'border-b border-border-light' : ''
                       }`}
                     >
-                      <div className="flex min-w-0 flex-1 items-center">
-                        <div className={`mr-3 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-sm font-semibold ${tone.iconClassName}`}>
-                          {accountLabel.slice(0, 1)}
-                        </div>
-                        <div className="min-w-0 flex-1">
+                      <div className="min-w-0 flex-1">
                           <div className="truncate text-sm font-medium text-text-main">
                             {formatBizTypeLabel(item.bizType)}
                           </div>
@@ -814,9 +812,22 @@ export function BillingPage() {
                               {accountLabel}
                             </span>
                           </div>
-                        </div>
+                          <div className="mt-3 grid grid-cols-2 gap-2">
+                            <div className="rounded-2xl border border-border-light bg-bg-base px-3 py-2">
+                              <div className="text-[11px] text-text-aux">变动前</div>
+                              <div className="mt-1 text-sm font-medium text-text-main">
+                                {beforeValueText}
+                              </div>
+                            </div>
+                            <div className="rounded-2xl border border-border-light bg-bg-base px-3 py-2">
+                              <div className="text-[11px] text-text-aux">变动后</div>
+                              <div className="mt-1 text-sm font-medium text-text-main">
+                                {afterValueText}
+                              </div>
+                            </div>
+                          </div>
                       </div>
-                      <div className="ml-3 flex shrink-0 items-center">
+                      <div className="flex shrink-0 items-center self-start pt-0.5">
                         <div className="mr-2 text-right">
                           <div className={`text-base font-semibold ${getAmountClassName(item.amount)}`}>
                             {formatSignedMoney(item.amount)}

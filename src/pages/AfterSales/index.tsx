@@ -24,20 +24,20 @@ const STATUS_META: Record<Exclude<AfterSaleTab, 'all'>, { label: string; icon: t
   processing: {
     label: '处理中',
     icon: Clock3,
-    color: 'text-amber-600',
-    bg: 'bg-amber-50 border-amber-100',
+    color: 'text-amber-600 dark:text-amber-300',
+    bg: 'bg-amber-50 border-amber-100 dark:bg-amber-500/12 dark:border-amber-500/25',
   },
   completed: {
     label: '已完成',
     icon: PackageCheck,
-    color: 'text-emerald-600',
-    bg: 'bg-emerald-50 border-emerald-100',
+    color: 'text-emerald-600 dark:text-emerald-300',
+    bg: 'bg-emerald-50 border-emerald-100 dark:bg-emerald-500/12 dark:border-emerald-500/25',
   },
   closed: {
     label: '已关闭',
     icon: Slash,
-    color: 'text-slate-500',
-    bg: 'bg-slate-100 border-slate-200',
+    color: 'text-slate-500 dark:text-slate-300',
+    bg: 'bg-slate-100 border-slate-200 dark:bg-slate-500/12 dark:border-slate-500/25',
   },
 };
 
@@ -155,7 +155,7 @@ export const AfterSalesPage = () => {
   ];
 
   return (
-    <div className="flex h-full flex-1 flex-col overflow-hidden bg-[#f6f7fb]">
+    <div className="flex h-full flex-1 flex-col overflow-hidden bg-bg-base">
       <PageHeader
         title="售后服务"
         onBack={goBack}
@@ -197,8 +197,8 @@ export const AfterSalesPage = () => {
                 onClick={() => setActiveTab(tab.key)}
                 className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium transition ${
                   active
-                    ? 'bg-[#111827] text-white shadow-sm'
-                    : 'bg-white text-text-sub shadow-[0_4px_16px_rgba(15,23,42,0.06)]'
+                    ? 'bg-primary-start text-white shadow-sm'
+                    : 'border border-border-light bg-bg-card text-text-sub shadow-[0_4px_16px_rgba(15,23,42,0.06)] dark:shadow-[0_4px_16px_rgba(0,0,0,0.16)]'
                 }`}
               >
                 {tab.label} {tab.count}
@@ -210,11 +210,11 @@ export const AfterSalesPage = () => {
         {request.loading ? (
           <div className="mt-4 space-y-3">
             {[1, 2, 3].map((item) => (
-              <div key={item} className="h-28 animate-pulse rounded-[24px] bg-white" />
+              <div key={item} className="h-28 animate-pulse rounded-[24px] bg-bg-card" />
             ))}
           </div>
         ) : request.error ? (
-          <div className="mt-6 rounded-[24px] bg-white p-4">
+          <div className="mt-6 rounded-[24px] border border-border-light bg-bg-card p-4">
             <ErrorState onRetry={() => void request.reload()} />
           </div>
         ) : filteredOrders.length === 0 ? (
@@ -236,8 +236,8 @@ export const AfterSalesPage = () => {
               return (
                 <div
                   key={order.id}
-                  className={`overflow-hidden rounded-[24px] border bg-white shadow-[0_10px_30px_rgba(15,23,42,0.06)] transition ${
-                    selected ? 'border-[#111827]' : 'border-transparent'
+                  className={`overflow-hidden rounded-[24px] border bg-bg-card shadow-[0_10px_30px_rgba(15,23,42,0.06)] transition dark:shadow-[0_10px_30px_rgba(0,0,0,0.16)] ${
+                    selected ? 'border-primary-start/40' : 'border-border-light'
                   }`}
                 >
                   <button
@@ -261,7 +261,7 @@ export const AfterSalesPage = () => {
                       <img
                         src={resolveShopProductImageUrl(firstItem?.product_thumbnail)}
                         alt={firstItem?.product_name || '商品图片'}
-                        className="h-16 w-16 rounded-2xl bg-[#f4f5f7] object-cover"
+                        className="h-16 w-16 rounded-2xl bg-bg-base object-cover"
                       />
                       <div className="min-w-0 flex-1">
                         <div className="line-clamp-2 text-sm text-text-main">{firstItem?.product_name || '商品信息待补充'}</div>
@@ -271,27 +271,27 @@ export const AfterSalesPage = () => {
                   </button>
 
                   {selected && (
-                    <div className="border-t border-[#eef0f3] bg-[#fbfcfe] px-4 py-4">
+                    <div className="border-t border-border-light bg-bg-base px-4 py-4">
                       <div className="grid grid-cols-2 gap-3 text-sm">
-                        <div className="rounded-2xl bg-white p-3">
+                        <div className="rounded-2xl border border-border-light bg-bg-card p-3">
                           <div className="text-xs text-text-aux">售后状态</div>
                           <div className="mt-2 font-medium text-text-main">{order.after_sale_status_text || statusMeta.label}</div>
                         </div>
-                        <div className="rounded-2xl bg-white p-3">
+                        <div className="rounded-2xl border border-border-light bg-bg-card p-3">
                           <div className="text-xs text-text-aux">售后原因</div>
                           <div className="mt-2 font-medium text-text-main">{afterSale?.reason || '-'}</div>
                         </div>
-                        <div className="col-span-2 rounded-2xl bg-white p-3">
+                        <div className="col-span-2 rounded-2xl border border-border-light bg-bg-card p-3">
                           <div className="text-xs text-text-aux">问题描述</div>
                           <div className="mt-2 whitespace-pre-wrap break-words text-text-main">
                             {afterSale?.description || '买家申请售后'}
                           </div>
                         </div>
-                        <div className="rounded-2xl bg-white p-3">
+                        <div className="rounded-2xl border border-border-light bg-bg-card p-3">
                           <div className="text-xs text-text-aux">申请时间</div>
                           <div className="mt-2 font-medium text-text-main">{formatTime(afterSale?.apply_time)}</div>
                         </div>
-                        <div className="rounded-2xl bg-white p-3">
+                        <div className="rounded-2xl border border-border-light bg-bg-card p-3">
                           <div className="text-xs text-text-aux">处理结果</div>
                           <div className="mt-2 font-medium text-text-main">
                             {afterSale?.close_reason || afterSale?.admin_remark || '平台处理中'}
@@ -308,7 +308,7 @@ export const AfterSalesPage = () => {
                                 key={`${order.id}-${index}`}
                                 src={image}
                                 alt={`售后凭证${index + 1}`}
-                                className="h-24 w-full rounded-2xl bg-[#f4f5f7] object-cover"
+                                className="h-24 w-full rounded-2xl bg-bg-card object-cover"
                               />
                             ))}
                           </div>
@@ -319,7 +319,7 @@ export const AfterSalesPage = () => {
                         <button
                           type="button"
                           onClick={() => navigate(`/order/detail/${order.id}`)}
-                          className="flex-1 rounded-full border border-[#dbe0e7] bg-white px-4 py-3 text-sm font-medium text-text-main active:opacity-80"
+                          className="flex-1 rounded-full border border-border-light bg-bg-card px-4 py-3 text-sm font-medium text-text-main active:opacity-80"
                         >
                           查看订单
                         </button>
@@ -327,7 +327,7 @@ export const AfterSalesPage = () => {
                           <button
                             type="button"
                             onClick={() => void handleCancelAfterSale(order)}
-                            className="flex-1 rounded-full bg-[#111827] px-4 py-3 text-sm font-medium text-white active:opacity-80"
+                            className="flex-1 rounded-full bg-primary-start px-4 py-3 text-sm font-medium text-white active:opacity-80"
                           >
                             取消申请
                           </button>
