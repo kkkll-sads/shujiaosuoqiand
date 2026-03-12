@@ -185,13 +185,6 @@ export const SettingsPage = () => {
             />
           </SettingsSection>
 
-          <SettingsNotice title="说明">
-            清理缓存仅会移除本地临时数据。修改登录密码后，系统会要求重新登录。
-          </SettingsNotice>
-
-          <SettingsNotice tone="warning" title="危险操作">
-            注销账户后将退出当前登录状态。请确认账户内资产、订单和服务已处理完毕后再操作。
-          </SettingsNotice>
 
           <SettingsSection>
             <SettingsActionItem
@@ -227,9 +220,6 @@ export const SettingsPage = () => {
                   value={cancelReason}
                   onChange={(event) => setCancelReason(event.target.value)}
                 />
-                <div className="rounded-[20px] border border-red-100 bg-red-50/70 px-4 py-3 text-[12px] leading-5 text-primary-start">
-                  注销成功后会立即清除当前登录状态。如后端对账户注销有限制，将按接口返回信息提示。
-                </div>
                 <div className="flex gap-3">
                   <button
                     type="button"
@@ -247,7 +237,6 @@ export const SettingsPage = () => {
             ) : null}
             <SettingsActionItem
               label="退出登录"
-              description="退出当前账户，并返回登录页"
               icon={<LogOut size={18} />}
               variant="danger"
               borderless
@@ -255,10 +244,7 @@ export const SettingsPage = () => {
             />
           </SettingsSection>
 
-          <SettingsNotice tone="warning" title="注销提醒" className="flex items-start gap-2">
-            <AlertTriangle size={16} className="mt-0.5 shrink-0" />
-            <span>本页已移除悬浮弹窗确认，危险操作会直接在当前页面内展开或执行。</span>
-          </SettingsNotice>
+
         </div>
       </div>
 
