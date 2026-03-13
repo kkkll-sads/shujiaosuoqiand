@@ -93,6 +93,16 @@ export function MyCollectionConsignmentModal({
     !isFreeResend && Number.isFinite(serviceFeeBalanceValue) && serviceFeeBalanceValue < serviceFee;
   const hasCouponShortage =
     !isFreeResend && availableConsignmentCouponCount < requiredConsignmentCouponCount;
+  const originalServiceFee = Number(checkData?.original_service_fee ?? serviceFee);
+  const membershipDeduction = Number(checkData?.membership_deduction ?? 0);
+  const showFeeBreakdown =
+    !isFreeResend
+    && Number.isFinite(originalServiceFee)
+    && originalServiceFee > 0
+    && (
+      membershipDeduction > 0
+      || Math.abs(originalServiceFee - serviceFee) >= 0.01
+    );
   const countdownText =
     typeof countdownSeconds === 'number'
       ? formatCountdown(countdownSeconds)
@@ -233,6 +243,18 @@ export function MyCollectionConsignmentModal({
                   <span className="text-gray-500">预计寄售价</span>
                   <span className="font-semibold text-gray-900">¥{formatCurrency(consignmentPrice)}</span>
                 </div>
+                {showFeeBreakdown ? (
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-gray-500">原始手续费</span>
+                    <span className="font-semibold text-gray-900">¥{formatCurrency(originalServiceFee)}</span>
+                  </div>
+                ) : null}
+                {showFeeBreakdown && membershipDeduction > 0 ? (
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-gray-500">权益卡抵扣</span>
+                    <span className="font-semibold text-emerald-700">-¥{formatCurrency(membershipDeduction)}</span>
+                  </div>
+                ) : null}
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-gray-500">本次所需确权金</span>
                   <span className={`font-semibold ${isFreeResend ? 'text-emerald-700' : 'text-gray-900'}`}>
