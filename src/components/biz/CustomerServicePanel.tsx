@@ -72,8 +72,9 @@ export const CustomerServicePanel = ({
   };
 
   const handleOpenBrowser = () => {
-    const opened = window.open(url, '_blank', 'noopener,noreferrer');
-    if (!opened) {
+    try {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } catch {
       showToast({
         message: '浏览器打开失败，请检查设备设置',
         type: 'error',
