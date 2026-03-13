@@ -109,19 +109,6 @@ function parseAmountLimitRange(remark: string | undefined): AmountLimitRange | n
   };
 }
 
-function formatAmountLimitValue(value: number) {
-  return formatMoney(value, Number.isInteger(value) ? 0 : 2);
-}
-
-function buildAmountLimitLabel(remark: string | undefined) {
-  const range = parseAmountLimitRange(remark);
-  if (!range) {
-    return undefined;
-  }
-
-  return `${formatAmountLimitValue(range.min)}-${formatAmountLimitValue(range.max)}`;
-}
-
 function isAmountWithinRemarkLimit(amount: number, remark: string | undefined) {
   const range = parseAmountLimitRange(remark);
   if (!range) {
@@ -129,15 +116,6 @@ function isAmountWithinRemarkLimit(amount: number, remark: string | undefined) {
   }
 
   return amount >= range.min && amount <= range.max;
-}
-
-function buildAmountLimitHint(labels: string[]) {
-  const uniqueLabels = Array.from(new Set(labels.filter(Boolean)));
-  if (!uniqueLabels.length) {
-    return undefined;
-  }
-
-  return `限额 ${uniqueLabels.join(' / ')}`;
 }
 
 function getCompanyAccountIcon(type: string): LucideIcon {
@@ -193,6 +171,46 @@ function buildOfflineSubmitRemark(lastFourDigits: string | undefined, remark: st
   return normalizedRemark || undefined;
 }
 
+function sortCompanyAccountsByOrder(left: CompanyAccount, right: CompanyAccount) {
+  const leftSort = typeof left.sort === 'number' ? left.sort : Number.MAX_SAFE_INTEGER;
+  const rightSort = typeof right.sort === 'number' ? right.sort : Number.MAX_SAFE_INTEGER;
+
+  if (leftSort !== rightSort) {
+    return leftSort - rightSort;
+  }
+
+  return left.id - right.id;
+}
+
+function shuffleAccounts<T>(accounts: T[]) {
+  const nextAccounts = [...accounts];
+
+  for (let index = nextAccounts.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    [nextAccounts[index], nextAccounts[swapIndex]] = [nextAccounts[swapIndex], nextAccounts[index]];
+  }
+
+  return nextAccounts;
+}
+
+function resolveOnlineCandidateAccounts(accounts: CompanyAccount[], paymentType: string) {
+  const orderedAccounts = [...accounts].sort(sortCompanyAccountsByOrder);
+
+  if (paymentType !== 'alipay' && paymentType !== 'wechat') {
+    return orderedAccounts;
+  }
+
+  const matchedStorageKey = `recharge:has-matched:${paymentType}`;
+  const hasMatched = window.sessionStorage.getItem(matchedStorageKey);
+
+  if (!hasMatched) {
+    window.sessionStorage.setItem(matchedStorageKey, '1');
+    return orderedAccounts;
+  }
+
+  return shuffleAccounts(orderedAccounts);
+}
+
 function getOrderStatusClassName(status: number) {
   if (status === 1) {
     return 'bg-green-50 text-green-600 dark:bg-green-500/15 dark:text-green-300';
@@ -215,15 +233,12 @@ function getOrderTitle(record: RechargeOrderRecord) {
 
 type MatchStep = 'select' | 'matching' | 'matched';
 type PaymentAccountOption = CompanyAccount & {
-  amountLimitLabel?: string;
   color: string;
   iconComponent: LucideIcon;
   subtitle: string;
   title: string;
 };
-type PaymentTypeOption = PaymentAccountOption & {
-  amountLimitHint?: string;
-};
+type PaymentTypeOption = PaymentAccountOption;
 
 export function RechargePage() {
   const { goBack, goTo, navigate } = useAppNavigate();
@@ -286,7 +301,6 @@ export function RechargePage() {
     () =>
       (Array.isArray(companyAccounts) ? companyAccounts : []).map((account) => ({
         ...account,
-        amountLimitLabel: buildAmountLimitLabel(account.remark),
         color: getCompanyAccountColor(account.type),
         iconComponent: getCompanyAccountIcon(account.type),
         subtitle: buildCompanyAccountSubtitle(account),
@@ -296,19 +310,10 @@ export function RechargePage() {
   );
   const paymentTypeOptions = useMemo<PaymentTypeOption[]>(() => {
     const options = new Map<string, PaymentTypeOption>();
-    const amountLimitLabels = new Map<string, string[]>();
 
     paymentAccounts.forEach((account) => {
       if (!account.type) {
         return;
-      }
-
-      if (account.amountLimitLabel) {
-        const labels = amountLimitLabels.get(account.type) ?? [];
-        if (!labels.includes(account.amountLimitLabel)) {
-          labels.push(account.amountLimitLabel);
-          amountLimitLabels.set(account.type, labels);
-        }
       }
 
       if (!options.has(account.type)) {
@@ -316,10 +321,7 @@ export function RechargePage() {
       }
     });
 
-    return Array.from(options.values()).map((account) => ({
-      ...account,
-      amountLimitHint: buildAmountLimitHint(amountLimitLabels.get(account.type) ?? []),
-    }));
+    return Array.from(options.values());
   }, [paymentAccounts]);
   const recentOrderList = Array.isArray(recentOrders?.list) ? recentOrders.list : [];
 
@@ -344,15 +346,6 @@ export function RechargePage() {
   const availableBalance = profile?.userInfo?.balanceAvailable;
   const frozenBalance = profile?.userInfo?.frozenAmount;
   const numAmount = parseFloat(amount) || 0;
-  const availablePaymentTypeSet = useMemo(
-    () =>
-      new Set(
-        paymentAccounts
-          .filter((account) => numAmount <= 0 || isAmountWithinRemarkLimit(numAmount, account.remark))
-          .map((account) => account.type),
-      ),
-    [numAmount, paymentAccounts],
-  );
   const mainLoading = isAuthenticated && (profileLoading || companyAccountsLoading);
   const hasBlockingError =
     isAuthenticated &&
@@ -472,15 +465,12 @@ export function RechargePage() {
       return;
     }
 
-    if (!availablePaymentTypeSet.has(selectedPaymentOption.type)) {
-      const paymentTypeLabel = selectedPaymentOption.typeText || selectedPaymentOption.title || '当前通道';
-      const limitLabel = selectedPaymentOption.amountLimitHint?.replace(/^限额\s*/, '');
-      showToast({
-        message: limitLabel
-          ? `${paymentTypeLabel}支持 ${limitLabel} 金额范围`
-          : '当前金额暂无匹配通道，请调整金额重试',
-        type: 'warning',
-      });
+    const candidateAccounts = paymentAccounts.filter(
+      (account) => account.type === selectedPaymentOption.type && isAmountWithinRemarkLimit(numAmount, account.remark),
+    );
+
+    if (!candidateAccounts.length) {
+      showToast({ message: '当前金额暂无匹配通道，请调整金额重试', type: 'warning' });
       return;
     }
 
@@ -492,40 +482,33 @@ export function RechargePage() {
     setBankCardLastFourDigits('');
     setShowBankCardConfirmModal(false);
 
+    if (selectedPaymentOption.type !== 'bank_card') {
+      const orderedCandidateAccounts = resolveOnlineCandidateAccounts(candidateAccounts, selectedPaymentOption.type);
+
+      setAmount('');
+      resetMatchState();
+      void Promise.allSettled([reloadProfile(), reloadRecentOrders()]);
+      navigate('/matching', {
+        state: {
+          rechargeTask: {
+            amount: numAmount,
+            candidateAccountIds: orderedCandidateAccounts.map((account) => account.id).filter((id) => id > 0),
+            paymentType: selectedPaymentOption.type,
+          },
+        },
+      });
+      return;
+    }
+
     try {
       const result = await rechargeApi.matchAccount({
         amount: numAmount,
         paymentType: selectedPaymentOption.type,
       });
 
-      const resolvedPaymentMethod =
-        selectedPaymentOption.type === 'bank_card'
-          ? 'offline'
-          : selectedPaymentOption.type === 'unionpay'
-            ? 'online'
-            : result.paymentMethod ?? 'online';
-
-      if (resolvedPaymentMethod !== 'offline') {
-        // 先跳转匹配动画页，在动画期间提交订单，成功后进入收银台
-        setAmount('');
-        resetMatchState();
-        void Promise.allSettled([reloadProfile(), reloadRecentOrders()]);
-        navigate('/matching', {
-          state: {
-            rechargeTask: {
-              amount: numAmount,
-              matchedAccountId: result.matchedAccountId,
-              paymentType: result.account.type,
-            },
-          },
-        });
-        return;
-      }
-
-
       setMatchedAccount(result.account);
       setMatchedAccountId(result.matchedAccountId);
-      setMatchedPaymentMethod(resolvedPaymentMethod);
+      setMatchedPaymentMethod('offline');
       setMatchStep('matched');
     } catch (error) {
       setMatchStep('select');

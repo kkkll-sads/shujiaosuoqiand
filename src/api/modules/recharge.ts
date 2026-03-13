@@ -17,6 +17,7 @@ interface CompanyAccountRaw {
   icon?: string;
   id?: number | string;
   remark?: string;
+  sort?: number | string;
   status?: number | string;
   status_text?: string;
   type?: string;
@@ -110,6 +111,7 @@ export interface CompanyAccount {
   icon?: string;
   id: number;
   remark?: string;
+  sort?: number;
   status: number;
   statusText?: string;
   type: string;
@@ -122,7 +124,8 @@ export interface GetCompanyAccountListParams {
 
 export interface SubmitOrderPayload {
   amount: number;
-  matchedAccountId: number;
+  companyAccountId?: number;
+  matchedAccountId?: number;
   paymentMethod?: RechargePaymentMethod;
   paymentScreenshotId?: number;
   paymentScreenshotUrl?: string;
@@ -259,6 +262,7 @@ function normalizeCompanyAccount(payload: CompanyAccountRaw): CompanyAccount {
     icon: payload.icon ? resolveUploadUrl(payload.icon) : undefined,
     id: readNumber(payload.id),
     remark: readOptionalString(payload.remark),
+    sort: readOptionalNumber(payload.sort),
     status: readNumber(payload.status),
     statusText: readOptionalString(payload.status_text),
     type: readOptionalString(payload.type) || 'bank_card',
@@ -333,11 +337,16 @@ export const rechargeApi = {
     payload: SubmitOrderPayload,
     options: RechargeRequestOptions = {},
   ): Promise<SubmitOrderResult> {
+    if (!payload.companyAccountId && !payload.matchedAccountId) {
+      throw new Error('缺少充值通道信息');
+    }
+
     const response = await http.post<
       SubmitOrderRaw,
       {
         amount: number;
-        matched_account_id: number;
+        company_account_id?: number;
+        matched_account_id?: number;
         payment_method?: RechargePaymentMethod;
         payment_screenshot_id?: number;
         payment_screenshot_url?: string;
@@ -348,7 +357,8 @@ export const rechargeApi = {
       '/api/Recharge/submitOrder',
       {
         amount: payload.amount,
-        matched_account_id: payload.matchedAccountId,
+        company_account_id: payload.companyAccountId,
+        matched_account_id: payload.matchedAccountId || undefined,
         payment_method: payload.paymentMethod,
         payment_screenshot_id: payload.paymentScreenshotId,
         payment_screenshot_url: payload.paymentScreenshotUrl,

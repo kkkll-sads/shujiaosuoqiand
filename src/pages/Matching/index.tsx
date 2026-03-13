@@ -1,8 +1,6 @@
 /**
- * @file Matching/index.tsx - 匹配动画页面
- * @description 显示雷达扫描动画，支持两种模式：
- *   1. 简单跳转：传入 nextPath，延迟后自动跳转
- *   2. 异步任务：传入 rechargeTask，在动画期间提交订单，成功后跳转收银台
+ * @file Matching/index.tsx - 充值匹配动画页
+ * @description 展示匹配动画，并在动画期间自动完成在线充值提单。
  */
 
 import { useEffect, useRef, useState } from 'react';
@@ -11,17 +9,46 @@ import { Radar } from 'lucide-react';
 import { rechargeApi } from '../../api';
 import { useAppNavigate } from '../../lib/navigation';
 
+const MAX_ONLINE_CHANNEL_ATTEMPTS = 3;
+const RETRYABLE_RECHARGE_ERROR_KEYWORDS = [
+  '获取支付链接失败',
+  '未获取到支付地址',
+  'Exception:',
+  'Stack trace:',
+  'Failed to fetch',
+  'NetworkError',
+  'network',
+];
+
 interface MatchingLocationState {
-  /** 简单跳转模式：延迟后跳转的目标路径 */
   nextPath?: string;
   delayMs?: number;
-
-  /** 充值异步提交模式：匹配完成后，动画期间提交订单 */
   rechargeTask?: {
     amount: number;
-    matchedAccountId: number;
+    candidateAccountIds?: number[];
+    matchedAccountId?: number;
     paymentType: string;
   };
+}
+
+function wait(durationMs: number) {
+  return new Promise<void>((resolve) => {
+    window.setTimeout(resolve, durationMs);
+  });
+}
+
+function shouldRetryRechargeSubmit(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error ?? '');
+  if (!message) {
+    return false;
+  }
+
+  return RETRYABLE_RECHARGE_ERROR_KEYWORDS.some((keyword) => message.includes(keyword));
+}
+
+function getRechargeSubmitErrorMessage(error: unknown) {
+  const message = error instanceof Error ? error.message : '提交订单失败';
+  return shouldRetryRechargeSubmit(error) ? '当前支付通道暂时不可用，请稍后重试' : message;
 }
 
 export const MatchingPage = () => {
@@ -34,37 +61,70 @@ export const MatchingPage = () => {
   useEffect(() => {
     const state = (location.state ?? {}) as MatchingLocationState;
 
-    // 模式 1：简单延迟跳转
     if (state.nextPath && !state.rechargeTask) {
       const timer = window.setTimeout(() => {
-        navigate(state.nextPath, { replace: true });
+        navigate(state.nextPath!, { replace: true });
       }, Math.max(600, state.delayMs ?? 1800));
 
       return () => window.clearTimeout(timer);
     }
 
-    // 模式 2：充值异步提交
     if (state.rechargeTask && !submitted.current) {
       submitted.current = true;
       const task = state.rechargeTask;
-
-      // 最少展示 1.2 秒动画
-      const minDelay = new Promise<void>((r) => window.setTimeout(r, 1200));
+      const candidateAccountIds = (task.candidateAccountIds ?? []).filter((id) => Number.isFinite(id) && id > 0);
+      const minDelay = wait(1200);
 
       const submitOrder = async () => {
-        setStatusText('正在创建支付订单...');
-        setSubText('请稍候，正在提交充值请求');
-
         try {
-          const [submitResult] = await Promise.all([
-            rechargeApi.submitOrder({
-              amount: task.amount,
-              matchedAccountId: task.matchedAccountId,
-              paymentMethod: 'online',
-              paymentType: task.paymentType,
-            }),
-            minDelay,
-          ]);
+          const submitResult = candidateAccountIds.length
+            ? await (async () => {
+                const attempts = Math.min(candidateAccountIds.length, MAX_ONLINE_CHANNEL_ATTEMPTS);
+                let lastError: unknown;
+
+                for (let index = 0; index < attempts; index += 1) {
+                  const companyAccountId = candidateAccountIds[index];
+
+                  if (index === 0) {
+                    setStatusText('正在创建支付订单...');
+                    setSubText('请稍候，正在提交充值请求');
+                  } else {
+                    setStatusText('正在切换支付通道...');
+                    setSubText(`当前通道异常，正在尝试第 ${index + 1} 个通道`);
+                    await wait(500);
+                  }
+
+                  try {
+                    const submitPromise = rechargeApi.submitOrder({
+                      amount: task.amount,
+                      companyAccountId,
+                      paymentMethod: 'online',
+                      paymentType: task.paymentType,
+                    });
+
+                    return index === 0 ? (await Promise.all([submitPromise, minDelay]))[0] : await submitPromise;
+                  } catch (error) {
+                    lastError = error;
+
+                    if (!shouldRetryRechargeSubmit(error) || index === attempts - 1) {
+                      throw error;
+                    }
+                  }
+                }
+
+                throw lastError ?? new Error('提交订单失败');
+              })()
+            : (
+                await Promise.all([
+                  rechargeApi.submitOrder({
+                    amount: task.amount,
+                    matchedAccountId: task.matchedAccountId,
+                    paymentMethod: 'online',
+                    paymentType: task.paymentType,
+                  }),
+                  minDelay,
+                ])
+              )[0];
 
           const cashierParams = new URLSearchParams({
             scene: 'recharge',
@@ -76,13 +136,12 @@ export const MatchingPage = () => {
           });
 
           setStatusText('匹配成功，正在跳转...');
-          await new Promise<void>((r) => window.setTimeout(r, 400));
+          await wait(400);
           navigate(`/cashier?${cashierParams.toString()}`, { replace: true });
-        } catch (err: unknown) {
-          const msg = err instanceof Error ? err.message : '提交订单失败';
+        } catch (error) {
           setStatusText('提交失败');
-          setSubText(msg);
-          // 2.5 秒后返回充值页
+          setSubText(getRechargeSubmitErrorMessage(error));
+
           window.setTimeout(() => {
             navigate('/recharge', { replace: true });
           }, 2500);
