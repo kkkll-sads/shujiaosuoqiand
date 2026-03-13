@@ -276,7 +276,11 @@ export const LoginPage = () => {
             </div>
           }
           actions={
-            <Button loading={submitting} onClick={handleSubmit}>
+            <Button
+              loading={submitting}
+              onClick={handleSubmit}
+              className="bg-[#E93B3B] bg-gradient-to-r from-[#E93B3B] to-[#FF5C5C] text-white [forced-color-adjust:none] [-webkit-text-fill-color:#fff]"
+            >
               登录
             </Button>
           }
