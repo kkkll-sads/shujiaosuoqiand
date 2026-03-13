@@ -4,9 +4,12 @@
  */
 
 import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react';
-import { Box, ChevronRight, RefreshCcw, Search, X } from 'lucide-react';
+import { Box, ChevronRight, RefreshCcw, Search, X, Zap } from 'lucide-react';
 import {
+  collectionConsignmentApi,
   collectionTradeApi,
+  type BatchConsignResult,
+  type BatchConsignableListData,
   type MyCollectionItem,
   type MyCollectionResponse,
   type MyCollectionStatus,
@@ -14,6 +17,7 @@ import {
 import { getErrorMessage } from '../../api/core/errors';
 import { OfflineBanner } from '../../components/layout/OfflineBanner';
 import { PageHeader } from '../../components/layout/PageHeader';
+import { useFeedback } from '../../components/ui/FeedbackProvider';
 import { Card } from '../../components/ui/Card';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { ErrorState } from '../../components/ui/ErrorState';
@@ -269,9 +273,67 @@ function CollectionListSkeleton() {
   );
 }
 
+function BatchConsignButton({
+  checking,
+  data,
+  disabled,
+  onClick,
+}: {
+  checking: boolean;
+  data: BatchConsignableListData | null | undefined;
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  if (!data || data.items.length === 0 || !data.stats.is_in_trading_time) {
+    return null;
+  }
+
+  const availableCount = data.available_now_count || data.stats.available_collections || data.items.length;
+
+  return (
+    <div className="mt-3 rounded-2xl border border-[#f3d6cf] bg-[#fff7f4] p-3">
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={disabled}
+        className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary-start px-4 text-sm font-medium text-white disabled:opacity-50"
+      >
+        {checking ? (
+          <>
+            <RefreshCcw size={15} className="animate-spin" />
+            <span>一键寄售检测中...</span>
+          </>
+        ) : (
+          <>
+            <Zap size={15} />
+            <span>一键寄售</span>
+            <span className="rounded-full bg-white/20 px-2 py-0.5 text-[11px]">
+              {availableCount} 个可寄售
+            </span>
+          </>
+        )}
+      </button>
+      <div className="mt-2 text-center text-[11px] leading-5 text-text-aux">
+        当前时间 {data.stats.current_time || '--'}，活跃场次 {data.stats.active_sessions}
+      </div>
+    </div>
+  );
+}
+
+function buildBatchFailureLines(result: BatchConsignResult): string[] {
+  if (result.results.length > 0) {
+    return result.results
+      .filter((item) => !item.success)
+      .map((item) => `藏品 ${item.user_collection_id}: ${item.message || '寄售失败'}`);
+  }
+
+  return Object.entries(result.failure_summary).map(([reason, count]) => `${reason}: ${count} 个`);
+}
+
 export const MyCollectionPage = () => {
   const { goBackOr, navigate } = useAppNavigate();
   const { isOffline, refreshStatus } = useNetworkStatus();
+  const { hideLoading, showConfirm, showLoading, showToast } = useFeedback();
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const [activeStatus, setActiveStatus] = useState<MyCollectionStatus>('holding');
@@ -316,6 +378,14 @@ export const MyCollectionPage = () => {
       deps: [activeStatus, keyword],
       initialData: EMPTY_RESPONSE,
       keepPreviousData: false,
+    },
+  );
+
+  const batchConsignRequest = useRequest<BatchConsignableListData | null>(
+    (signal) => collectionConsignmentApi.batchConsignableList(signal),
+    {
+      cacheKey: 'my-collection:batch-consignable',
+      initialData: null,
     },
   );
 
@@ -374,8 +444,12 @@ export const MyCollectionPage = () => {
   });
 
   const handleRefresh = useCallback(async () => {
-    await firstRequest.reload().catch(() => undefined);
-  }, [firstRequest]);
+    refreshStatus();
+    await Promise.allSettled([
+      firstRequest.reload(),
+      batchConsignRequest.reload(),
+    ]);
+  }, [batchConsignRequest, firstRequest, refreshStatus]);
 
   const handleSearchSubmit = useCallback((event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -393,8 +467,93 @@ export const MyCollectionPage = () => {
       return;
     }
 
-    navigate(`/my-collection/detail/${targetId}`);
+    navigate(`/my-collection/detail/${targetId}`, { state: { item } });
   }, [navigate]);
+
+  const handleBatchConsign = useCallback(async () => {
+    const batchData = batchConsignRequest.data;
+    if (!batchData || batchData.items.length === 0) {
+      showToast({ type: 'warning', message: '暂无可一键寄售的藏品' });
+      return;
+    }
+
+    if (!batchData.stats.is_in_trading_time) {
+      showToast({ type: 'warning', message: '当前不在交易时段，暂不可一键寄售' });
+      return;
+    }
+
+    const availableCount = batchData.available_now_count || batchData.stats.available_collections || batchData.items.length;
+    const confirmed = await showConfirm({
+      title: '一键寄售',
+      message: (
+        <div className="space-y-2 text-left text-sm leading-6">
+          <p>将为 {availableCount} 个符合条件的藏品提交寄售申请。</p>
+          {batchData.note ? <p className="text-text-sub">{batchData.note}</p> : null}
+        </div>
+      ),
+      confirmText: '确认寄售',
+      cancelText: '取消',
+    });
+
+    if (!confirmed) {
+      return;
+    }
+
+    showLoading({ message: '一键寄售处理中...' });
+
+    try {
+      const result = await collectionConsignmentApi.batchConsign({
+        consignments: batchData.items.map((item) => ({
+          user_collection_id: item.user_collection_id,
+        })),
+      });
+
+      await Promise.allSettled([
+        firstRequest.reload(),
+        batchConsignRequest.reload(),
+      ]);
+
+      hideLoading();
+
+      if (result.success_count > 0 && result.failure_count === 0) {
+        showToast({ type: 'success', message: `成功寄售 ${result.success_count} 个藏品` });
+        return;
+      }
+
+      const failureLines = buildBatchFailureLines(result);
+      await showConfirm({
+        title: '一键寄售完成',
+        message: (
+          <div className="space-y-2 text-left text-sm leading-6">
+            <p>总计 {result.total_count} 个</p>
+            <p>成功 {result.success_count} 个，失败 {result.failure_count} 个</p>
+            {result.note ? <p className="text-text-sub">{result.note}</p> : null}
+            {failureLines.length > 0 ? (
+              <div className="max-h-48 overflow-y-auto rounded-xl bg-bg-base px-3 py-2 text-xs text-text-sub">
+                {failureLines.map((line) => (
+                  <div key={line}>{line}</div>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        ),
+        confirmText: '知道了',
+        cancelText: '关闭',
+      });
+    } catch (error) {
+      hideLoading();
+      showToast({ type: 'error', message: getErrorMessage(error) || '一键寄售失败' });
+    } finally {
+      hideLoading();
+    }
+  }, [
+    batchConsignRequest,
+    firstRequest,
+    hideLoading,
+    showConfirm,
+    showLoading,
+    showToast,
+  ]);
 
   const total = firstRequest.data?.total ?? items.length;
 
@@ -521,6 +680,13 @@ export const MyCollectionPage = () => {
             );
           })}
         </div>
+
+        <BatchConsignButton
+          checking={batchConsignRequest.loading}
+          data={batchConsignRequest.data}
+          disabled={isOffline || batchConsignRequest.loading}
+          onClick={() => void handleBatchConsign()}
+        />
 
         <div className="mt-3 flex items-center justify-between text-[12px] text-text-aux">
           <span>共 {total} 件</span>

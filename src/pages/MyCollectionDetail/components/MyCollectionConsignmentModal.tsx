@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AlertTriangle, Clock3, Copy, Loader2, Store, Ticket, Wallet, X } from 'lucide-react';
-import type { CollectionConsignmentCheckData, UserCollectionDetail } from '../../../api';
+import type { CollectionConsignmentCheckData } from '../../../api';
+import type { UserCollectionDetail } from '../../../api/modules/userCollection';
 
 interface MyCollectionConsignmentModalProps {
   checkData: CollectionConsignmentCheckData | null;
@@ -9,7 +10,9 @@ interface MyCollectionConsignmentModalProps {
   consignmentCouponCount: number;
   consignmentPrice: number;
   countdownSeconds: number | null;
+  freeResendDescription?: string;
   isOpen: boolean;
+  isFreeResend?: boolean;
   isSubmitting: boolean;
   item: UserCollectionDetail;
   onClose: () => void;
@@ -17,6 +20,7 @@ interface MyCollectionConsignmentModalProps {
   onOpenVoucherCenter: () => void;
   onRetry: () => void;
   onSubmit: () => void;
+  serviceFee: number;
   serviceFeeBalance: string;
   submitError: string | null;
 }
@@ -45,7 +49,9 @@ export function MyCollectionConsignmentModal({
   consignmentCouponCount,
   consignmentPrice,
   countdownSeconds,
+  freeResendDescription,
   isOpen,
+  isFreeResend = false,
   isSubmitting,
   item,
   onClose,
@@ -53,6 +59,7 @@ export function MyCollectionConsignmentModal({
   onOpenVoucherCenter,
   onRetry,
   onSubmit,
+  serviceFee,
   serviceFeeBalance,
   submitError,
 }: MyCollectionConsignmentModalProps) {
@@ -79,22 +86,19 @@ export function MyCollectionConsignmentModal({
 
   const isUnlocked =
     Boolean(checkData?.unlocked) || (typeof countdownSeconds === 'number' && countdownSeconds <= 0);
-  const serviceFeeRate = checkData?.service_fee_rate && checkData.service_fee_rate > 0
-    ? checkData.service_fee_rate
-    : 0.03;
-  const serviceFee = useMemo(
-    () => Number((consignmentPrice * serviceFeeRate).toFixed(2)),
-    [consignmentPrice, serviceFeeRate],
-  );
   const serviceFeeBalanceValue = Number(serviceFeeBalance);
   const hasServiceFeeWarning =
-    Number.isFinite(serviceFeeBalanceValue) && serviceFeeBalanceValue < serviceFee;
+    !isFreeResend && Number.isFinite(serviceFeeBalanceValue) && serviceFeeBalanceValue < serviceFee;
   const countdownText =
     typeof countdownSeconds === 'number'
       ? formatCountdown(countdownSeconds)
       : checkData?.remaining_text || '--';
   const canSubmit =
-    !checkLoading && !isSubmitting && Boolean(checkData) && isUnlocked && consignmentCouponCount > 0;
+    !checkLoading
+    && !isSubmitting
+    && Boolean(checkData)
+    && isUnlocked
+    && (isFreeResend || consignmentCouponCount > 0);
 
   if (!isRendered) {
     return null;
@@ -160,7 +164,7 @@ export function MyCollectionConsignmentModal({
                   {checkData?.is_old_asset_package ? (
                     <div className="mt-2">
                       <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-medium text-amber-700">
-                        老资产
+                        老资产包
                       </span>
                     </div>
                   ) : null}
@@ -198,17 +202,33 @@ export function MyCollectionConsignmentModal({
               </div>
             </div>
 
+            {isFreeResend ? (
+              <div className="rounded-[22px] border border-emerald-200 bg-emerald-50 px-4 py-3">
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 rounded-full bg-emerald-100 p-2 text-emerald-700">
+                    <Ticket size={16} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-semibold text-emerald-800">流拍免费重发</div>
+                    <div className="mt-1 text-xs leading-5 text-emerald-700/90">
+                      {freeResendDescription || '本次寄售不消耗寄售券，也不收取服务费。'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
             <div className="rounded-[22px] border border-[#eadfce] bg-white p-4 shadow-[0_10px_24px_rgba(56,40,20,0.06)]">
               <div className="mb-3 text-sm font-bold text-gray-800">挂牌成本核算</div>
               <div className="space-y-3 text-sm">
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-gray-500">预估寄售价</span>
+                  <span className="text-gray-500">预计寄售价</span>
                   <span className="font-semibold text-gray-900">¥{formatCurrency(consignmentPrice)}</span>
                 </div>
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-gray-500">确权技术服务费</span>
-                  <span className="font-semibold text-gray-900">
-                    ¥{formatCurrency(serviceFee)}
+                  <span className={`font-semibold ${isFreeResend ? 'text-emerald-700' : 'text-gray-900'}`}>
+                    {isFreeResend ? '已豁免' : `¥${formatCurrency(serviceFee)}`}
                   </span>
                 </div>
                 <div className="flex items-center justify-between gap-3">
@@ -225,8 +245,16 @@ export function MyCollectionConsignmentModal({
                     <Ticket size={14} />
                     可用寄售券
                   </span>
-                  <span className={`font-semibold ${consignmentCouponCount > 0 ? 'text-gray-900' : 'text-amber-700'}`}>
-                    {consignmentCouponCount} 张
+                  <span
+                    className={`font-semibold ${
+                      isFreeResend
+                        ? 'text-emerald-700'
+                        : consignmentCouponCount > 0
+                          ? 'text-gray-900'
+                          : 'text-amber-700'
+                    }`}
+                  >
+                    {isFreeResend ? '本次不消耗' : `${consignmentCouponCount} 张`}
                   </span>
                 </div>
               </div>
@@ -260,7 +288,7 @@ export function MyCollectionConsignmentModal({
               </div>
             ) : null}
 
-            {consignmentCouponCount <= 0 ? (
+            {!isFreeResend && consignmentCouponCount <= 0 ? (
               <div className="rounded-[22px] border border-[#eadfce] bg-white p-4">
                 <div className="text-sm font-semibold text-gray-900">寄售券不足</div>
                 <div className="mt-1 text-xs leading-5 text-gray-500">
@@ -297,7 +325,7 @@ export function MyCollectionConsignmentModal({
                     ? '校验中...'
                     : !isUnlocked
                       ? '暂未解锁寄售'
-                      : consignmentCouponCount <= 0
+                      : !isFreeResend && consignmentCouponCount <= 0
                         ? '寄售券不足'
                         : '确认挂牌'}
                 </span>

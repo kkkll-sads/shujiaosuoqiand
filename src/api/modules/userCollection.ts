@@ -70,6 +70,9 @@ interface UserCollectionDetailRaw {
   tx_hash?: string;
   consignment_status?: number | string;
   consignment_status_text?: string;
+  fail_count?: number | string;
+  free_attempts_remaining?: number | string;
+  free_consign_attempts?: number | string;
   status_text?: string;
   rights_status?: string;
   session_title?: string;
@@ -108,6 +111,9 @@ export interface UserCollectionDetail {
   tx_hash: string;
   consignment_status: number;
   consignment_status_text: string;
+  fail_count: number;
+  free_attempts_remaining: number;
+  free_consign_attempts: number;
   status_text: string;
   rights_status: string;
   session_title: string;
@@ -144,6 +150,9 @@ function normalizeUserCollectionDetail(raw: UserCollectionDetailRaw): UserCollec
     tx_hash: readString(raw.tx_hash),
     consignment_status: readNumber(raw.consignment_status),
     consignment_status_text: readString(raw.consignment_status_text),
+    fail_count: readNumber(raw.fail_count),
+    free_attempts_remaining: readNumber(raw.free_attempts_remaining),
+    free_consign_attempts: readNumber(raw.free_consign_attempts),
     status_text: readString(raw.status_text, readString(raw.consignment_status_text, '持有中')),
     rights_status: readString(raw.rights_status),
     session_title: readString(

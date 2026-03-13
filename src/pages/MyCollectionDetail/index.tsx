@@ -1,16 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Loader2, Shield } from 'lucide-react';
-import { useParams } from 'react-router-dom';
+import { useLocation, useParams } from 'react-router-dom';
 import {
   accountApi,
   collectionConsignmentApi,
   collectionTradeApi,
   computeConsignmentPrice,
   type CollectionConsignmentCheckData,
-  type UserCollectionDetail,
+  type MyCollectionItem,
   userApi,
-  userCollectionApi,
 } from '../../api';
+import { type UserCollectionDetail, userCollectionApi } from '../../api/modules/userCollection';
 import { getErrorMessage } from '../../api/core/errors';
 import { OfflineBanner } from '../../components/layout/OfflineBanner';
 import { PullToRefreshContainer } from '../../components/ui/PullToRefreshContainer';
@@ -29,6 +29,12 @@ interface MyCollectionDetailPageData {
   profile?: Awaited<ReturnType<typeof accountApi.getProfile>>;
   realNameStatus?: Awaited<ReturnType<typeof userApi.getRealNameStatus>>;
 }
+
+type CollectionRetrySource = {
+  fail_count?: number;
+  free_attempts_remaining?: number;
+  free_consign_attempts?: number;
+} | null | undefined;
 
 function formatCurrency(value: number): string {
   return Number.isFinite(value)
@@ -76,7 +82,101 @@ function getCountdownSeed(checkData: CollectionConsignmentCheckData | null): num
   return Math.max(0, Math.floor(checkData.remaining_seconds));
 }
 
+function readNumber(value: unknown, fallback = 0): number {
+  const nextValue = Number(value);
+  return Number.isFinite(nextValue) ? nextValue : fallback;
+}
+
+function readBoolean(value: unknown): boolean {
+  if (typeof value === 'boolean') {
+    return value;
+  }
+
+  if (typeof value === 'number') {
+    return value === 1;
+  }
+
+  if (typeof value === 'string') {
+    const normalizedValue = value.trim().toLowerCase();
+    return normalizedValue === '1' || normalizedValue === 'true' || normalizedValue === 'yes';
+  }
+
+  return false;
+}
+
+function readWaiveType(value: unknown): string {
+  return typeof value === 'string' ? value.trim().toLowerCase() : '';
+}
+
+function getSourceFailCount(source: CollectionRetrySource): number {
+  return Math.max(0, readNumber(source?.fail_count));
+}
+
+function getSourceFreeAttemptCount(source: CollectionRetrySource): number {
+  return Math.max(
+    readNumber(source?.free_attempts_remaining),
+    readNumber(source?.free_consign_attempts),
+  );
+}
+
+function getFreeAttemptCount(
+  checkData: CollectionConsignmentCheckData | null,
+  item?: CollectionRetrySource,
+  sourceItem?: CollectionRetrySource,
+): number {
+  return Math.max(
+    readNumber(checkData?.free_attempts_remaining),
+    readNumber(checkData?.free_consign_attempts),
+    getSourceFreeAttemptCount(item),
+    getSourceFreeAttemptCount(sourceItem),
+  );
+}
+
+function isFreeResendConsignment(
+  checkData: CollectionConsignmentCheckData | null,
+  item?: CollectionRetrySource,
+  sourceItem?: CollectionRetrySource,
+): boolean {
+  const waiveType = readWaiveType(checkData?.waive_type);
+  if (waiveType === 'free_attempt' || waiveType === 'system_resend') {
+    return true;
+  }
+
+  if (readBoolean(checkData?.is_free_resend)) {
+    return true;
+  }
+
+  if (getFreeAttemptCount(checkData, item, sourceItem) > 0) {
+    return true;
+  }
+
+  return Math.max(
+    readNumber(checkData?.fail_count),
+    getSourceFailCount(item),
+    getSourceFailCount(sourceItem),
+  ) > 0;
+}
+
+function getFreeResendDescription(
+  checkData: CollectionConsignmentCheckData | null,
+  item?: CollectionRetrySource,
+  sourceItem?: CollectionRetrySource,
+): string {
+  const waiveType = readWaiveType(checkData?.waive_type);
+
+  if (waiveType === 'system_resend') {
+    return '本次寄售属于系统赠送重发，不消耗寄售券，也不收取服务费。';
+  }
+
+  if (isFreeResendConsignment(checkData, item, sourceItem)) {
+    return '当前藏品已有流拍记录，本次寄售免寄售券、免服务费。';
+  }
+
+  return '';
+}
+
 export const MyCollectionDetailPage = () => {
+  const location = useLocation();
   const { id } = useParams<{ id: string }>();
   const collectionId = Number(id);
   const { goBackOr, goTo, navigate } = useAppNavigate();
@@ -116,6 +216,7 @@ export const MyCollectionDetailPage = () => {
   );
 
   const item = pageRequest.data?.detail;
+  const sourceItem = (location.state as { item?: MyCollectionItem } | null)?.item;
   const profile = pageRequest.data?.profile;
   const realNameStatus = pageRequest.data?.realNameStatus;
   const userInfo = profile?.userInfo;
@@ -142,6 +243,44 @@ export const MyCollectionDetailPage = () => {
 
     return Number((item.market_price > 0 ? item.market_price : item.buy_price).toFixed(2));
   }, [consignmentCheckData, item]);
+  const freeAttemptCount = useMemo(
+    () => getFreeAttemptCount(consignmentCheckData, item, sourceItem),
+    [consignmentCheckData, item, sourceItem],
+  );
+  const failCount = useMemo(
+    () => Math.max(readNumber(consignmentCheckData?.fail_count), getSourceFailCount(item), getSourceFailCount(sourceItem)),
+    [consignmentCheckData?.fail_count, item, sourceItem],
+  );
+  const isFreeResend = useMemo(
+    () => isFreeResendConsignment(consignmentCheckData, item, sourceItem),
+    [consignmentCheckData, item, sourceItem],
+  );
+  const freeResendDescription = useMemo(() => {
+    if (freeAttemptCount <= 0 && failCount <= 0 && !readBoolean(consignmentCheckData?.is_free_resend)) {
+      const waiveType = readWaiveType(consignmentCheckData?.waive_type);
+      if (waiveType !== 'free_attempt' && waiveType !== 'system_resend') {
+        return '';
+      }
+    }
+
+    return getFreeResendDescription(consignmentCheckData, item, sourceItem);
+  }, [consignmentCheckData, failCount, freeAttemptCount, item, sourceItem]);
+  const consignmentServiceFee = useMemo(() => {
+    if (isFreeResend) {
+      return 0;
+    }
+
+    if (consignmentCheckData?.service_fee > 0) {
+      return Number(consignmentCheckData.service_fee.toFixed(2));
+    }
+
+    const serviceFeeRate =
+      consignmentCheckData?.service_fee_rate && consignmentCheckData.service_fee_rate > 0
+        ? consignmentCheckData.service_fee_rate
+        : 0.03;
+
+    return Number((consignmentPrice * serviceFeeRate).toFixed(2));
+  }, [consignmentCheckData, consignmentPrice, isFreeResend]);
   const showBottomActions = Boolean(
     item && !isSoldItem(item) && !isConsigningItem(item) && !isMiningItem(item),
   );
@@ -339,7 +478,7 @@ export const MyCollectionDetailPage = () => {
       return;
     }
 
-    if (consignmentCouponCount <= 0) {
+    if (!isFreeResend && consignmentCouponCount <= 0) {
       setConsignmentSubmitError('当前账户没有可用寄售券');
       return;
     }
@@ -348,10 +487,15 @@ export const MyCollectionDetailPage = () => {
     setConsignmentSubmitError(null);
 
     try {
-      await collectionConsignmentApi.consign({
+      const result = await collectionConsignmentApi.consign({
         user_collection_id: resolvedCollectionId,
         price: consignmentPrice,
       });
+      const waivedThisConsignment =
+        isFreeResend
+        || result.is_free_resend
+        || readWaiveType(result.waive_type) === 'free_attempt'
+        || readWaiveType(result.waive_type) === 'system_resend';
 
       pageRequest.setData((current) => (
         current
@@ -369,7 +513,10 @@ export const MyCollectionDetailPage = () => {
                     userInfo: current.profile.userInfo
                       ? {
                           ...current.profile.userInfo,
-                          consignmentCoupon: Math.max(0, current.profile.userInfo.consignmentCoupon - 1),
+                          consignmentCoupon: Math.max(
+                            0,
+                            current.profile.userInfo.consignmentCoupon - result.coupon_used,
+                          ),
                         }
                       : current.profile.userInfo,
                   }
@@ -378,7 +525,12 @@ export const MyCollectionDetailPage = () => {
           : current
       ));
 
-      showToast({ type: 'success', message: '寄售申请已提交' });
+      showToast({
+        type: 'success',
+        message: waivedThisConsignment
+          ? '寄售申请已提交，本次免寄售券、免服务费'
+          : '寄售申请已提交',
+      });
       setConsignmentModalOpen(false);
       window.setTimeout(() => {
         goBackOr('my_collection');
@@ -396,6 +548,7 @@ export const MyCollectionDetailPage = () => {
     countdownSeconds,
     ensureRealNameVerified,
     goBackOr,
+    isFreeResend,
     item,
     pageRequest,
     resolvedCollectionId,
@@ -504,6 +657,8 @@ export const MyCollectionDetailPage = () => {
           consignmentCouponCount={consignmentCouponCount}
           consignmentPrice={consignmentPrice}
           countdownSeconds={countdownSeconds}
+          freeResendDescription={freeResendDescription}
+          isFreeResend={isFreeResend}
           isSubmitting={consignmentSubmitting}
           onClose={handleCloseConsignment}
           onCopy={handleCopy}
@@ -513,6 +668,7 @@ export const MyCollectionDetailPage = () => {
           }}
           onRetry={() => void loadConsignmentCheck()}
           onSubmit={() => void handleSubmitConsignment()}
+          serviceFee={consignmentServiceFee}
           serviceFeeBalance={serviceFeeBalance}
           submitError={consignmentSubmitError}
         />

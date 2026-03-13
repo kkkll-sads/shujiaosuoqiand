@@ -1,5 +1,5 @@
 import { Award, Copy, ExternalLink, FileText, Fingerprint, Shield } from 'lucide-react';
-import type { UserCollectionDetail } from '../../../api';
+import type { UserCollectionDetail } from '../../../api/modules/userCollection';
 
 interface MyCollectionCertificateCardProps {
   item: UserCollectionDetail;
