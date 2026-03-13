@@ -8,6 +8,7 @@ interface ToastOptions {
 }
 
 type ShowToast = (options: ToastOptions) => void;
+const CUSTOMER_SERVICE_ROUTE = '/support/chat';
 
 function resolveExternalUrl(value: string): string | null {
   const rawUrl = value.trim();
@@ -22,9 +23,18 @@ function resolveExternalUrl(value: string): string | null {
   }
 }
 
-function openExternalUrl(url: string): boolean {
+function openCustomerServicePage(url: string, title = '在线客服'): boolean {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  const query = new URLSearchParams({
+    title,
+    url,
+  });
+
   try {
-    window.open(url, '_blank', 'noopener,noreferrer');
+    window.location.hash = `${CUSTOMER_SERVICE_ROUTE}?${query.toString()}`;
     return true;
   } catch {
     return false;
@@ -44,7 +54,7 @@ export async function openCustomerServiceLink(showToast: ShowToast): Promise<boo
       return false;
     }
 
-    const opened = openExternalUrl(url);
+    const opened = openCustomerServicePage(url);
     if (!opened) {
       showToast({
         message: '打开客服链接失败，请检查设备设置',
