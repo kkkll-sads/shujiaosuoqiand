@@ -1,0 +1,37 @@
+node_modules/
+dist/
+.DS_Store
+*.log
+*.local
+
+# Build artifacts
+*.apk
+*.aab
+*.tar.gz
+release-archive/
+
+# Temp / scratch files
+tmp/
+1.txt
+123.sh
+
+# Secrets & signing
+auth.txt
+public/auth.txt
+android/keystore.properties
+android/app/release-key.jks
+
+# Android build outputs
+android/app/build/
+android/build/
+android/capacitor-cordova-android-plugins/build/
+android/.gradle/
+android/.idea/
+android/local.properties
+
+# IDE
+.vscode/
+.idea/
+
+# Capacitor generated
+android/app/src/main/assets/public/

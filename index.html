@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>树交所</title>
+    <script>
+      (function() {
+        var key = 'app-theme';
+        var theme;
+        try { theme = localStorage.getItem(key); } catch (e) {}
+        if (theme !== 'dark' && theme !== 'light' && theme !== 'system') theme = 'system';
+        var isDark = theme === 'dark' || (theme === 'system' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        if (isDark) document.documentElement.classList.add('dark');
+        else document.documentElement.classList.remove('dark');
+
+        function setAppVH() {
+          document.documentElement.style.setProperty('--app-vh', window.innerHeight + 'px');
+        }
+        setAppVH();
+        window.addEventListener('resize', setAppVH);
+
+        if (/Android/i.test(navigator.userAgent || '')) {
+          document.documentElement.style.setProperty('--safe-top', '24px');
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <img id="share-img" src="/share.png" alt="" style="position:fixed;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none" />
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

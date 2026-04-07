@@ -1,0 +1,64 @@
+/**
+ * @file 应用入口
+ */
+
+import './polyfills';
+
+(window as any).__capturedErrors = [];
+window.onerror = (_msg, _src, _line, _col, err) => {
+  const list: string[] = (window as any).__capturedErrors;
+  const text = err?.message || String(_msg);
+  if (list.length < 20) list.push(text);
+};
+window.onunhandledrejection = (e: PromiseRejectionEvent) => {
+  const list: string[] = (window as any).__capturedErrors;
+  const text = e.reason?.message || String(e.reason);
+  if (list.length < 20) list.push(text);
+};
+
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import { RouterProvider } from 'react-router-dom';
+import { AppErrorBoundary } from './components/AppErrorBoundary';
+import { FontScaleProvider } from './contexts/FontScaleContext';
+import { ThemeProvider } from './contexts/ThemeContext';
+import { startAppLifecycleObserver } from './lib/appLifecycle';
+import { rewriteLegacyBrowserLocationToHashRoute } from './lib/navigation';
+import { initializeClientLogReporting } from './lib/remoteLogReporter';
+import { router } from './router';
+import './index.css';
+
+rewriteLegacyBrowserLocationToHashRoute();
+startAppLifecycleObserver();
+initializeClientLogReporting();
+
+if (import.meta.env.DEV || import.meta.env.PROD) {
+  requestAnimationFrame(() => {
+    const root = document.documentElement;
+    const cs = getComputedStyle(root);
+    const vars = [
+      '--color-amber-500',
+      '--color-orange-500',
+      '--color-rose-500',
+      '--color-slate-800',
+      '--tw-gradient-position',
+    ];
+    const resolved: Record<string, string> = {};
+    vars.forEach((v) => {
+      resolved[v] = cs.getPropertyValue(v).trim() || '(empty)';
+    });
+    console.info('[CSS vars on :root]', resolved);
+  });
+}
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <AppErrorBoundary>
+      <ThemeProvider>
+        <FontScaleProvider>
+          <RouterProvider router={router} />
+        </FontScaleProvider>
+      </ThemeProvider>
+    </AppErrorBoundary>
+  </StrictMode>,
+);
