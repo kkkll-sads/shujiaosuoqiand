@@ -15,11 +15,6 @@ tmp/
 1.txt
 123.sh
 
-# Secrets & signing
-auth.txt
-public/auth.txt
-android/keystore.properties
-android/app/release-key.jks
 
 # Android build outputs
 android/app/build/
