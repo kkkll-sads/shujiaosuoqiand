@@ -11,7 +11,7 @@ import {
   type ResourceCheckResult,
 } from '../../api/http';
 
-type Phase = 'checking' | 'probing' | 'done' | 'hidden';
+type Phase = 'checking' | 'probing' | 'done';
 
 interface ExtNetResult { ok: boolean; ms: number; error?: string }
 interface PermItem { key: string; label: string; state: PermState }
@@ -21,6 +21,12 @@ interface NativeBridge {
   checkAppPermission(key: string): string;
   requestAppPermission(key: string, callbackId: string): void;
   goToAppSettings(): void;
+}
+
+interface LineProbeOverlayProps {
+  autoCloseOnDone?: boolean;
+  autoCloseDelayMs?: number;
+  showOpenButtonWhenHidden?: boolean;
 }
 
 declare global {
@@ -114,8 +120,13 @@ function requestPermNative(key: string): Promise<PermState> {
 
 /* ── Component ── */
 
-export const LineProbeOverlay: React.FC = () => {
+export const LineProbeOverlay: React.FC<LineProbeOverlayProps> = ({
+  autoCloseOnDone = false,
+  autoCloseDelayMs = 1200,
+  showOpenButtonWhenHidden = false,
+}) => {
   const [phase, setPhase] = useState<Phase>('checking');
+  const [isOpen, setIsOpen] = useState(true);
   const [lines, setLines] = useState<SingleProbeResult[]>([]);
   const [result, setResult] = useState<AllLinesProbeResult | null>(null);
   const [resources, setResources] = useState<ResourceCheckResult | null>(null);
@@ -123,6 +134,7 @@ export const LineProbeOverlay: React.FC = () => {
   const [perms, setPerms] = useState<PermItem[]>(PERM_DEFS.map(d => ({ ...d, state: 'checking' as const })));
   const [elapsed, setElapsed] = useState(0);
   const [runId, setRunId] = useState(0);
+  const [lastAutoClosedRunId, setLastAutoClosedRunId] = useState<number | null>(null);
   const [resExpanded, setResExpanded] = useState(false);
   const startRef = useRef(Date.now());
 
@@ -167,6 +179,7 @@ export const LineProbeOverlay: React.FC = () => {
   }, [runId]);
 
   const handleRefresh = () => {
+    setIsOpen(true);
     setPhase('checking');
     setLines([]);
     setResult(null);
@@ -198,18 +211,69 @@ export const LineProbeOverlay: React.FC = () => {
     setPerms(prev => prev.map((item, i) => i === index ? { ...item, state: newState } : item));
   };
 
-  if (phase === 'hidden') return null;
-
   const winner = result?.winner;
   const linesDone = phase === 'done';
   const hasLineError = linesDone && !winner;
   const hasResError = resources != null && !resources.allOk;
+  const hasExtNetError = extNet != null && !extNet.ok;
   const fallbackLine = hasLineError && result && result.fallbackIndex >= 0
     ? result.lines[result.fallbackIndex] : null;
   const isRunning = phase !== 'done';
   const permsDone = !perms.some(p => p.state === 'checking');
   const deniedCount = perms.filter(p => p.state === 'denied' || p.state === 'denied_permanent').length;
   const promptCount = perms.filter(p => p.state === 'prompt').length;
+  const hasAttention = hasLineError || hasResError || hasExtNetError || deniedCount > 0;
+
+  useEffect(() => {
+    if (!autoCloseOnDone || phase !== 'done' || lastAutoClosedRunId === runId) {
+      return undefined;
+    }
+
+    const timer = window.setTimeout(() => {
+      setIsOpen(false);
+      setLastAutoClosedRunId(runId);
+    }, autoCloseDelayMs);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [autoCloseDelayMs, autoCloseOnDone, lastAutoClosedRunId, phase, runId]);
+
+  if (!isOpen) {
+    if (!showOpenButtonWhenHidden) {
+      return null;
+    }
+
+    return (
+      <div className="fixed bottom-6 right-4 z-200 pointer-events-none">
+        <button
+          type="button"
+          onClick={() => setIsOpen(true)}
+          className="pointer-events-auto inline-flex items-center gap-2 rounded-full border border-black/5 bg-white px-3.5 py-2 shadow-lg active:opacity-90"
+        >
+          {isRunning ? (
+            <Loader2 size={14} className="shrink-0 text-blue-500 animate-spin" />
+          ) : hasAttention ? (
+            <AlertTriangle size={14} className="shrink-0 text-amber-500" />
+          ) : (
+            <CheckCircle2 size={14} className="shrink-0 text-green-500" />
+          )}
+          <span className="text-sm font-medium text-gray-700">应用诊断</span>
+          <span
+            className={`text-xs ${
+              isRunning
+                ? 'text-blue-500'
+                : hasAttention
+                  ? 'text-amber-600'
+                  : 'text-green-600'
+            }`}
+          >
+            {isRunning ? '检测中' : hasAttention ? '异常' : '正常'}
+          </span>
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-200 flex items-center justify-center pointer-events-none">
@@ -218,7 +282,7 @@ export const LineProbeOverlay: React.FC = () => {
         {/* ── Header ── */}
         <div className={`px-4 py-3 flex items-center gap-2.5 shrink-0 ${
           linesDone
-            ? (hasLineError || hasResError)
+            ? (hasLineError || hasResError || hasExtNetError)
               ? 'bg-linear-to-r from-orange-500 to-red-500'
               : 'bg-linear-to-r from-green-500 to-green-600'
             : 'bg-linear-to-r from-blue-500 to-blue-600'
@@ -495,7 +559,7 @@ export const LineProbeOverlay: React.FC = () => {
               </div>
             )}
 
-            {extNet && !extNet.ok && (
+            {hasExtNetError && (
               <div className="flex items-center gap-2 rounded-lg bg-red-50 dark:bg-red-900/20 px-3 py-1.5">
                 <Globe className="w-4 h-4 text-red-500 shrink-0" />
                 <span className="text-xs font-semibold text-red-700">
@@ -524,9 +588,9 @@ export const LineProbeOverlay: React.FC = () => {
                   : fallbackLine ? 'bg-amber-500 active:bg-amber-600'
                   : 'bg-red-500 active:bg-red-600'
               }`}
-              onClick={() => setPhase('hidden')}
+              onClick={() => setIsOpen(false)}
             >
-              确定
+              {showOpenButtonWhenHidden ? '关闭' : '确定'}
             </button>
           </div>
         )}

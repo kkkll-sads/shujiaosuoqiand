@@ -284,7 +284,7 @@ export const LoginPage = () => {
 
   return (
     <div className="relative flex h-full flex-1 flex-col overflow-y-auto bg-bg-base no-scrollbar">
-      <LineProbeOverlay />
+      <LineProbeOverlay autoCloseOnDone showOpenButtonWhenHidden />
       <div className="relative z-10 flex flex-1 flex-col overflow-y-auto px-4 pb-8 pt-12 no-scrollbar">
         <AuthTopBar onBack={goBack} />
 

@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   ChevronRight,
   FileText,
+  Flame,
   Info,
   Landmark,
   ShieldCheck,
@@ -18,7 +19,7 @@ import {
   WifiOff,
   XCircle,
 } from 'lucide-react';
-import { accountApi, rechargeApi, userApi, type PaymentAccount } from '../../api';
+import { accountApi, formatAgentProgressRate, rechargeApi, userApi, type PaymentAccount } from '../../api';
 import { getErrorMessage } from '../../api/core/errors';
 import { WalletPageHeader } from '../../components/layout/WalletPageHeader';
 import { Card } from '../../components/ui/Card';
@@ -135,6 +136,16 @@ export const ExtendWithdrawPage = () => {
     manual: !isAuthenticated,
   });
 
+  const {
+    data: agentProgress,
+    loading: agentProgressLoading,
+    reload: reloadAgentProgress,
+  } = useRequest((signal) => accountApi.getAgentProgress({ signal }), {
+    cacheKey: 'global:agent-progress',
+    deps: [isAuthenticated],
+    manual: !isAuthenticated,
+  });
+
   const paymentAccountList = Array.isArray(paymentAccounts) ? paymentAccounts : [];
   const paymentMethods = useMemo(
     () =>
@@ -221,7 +232,11 @@ export const ExtendWithdrawPage = () => {
 
   const handleReload = () => {
     refreshStatus();
-    return Promise.allSettled([reloadAccountOverview(), reloadPaymentAccounts()]);
+    return Promise.allSettled([
+      reloadAccountOverview(),
+      reloadPaymentAccounts(),
+      reloadAgentProgress(),
+    ]);
   };
 
   const handleSelectMethod = async (methodId: number) => {
@@ -397,9 +412,99 @@ export const ExtendWithdrawPage = () => {
                   <div className="mb-2 text-7xl font-bold tracking-tight text-primary-start">
                     {formatMoney(extendWithdrawableBalance)}
                   </div>
+                  {!agentProgressLoading && agentProgress ? (
+                    <div className="text-sm text-text-sub">
+                      剩余可得下级分润：
+                      <span className="ml-1 font-medium text-text-main">
+                        {agentProgress.earningCap.burnEnabled
+                          ? `¥${formatMoney(agentProgress.earningCap.remainingClaimable)}`
+                          : '不限'}
+                      </span>
+                      <p className="mt-1 text-xs text-text-aux">
+                        下级分润受持仓价值限制，超出部分 50% 转消费金，50% 不发放
+                      </p>
+                    </div>
+                  ) : null}
                 </div>
               )}
             </Card>
+
+            {agentProgressLoading ? (
+              <Card className="border border-border-light p-5">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="h-10 w-10 rounded-2xl" />
+                    <div className="space-y-1.5">
+                      <Skeleton className="h-4 w-28" />
+                      <Skeleton className="h-3 w-48" />
+                    </div>
+                  </div>
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-2 w-full rounded-full" />
+                </div>
+              </Card>
+            ) : agentProgress ? (
+              <Card className="border border-border-light p-5">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-300">
+                    <Flame size={20} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-base font-semibold text-text-main">下级分润说明</h3>
+                    <p className="mt-1 text-sm leading-6 text-text-sub">
+                      下级分润受当前持仓总价值限制，超出部分 50% 转消费金，50% 不发放。
+                    </p>
+                    {!agentProgress.earningCap.burnEnabled ? (
+                      <p className="mt-2 text-sm text-text-sub">当前未启用烧伤机制，剩余可得下级分润不受限制。</p>
+                    ) : (
+                      <dl className="mt-4 space-y-3 text-sm">
+                        <div className="flex justify-between gap-3">
+                          <dt className="text-text-sub">当前持仓总价值</dt>
+                          <dd className="shrink-0 font-medium text-text-main">
+                            ¥{agentProgress.earningCap.holdingValue}
+                          </dd>
+                        </div>
+                        <div className="flex justify-between gap-3">
+                          <dt className="text-text-sub">累计已得下级分润</dt>
+                          <dd className="shrink-0 font-medium text-text-main">
+                            ¥{agentProgress.earningCap.accumulatedCommission}
+                          </dd>
+                        </div>
+                        <div className="flex justify-between gap-3">
+                          <dt className="text-text-sub">最高可得下级分润</dt>
+                          <dd className="shrink-0 font-medium text-text-main">
+                            ¥{agentProgress.earningCap.maxClaimableTotal}
+                          </dd>
+                        </div>
+                        <div className="flex justify-between gap-3">
+                          <dt className="text-text-sub">剩余可得下级分润</dt>
+                          <dd className="shrink-0 font-medium text-text-main">
+                            ¥{agentProgress.earningCap.remainingClaimable}
+                          </dd>
+                        </div>
+                        <div>
+                          <div className="mb-1 flex justify-between gap-3">
+                            <dt className="text-text-sub">已获得比例</dt>
+                            <dd className="shrink-0 font-medium text-text-main">
+                              {formatAgentProgressRate(agentProgress.earningCap.claimedRate)}%
+                            </dd>
+                          </div>
+                          <div className="h-2 overflow-hidden rounded-full bg-bg-hover">
+                            <div
+                              className="h-full rounded-full bg-rose-500 transition-[width] duration-300"
+                              style={{
+                                width: `${formatAgentProgressRate(agentProgress.earningCap.claimedRate)}%`,
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </dl>
+                    )}
+                  </div>
+                </div>
+              </Card>
+            ) : null}
 
             <Card className="overflow-hidden p-0">
               {isLoading ? (

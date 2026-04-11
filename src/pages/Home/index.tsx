@@ -177,8 +177,8 @@ export const HomePage = () => {
 
   /* ---- 申购记录（延迟 1.5s 加载，不阻塞首屏核心内容） ---- */
   const reservationsRequest = useRequest(
-    (signal) => reservationApi.getList({ page: 1, limit: 3 }, signal),
-    { cacheKey: 'home:reservations', manual: true },
+    (signal) => reservationApi.getList({ page: 1, limit: 20 }, signal),
+    { cacheKey: 'home:reservations:20', manual: true },
   );
   const reservations = reservationsRequest.data?.list ?? [];
 

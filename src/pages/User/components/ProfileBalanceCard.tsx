@@ -16,11 +16,16 @@ function formatPriceSmart(value: number | string | undefined | null) {
 }
 
 interface ProfileBalanceCardProps {
+  extendWithdrawableMoney?: string;
   userInfo: AccountProfileUserInfo | undefined;
   onNavigate: (path: string) => void;
 }
 
-const ProfileBalanceCard: React.FC<ProfileBalanceCardProps> = ({ userInfo, onNavigate }) => {
+const ProfileBalanceCard: React.FC<ProfileBalanceCardProps> = ({
+  extendWithdrawableMoney,
+  userInfo,
+  onNavigate,
+}) => {
   return (
     <div className="relative z-10 px-4 transition-transform">
       <div className="profile-balance-card-bg relative overflow-hidden rounded-2xl font-sans text-white shadow-xl">
@@ -80,11 +85,11 @@ const ProfileBalanceCard: React.FC<ProfileBalanceCardProps> = ({ userInfo, onNav
 
             <div
               className="cursor-pointer text-center active:opacity-70"
-              onClick={() => onNavigate('/hashrate-exchange')}
+              onClick={() => onNavigate('/extend-withdraw')}
             >
-              <div className="mb-1 whitespace-nowrap text-2xs text-red-100">绿色算力</div>
+              <div className="mb-1 whitespace-nowrap text-2xs text-red-100">拓展余额</div>
               <div className="truncate font-mono text-sm font-bold">
-                {formatPriceSmart(userInfo?.greenPower)}
+                {formatPriceSmart(extendWithdrawableMoney)}
               </div>
             </div>
 

@@ -28,6 +28,19 @@ const SUBSIDIZED_RATE = 2; // 补贴价：2 消费金 / GH/s
 /** 快捷金额 */
 const QUICK_AMOUNTS = [10, 50, 100, 500];
 
+function formatDisplayAmount(value: number | string, maximumFractionDigits = 2) {
+  const nextValue = typeof value === 'string' ? Number(value) : value;
+  if (!Number.isFinite(nextValue)) {
+    return '--';
+  }
+
+  return nextValue.toLocaleString('zh-CN', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits,
+    useGrouping: false,
+  });
+}
+
 export const HashrateExchangePage: React.FC = () => {
   const navigate = useNavigate();
   const { showToast } = useFeedback();
@@ -108,6 +121,29 @@ export const HashrateExchangePage: React.FC = () => {
           </div>
         </div>
 
+        <div className="mb-4 rounded-3xl border border-emerald-100/70 bg-white/80 p-4 shadow-sm backdrop-blur-sm dark:border-emerald-800/20 dark:bg-bg-card">
+          <div className="flex items-center justify-between gap-4">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 text-xs font-bold tracking-wide text-text-aux">
+                <Zap size={14} className="text-emerald-600 dark:text-emerald-400" />
+                当前算力余额
+              </div>
+              <div className="mt-2 flex items-end gap-2">
+                <span className="text-3xl font-black tracking-tight text-emerald-600 dark:text-emerald-400">
+                  {loading ? '--' : formatDisplayAmount(greenPower)}
+                </span>
+                <span className="pb-1 text-xs font-medium text-text-aux">GH/s</span>
+              </div>
+            </div>
+            <div className="shrink-0 rounded-2xl bg-emerald-50 px-3 py-2 text-right dark:bg-emerald-900/20">
+              <div className="text-2xs text-emerald-700/80 dark:text-emerald-300/80">可用消费金</div>
+              <div className="mt-1 text-sm font-bold text-emerald-700 dark:text-emerald-300">
+                {loading ? '--' : formatDisplayAmount(score, 0)}
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* ====== 输入卡片 ====== */}
         <div className="relative mb-6 overflow-hidden rounded-3xl border border-emerald-50 bg-white p-6 shadow-xl shadow-emerald-100/30 dark:border-emerald-800/20 dark:bg-bg-card dark:shadow-none">
           <div className="absolute right-0 top-0 -z-0 h-24 w-24 rounded-bl-[100px] bg-emerald-50/50 dark:bg-emerald-800/10" />
@@ -120,11 +156,11 @@ export const HashrateExchangePage: React.FC = () => {
                 补充额度 (GH/s)
               </div>
               <div className="text-xs text-text-aux">
-                当前持有:{' '}
+                可用消费金:{' '}
                 <span className="font-bold text-emerald-600 dark:text-emerald-400">
-                  {loading ? '--' : greenPower}
+                  {loading ? '--' : formatDisplayAmount(score, 0)}
                 </span>{' '}
-                GHs
+                点
               </div>
             </div>
 

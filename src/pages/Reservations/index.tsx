@@ -51,7 +51,7 @@ export const ReservationsPage = () => {
     reload: reloadFirst,
   } = useRequest(
     async (signal) => {
-      const res = await reservationApi.getList({ page: 1, limit: PAGE_SIZE, sstatus: statusFilter }, signal);
+      const res = await reservationApi.getList({ page: 1, limit: PAGE_SIZE, status: statusFilter }, signal);
       const list = res?.list ?? [];
       setItems(list);
       setPage(1);
@@ -73,7 +73,7 @@ export const ReservationsPage = () => {
 
     const nextPage = page + 1;
     try {
-      const res = await reservationApi.getList({ page: nextPage, limit: PAGE_SIZE, sstatus: statusFilter });
+      const res = await reservationApi.getList({ page: nextPage, limit: PAGE_SIZE, status: statusFilter });
       const list = res?.list ?? [];
       setItems((prev) => [...prev, ...list]);
       setPage(nextPage);

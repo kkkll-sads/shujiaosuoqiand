@@ -332,7 +332,11 @@ export const UserPage = () => {
 
     return (
       <>
-        <ProfileBalanceCard userInfo={profile?.userInfo} onNavigate={goTo} />
+        <ProfileBalanceCard
+          userInfo={profile?.userInfo}
+          extendWithdrawableMoney={accountOverviewRequest.data?.balance.extendWithdrawableMoney}
+          onNavigate={goTo}
+        />
 
         <div className="space-y-4 px-4">
           <Card className="hidden">
