@@ -6,6 +6,7 @@ import { Button } from '../../../components/ui/Button';
 import type { ShopProductOptionGroup } from '../../shop-product/utils';
 import {
   buildShopProductSelectedSummary,
+  getShopProductPurchaseRule,
   getSelectedSku,
   getShopProductPrimaryPrice,
   resolveShopProductImageUrl,
@@ -72,9 +73,13 @@ export const ProductSkuSheet = ({
       : matchedSku?.available_stock != null
         ? matchedSku.available_stock
         : product.stock;
+  const purchaseRule = getShopProductPurchaseRule(product, optionGroups, selectedOptions);
+  const minBuy = purchaseRule.minBuy;
+  const limitBuy = purchaseRule.limitBuy;
+  const maxQuantity = purchaseRule.maxQuantity;
 
   const isOutOfStock = displayStock <= 0;
-  const canConfirm = !isOutOfStock && quantity <= displayStock;
+  const canConfirm = !isOutOfStock && quantity >= minBuy && (maxQuantity <= 0 || quantity <= maxQuantity);
 
   return (
     <BottomSheet
@@ -131,7 +136,11 @@ export const ProductSkuSheet = ({
           <div className="mb-1 text-xl font-bold text-primary-start">
             {getShopProductPrimaryPrice(priceSource)}
           </div>
-          <span className="mb-1 text-sm text-text-sub">库存 {displayStock}</span>
+          <span className="mb-1 text-sm text-text-sub">
+            库存 {displayStock}
+            {limitBuy > 0 ? ` · 限购${limitBuy}件` : ''}
+            {minBuy > 1 ? ` · 起购${minBuy}件` : ''}
+          </span>
           <span className="line-clamp-1 text-sm text-text-main">
             已选 {buildShopProductSelectedSummary(optionGroups, selectedOptions, quantity)}
           </span>
@@ -252,7 +261,7 @@ export const ProductSkuSheet = ({
             <button
               className="flex h-8 w-8 items-center justify-center text-text-main disabled:text-text-aux"
               onClick={onDecreaseQuantity}
-              disabled={quantity <= 1}
+              disabled={quantity <= minBuy}
             >
               <Minus size={14} />
             </button>
@@ -260,8 +269,9 @@ export const ProductSkuSheet = ({
               {quantity}
             </div>
             <button
-              className="flex h-8 w-8 items-center justify-center text-text-main"
+              className="flex h-8 w-8 items-center justify-center text-text-main disabled:text-text-aux"
               onClick={onIncreaseQuantity}
+              disabled={isOutOfStock || maxQuantity === 0 || (maxQuantity > 0 && quantity >= maxQuantity)}
             >
               <Plus size={14} />
             </button>

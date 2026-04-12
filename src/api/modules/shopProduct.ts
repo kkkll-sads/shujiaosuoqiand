@@ -16,6 +16,8 @@ export interface ShopProductItem {
   green_power_amount?: number | null;
   id: number;
   is_physical: string;
+  limit_buy?: number | null;
+  min_buy?: number | null;
   name: string;
   price?: number | null;
   purchase_type: string;

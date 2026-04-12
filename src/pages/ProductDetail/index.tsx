@@ -26,6 +26,7 @@ import {
   buildShopProductPath,
   buildShopProductQaPath,
   buildShopProductReviewsPath,
+  getShopProductPurchaseRule,
   buildShopProductSelectedSummary,
   getSelectedSkuId,
 } from '../../features/shop-product/utils';
@@ -128,6 +129,10 @@ export const ProductDetailPage = () => {
 
   const product = productRequest.data;
   const optionGroups = useMemo(() => buildShopProductOptionGroups(product), [product]);
+  const purchaseRule = useMemo(
+    () => getShopProductPurchaseRule(product, optionGroups, selectedOptions),
+    [optionGroups, product, selectedOptions],
+  );
   const selectedSummary = buildShopProductSelectedSummary(optionGroups, selectedOptions, quantity);
 
   useEffect(() => {
@@ -156,6 +161,14 @@ export const ProductDetailPage = () => {
     currentRef.addEventListener('scroll', handleScroll);
     return () => currentRef.removeEventListener('scroll', handleScroll);
   }, []);
+
+  useEffect(() => {
+    setQuantity((previous) => {
+      const minQuantity = Math.max(1, purchaseRule.minBuy);
+      const maxQuantity = purchaseRule.maxQuantity > 0 ? purchaseRule.maxQuantity : Number.MAX_SAFE_INTEGER;
+      return Math.min(Math.max(previous, minQuantity), maxQuantity);
+    });
+  }, [purchaseRule.maxQuantity, purchaseRule.minBuy]);
 
   const loadAddresses = useCallback(async () => {
     const list = await addressApi.list().catch(() => []);
@@ -354,6 +367,14 @@ export const ProductDetailPage = () => {
       showToast({ message: '商品信息异常', type: 'warning' });
       return;
     }
+    if (quantity < purchaseRule.minBuy) {
+      showToast({ message: `该商品起购数量为${purchaseRule.minBuy}件`, type: 'warning' });
+      return;
+    }
+    if (purchaseRule.maxQuantity > 0 && quantity > purchaseRule.maxQuantity) {
+      showToast({ message: `该商品当前最多可购买${purchaseRule.maxQuantity}件`, type: 'warning' });
+      return;
+    }
     const skuId = getSelectedSkuId(product, optionGroups, selectedOptions);
     if (optionGroups.length > 0 && (skuId == null || !Number.isFinite(skuId))) {
       showToast({ message: '请先选择完整规格', type: 'warning' });
@@ -379,6 +400,8 @@ export const ProductDetailPage = () => {
     optionGroups,
     selectedOptions,
     quantity,
+    purchaseRule.maxQuantity,
+    purchaseRule.minBuy,
     showToast,
     closeSkuSheet,
   ]);
@@ -386,6 +409,14 @@ export const ProductDetailPage = () => {
   const handleBuyNow = useCallback(async () => {
     if (!product?.id) {
       showToast({ message: '商品信息异常', type: 'warning' });
+      return;
+    }
+    if (quantity < purchaseRule.minBuy) {
+      showToast({ message: `该商品起购数量为${purchaseRule.minBuy}件`, type: 'warning' });
+      return;
+    }
+    if (purchaseRule.maxQuantity > 0 && quantity > purchaseRule.maxQuantity) {
+      showToast({ message: `该商品当前最多可购买${purchaseRule.maxQuantity}件`, type: 'warning' });
       return;
     }
     const skuId = getSelectedSkuId(product, optionGroups, selectedOptions);
@@ -429,7 +460,7 @@ export const ProductDetailPage = () => {
     } catch (err) {
       showToast({ message: getErrorMessage(err) || '创建订单失败', type: 'error' });
     }
-  }, [product, optionGroups, selectedOptions, quantity, selectedAddress, addresses.length, showToast, closeSkuSheet, navigate, openAddAddressForm]);
+  }, [product, optionGroups, selectedOptions, quantity, purchaseRule.maxQuantity, purchaseRule.minBuy, selectedAddress, addresses.length, showToast, closeSkuSheet, navigate, openAddAddressForm]);
 
   const handleOpenSupport = useCallback(() => {
     void openCustomerServiceLink(({ duration, message, type }) => {
@@ -504,8 +535,17 @@ export const ProductDetailPage = () => {
             onAddToCart={handleAddToCart}
             onClose={closeSkuSheet}
             onConfirm={handleBuyNow}
-            onDecreaseQuantity={() => setQuantity((previous) => Math.max(1, previous - 1))}
-            onIncreaseQuantity={() => setQuantity((previous) => previous + 1)}
+            onDecreaseQuantity={() =>
+              setQuantity((previous) => Math.max(Math.max(1, purchaseRule.minBuy), previous - 1))
+            }
+            onIncreaseQuantity={() =>
+              setQuantity((previous) => {
+                if (purchaseRule.maxQuantity <= 0) {
+                  return previous;
+                }
+                return Math.min(purchaseRule.maxQuantity, previous + 1);
+              })
+            }
             onManageAddress={handleManageAddress}
             onSelectOption={(groupName, option) =>
               setSelectedOptions((previous) => ({
@@ -584,4 +624,3 @@ export const ProductDetailPage = () => {
     </div>
   );
 };
-

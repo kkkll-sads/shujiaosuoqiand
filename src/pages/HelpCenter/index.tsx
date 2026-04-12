@@ -1,6 +1,6 @@
 /**
  * @file HelpCenter/index.tsx - 客服与帮助中心页面
- * @description 提供在线客服、自助服务、常见问题分类展示，支持下拉刷新。
+ * @description 提供在线客服、AI 助手、自助服务、常见问题分类展示，支持下拉刷新。
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -14,6 +14,7 @@ import {
   HelpCircle,
   Loader2,
   MessageSquare,
+  Sparkles,
 } from 'lucide-react';
 import { helpApi, type HelpCategory, type HelpQuestion } from '../../api';
 import { getErrorMessage } from '../../api/core/errors';
@@ -81,7 +82,7 @@ function HelpCenterSkeleton() {
 
 /**
  * HelpCenterPage - 客服与帮助中心
- * 功能：在线客服 → 自助服务 → 常见问题分类浏览 → FAQ 展开/收起
+ * 功能：在线客服 / AI 助手 → 自助服务 → 常见问题分类浏览 → FAQ 展开/收起
  */
 export const HelpCenterPage = () => {
   const { goBackOr, goTo } = useAppNavigate();
@@ -321,6 +322,15 @@ export const HelpCenterPage = () => {
                   >
                     <MessageSquare size={24} className="mx-auto mb-2 text-text-sub" />
                     <span className="text-sm text-text-main">消息中心</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="rounded-2xl py-3 text-center active:bg-bg-base"
+                    onClick={() => goTo('ai_assistant')}
+                  >
+                    <Sparkles size={24} className="mx-auto mb-2 text-text-sub" />
+                    <span className="text-sm text-text-main">AI助手</span>
                   </button>
 
                   <button

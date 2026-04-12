@@ -50,6 +50,8 @@ export interface ShopCartListItem {
   id: number;
   /** 商品 ID */
   product_id: number;
+  /** SKU ID */
+  sku_id?: number;
   /** 数量 */
   quantity: number;
   /** 来源：normal 普通 / flash_sale 秒杀 */
@@ -66,6 +68,16 @@ export interface ShopCartListItem {
   original_price?: number;
   /** 普通商品价格（接口可能返回） */
   price?: number;
+  /** 库存 */
+  stock?: number;
+  /** 可售库存 */
+  available_stock?: number;
+  /** 限购数量 */
+  limit_buy?: number;
+  /** 起购数量 */
+  min_buy?: number;
+  /** 规格摘要 */
+  sku_info?: string;
   /** 秒杀活动是否有效 */
   activity_valid?: boolean;
   /** 积分价（部分商品仅积分价） */

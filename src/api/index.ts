@@ -1,4 +1,5 @@
 export * from './modules/address';
+export * from './modules/aiChat';
 export * from './modules/appVersion';
 export * from './modules/account';
 export * from './modules/activityCenter';

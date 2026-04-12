@@ -26,6 +26,14 @@ export interface ShopProductOptionGroup {
   options: string[];
 }
 
+export interface ShopProductPurchaseRule {
+  limitBuy: number;
+  matchedSku?: ShopProductSku;
+  maxQuantity: number;
+  minBuy: number;
+  stock: number;
+}
+
 function toFiniteNumber(value: number | null | undefined): number {
   return Number.isFinite(value) ? Number(value) : 0;
 }
@@ -291,7 +299,12 @@ export function getShopProductPricePresentation(
 
 export function getShopProductBadges(product: ShopProductItem) {
   const tag = getShopProductPurchaseTag(product);
-  return tag ? [tag] : [];
+  const badges = tag ? [tag] : [];
+  const limitBuy = Number(product.limit_buy ?? 0);
+  if (Number.isFinite(limitBuy) && limitBuy > 0) {
+    badges.push(`限购${limitBuy}件`);
+  }
+  return badges;
 }
 
 export function formatShopProductSales(value?: number | null) {
@@ -406,6 +419,36 @@ export function getSelectedSku(
     if (specValues.length !== selectedValues.length) return false;
     return selectedValues.every((v, i) => specValues[i] === v);
   });
+}
+
+export function getShopProductPurchaseRule(
+  product: ShopProductDetail | null | undefined,
+  optionGroups: ShopProductOptionGroup[],
+  selectedOptions: Record<string, string>,
+): ShopProductPurchaseRule {
+  const matchedSku = getSelectedSku(product, optionGroups, selectedOptions);
+  const stock =
+    matchedSku != null && typeof matchedSku.stock === 'number'
+      ? matchedSku.stock
+      : matchedSku?.available_stock != null
+        ? matchedSku.available_stock
+        : Number(product?.stock ?? 0);
+  const rawLimitBuy =
+    matchedSku?.limit_buy != null ? Number(matchedSku.limit_buy) : Number(product?.limit_buy ?? 0);
+  const rawMinBuy =
+    matchedSku?.min_buy != null ? Number(matchedSku.min_buy) : Number(product?.min_buy ?? 1);
+  const limitBuy = Number.isFinite(rawLimitBuy) && rawLimitBuy > 0 ? rawLimitBuy : 0;
+  const minBuy = Number.isFinite(rawMinBuy) && rawMinBuy > 0 ? rawMinBuy : 1;
+  const finiteStock = Number.isFinite(stock) && stock > 0 ? Number(stock) : 0;
+  const maxQuantity = limitBuy > 0 ? (finiteStock > 0 ? Math.min(limitBuy, finiteStock) : 0) : finiteStock;
+
+  return {
+    limitBuy,
+    matchedSku,
+    maxQuantity,
+    minBuy,
+    stock: finiteStock,
+  };
 }
 
 export function buildShopProductDescription(product: ShopProductDetail | null | undefined) {

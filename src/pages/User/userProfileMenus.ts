@@ -20,6 +20,7 @@ import {
   Newspaper,
   Gift,
   Layers,
+  Sparkles,
   Zap,
   PlayCircle,
   BookOpen,
@@ -198,6 +199,7 @@ export const buildServiceManagement = ({
     { label: '隐私政策', icon: ShieldCheck, action: () => navigate('/privacy_policy') },
     { label: '活动中心', icon: Gift, action: () => navigate('/activity-center') },
     { label: '平台资料', icon: BookOpen, action: () => navigate('/platform-docs') },
+    { label: 'AI助手', icon: Sparkles, action: () => navigate('/support/ai') },
     { label: '在线客服', icon: HeadphonesIcon, action: openSupport },
     { label: '平台公告', icon: Newspaper, action: () => navigate('/announcement') },
   ].map((item) => ({

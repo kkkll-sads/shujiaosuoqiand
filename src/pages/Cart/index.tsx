@@ -22,6 +22,9 @@ interface CartItem {
   price: number;
   quantity: number;
   image: string;
+  limitBuy: number;
+  maxQuantity: number;
+  minBuy: number;
   /** 是否为积分价商品 */
   isScorePrice: boolean;
 }
@@ -42,7 +45,11 @@ function mapCartListToStores(list: ShopCartListItem[]): CartStore[] {
     // score_price 代表积分价（整数），不需要除以 100
     const isScorePrice = row.score_price != null && row.score_price > 0;
     const price = isScorePrice ? row.score_price! : (row.flash_price ?? row.price ?? row.original_price ?? 0);
-    const sku = row.source === 'flash_sale' ? '限时秒杀' : '普通';
+    const limitBuy = Number(row.limit_buy ?? 0);
+    const minBuy = Math.max(1, Number(row.min_buy ?? 1) || 1);
+    const stock = Number(row.available_stock ?? row.stock ?? 0);
+    const maxQuantity = limitBuy > 0 ? (stock > 0 ? Math.min(limitBuy, stock) : 0) : stock;
+    const sku = row.sku_info || (row.source === 'flash_sale' ? '限时秒杀' : '普通');
     return {
       id: String(row.id),
       title: row.product_name,
@@ -50,6 +57,9 @@ function mapCartListToStores(list: ShopCartListItem[]): CartStore[] {
       price,
       quantity: row.quantity,
       image: row.product_thumbnail || '',
+      limitBuy,
+      maxQuantity,
+      minBuy,
       isScorePrice,
     };
   });
@@ -183,7 +193,18 @@ export const CartPage = () => {
     const target = list.find((row) => String(row.id) === itemId);
     if (!target) return;
 
-    const quantity = Math.max(1, target.quantity + delta);
+    const minQuantity = Math.max(1, Number(target.min_buy ?? 1) || 1);
+    const limitBuy = Number(target.limit_buy ?? 0);
+    const stock = Number(target.available_stock ?? target.stock ?? 0);
+    const maxQuantity = limitBuy > 0 ? (stock > 0 ? Math.min(limitBuy, stock) : 0) : stock;
+    if (delta > 0 && maxQuantity === 0) {
+      return;
+    }
+
+    const quantity = Math.max(
+      minQuantity,
+      Math.min(maxQuantity > 0 ? maxQuantity : Number.MAX_SAFE_INTEGER, target.quantity + delta),
+    );
     if (quantity === target.quantity) return;
 
     setUpdatingItemIds((prev) => new Set(prev).add(itemId));
@@ -406,6 +427,16 @@ export const CartPage = () => {
                             <span className="text-s text-text-sub truncate">{item.sku}</span>
                             <ChevronDown size={10} className="text-text-aux ml-1 shrink-0" />
                           </div>
+                          {item.limitBuy > 0 || item.minBuy > 1 ? (
+                            <div className="mb-2 flex flex-wrap gap-2 text-[11px] text-text-sub">
+                              {item.limitBuy > 0 ? (
+                                <span className="rounded-full bg-red-50 px-2 py-0.5 text-primary-start">限购{item.limitBuy}件</span>
+                              ) : null}
+                              {item.minBuy > 1 ? (
+                                <span className="rounded-full bg-bg-base px-2 py-0.5">起购{item.minBuy}件</span>
+                              ) : null}
+                            </div>
+                          ) : null}
                         </div>
                         
                         <div className="flex items-center justify-between">
@@ -436,7 +467,7 @@ export const CartPage = () => {
                               <button 
                                 className="w-6 h-full flex items-center justify-center bg-bg-base text-text-main active:bg-border-light disabled:opacity-30"
                                 onClick={() => void updateQuantity(item.id, -1)}
-                                disabled={item.quantity <= 1 || updatingItemIds.has(item.id)}
+                                disabled={item.quantity <= item.minBuy || updatingItemIds.has(item.id)}
                               >
                                 <Minus size={12} />
                               </button>
@@ -444,9 +475,9 @@ export const CartPage = () => {
                                 {item.quantity}
                               </div>
                               <button 
-                                className="w-6 h-full flex items-center justify-center bg-bg-base text-text-main active:bg-border-light"
+                                className="w-6 h-full flex items-center justify-center bg-bg-base text-text-main active:bg-border-light disabled:opacity-30"
                                 onClick={() => void updateQuantity(item.id, 1)}
-                                disabled={updatingItemIds.has(item.id)}
+                                disabled={updatingItemIds.has(item.id) || item.maxQuantity === 0 || (item.maxQuantity > 0 && item.quantity >= item.maxQuantity)}
                               >
                                 <Plus size={12} />
                               </button>
@@ -551,4 +582,3 @@ export const CartPage = () => {
     </div>
   );
 };
-

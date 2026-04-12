@@ -35,6 +35,7 @@ import { ShopProductPriceDisplay } from '../../features/shop-product/components/
 import {
   buildShopProductPath,
   formatShopProductSales,
+  getShopProductBadges,
   resolveShopProductImageUrl,
 } from '../../features/shop-product/utils';
 import { useInfiniteScroll } from '../../hooks/useInfiniteScroll';
@@ -643,6 +644,22 @@ export const StorePage = () => {
                           <div className="mb-2 line-clamp-2 text-[14px] leading-[20px] text-text-main">
                             {item.name}
                           </div>
+                          {getShopProductBadges(item).length > 0 ? (
+                            <div className="mb-2 flex flex-wrap gap-1.5">
+                              {getShopProductBadges(item).map((badge) => (
+                                <span
+                                  key={`${item.id}-${badge}`}
+                                  className={`rounded-sm px-1.5 py-0.5 text-[11px] font-medium ${
+                                    badge === '消费金'
+                                      ? 'bg-amber-50 text-amber-600'
+                                      : 'bg-red-50 text-primary-start'
+                                  }`}
+                                >
+                                  {badge}
+                                </span>
+                              ))}
+                            </div>
+                          ) : null}
                           <div className="mt-auto flex items-end justify-between gap-3">
                             <div className="min-w-0">
                               <ShopProductPriceDisplay product={item} />
@@ -677,4 +694,3 @@ export const StorePage = () => {
     </div>
   );
 };
-
