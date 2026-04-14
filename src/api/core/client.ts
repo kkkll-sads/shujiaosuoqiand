@@ -1,4 +1,4 @@
-import { ApiError, isAbortError } from './errors';
+import { ApiError, isAbortError, sanitizeUserFacingMessage } from './errors';
 import { appendQueryParams, type QueryParams } from './query';
 import { clearAuthSession, persistAuthRedirectPath } from '../../lib/auth';
 import { emitGlobalToast } from '../../lib/feedback';
@@ -892,7 +892,7 @@ export class HttpClient {
         redirectToLogin(msg || '请先登录');
       }
 
-      return new ApiError(msg || 'Request failed.', {
+      return new ApiError(sanitizeUserFacingMessage(msg, '请求失败，请稍后重试。'), {
         code: getBizCode(payload),
         details: payload,
         status,
@@ -903,14 +903,17 @@ export class HttpClient {
       if (shouldRedirectToLogin(status, undefined, payload.message)) {
         redirectToLogin(payload.message || '请先登录');
       }
-      return new ApiError(payload.message, { details: payload, status });
+      return new ApiError(sanitizeUserFacingMessage(payload.message, '请求失败，请稍后重试。'), {
+        details: payload,
+        status,
+      });
     }
 
     if (shouldRedirectToLogin(status)) {
       redirectToLogin('请先登录');
     }
 
-    return new ApiError('Request failed.', { details: payload, status });
+    return new ApiError('请求失败，请稍后重试。', { details: payload, status });
   }
 
   private unwrapPayload<TResponse>(
@@ -930,7 +933,7 @@ export class HttpClient {
           redirectToLogin(failMsg || '请先登录');
         }
 
-        throw new ApiError(failMsg || 'Request failed.', {
+        throw new ApiError(sanitizeUserFacingMessage(failMsg, '请求失败，请稍后重试。'), {
           code: getBizCode(payload),
           details: payload,
           status,
@@ -944,7 +947,7 @@ export class HttpClient {
         typeof bizMsg === 'string' &&
         bizMsg.trim().length > 0
       ) {
-        throw new ApiError(bizMsg.trim(), {
+        throw new ApiError(sanitizeUserFacingMessage(bizMsg.trim(), '请求失败，请稍后重试。'), {
           code: getBizCode(payload),
           details: payload,
           status,
@@ -964,4 +967,3 @@ export class HttpClient {
     return normalizeListPayload(payload as TResponse);
   }
 }
-

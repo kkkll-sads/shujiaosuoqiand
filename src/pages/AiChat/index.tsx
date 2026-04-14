@@ -473,6 +473,20 @@ export const AiChatPage = () => {
     showToast({ message: '已切换到新会话', type: 'success' });
   }, [currentSessionId, messages.length, resetStreamingBuffer, sending, setCurrentSessionId, showConfirm, showToast]);
 
+  const handleOpenSession = useCallback((sessionId: number) => {
+    abortRef.current?.abort();
+    resetStreamingBuffer();
+    setStreamingMessageId(null);
+    pendingScrollModeRef.current = 'top';
+    scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'auto' });
+    setViewMode('conversation');
+    setMessages([]);
+    setSessionLoadError(null);
+    autoLoadedSessionIdRef.current = sessionId;
+    setCurrentSessionId(sessionId);
+    void loadSession(sessionId);
+  }, [loadSession, resetStreamingBuffer, setCurrentSessionId]);
+
   const sendMessage = useCallback(async (nextContent?: string) => {
     const content = (nextContent ?? draft).trim();
     if (!isAuthenticated) {
@@ -646,7 +660,7 @@ export const AiChatPage = () => {
         <div className="flex-1 overflow-y-auto">
           <EmptyState
             icon={<Bot size={40} />}
-            message="AI 助手已开启，但还没有配置 DeepSeek API Key。"
+            message="AI 助手暂时不可用，请稍后重试。"
             actionText="重新加载"
             onAction={() => void configRequest.reload()}
           />
@@ -753,19 +767,7 @@ export const AiChatPage = () => {
                 loading={sessionsRequest.loading}
                 error={sessionsRequest.error}
                 loadingSessionId={loadingSessionId}
-                onOpen={(sessionId) => {
-                  abortRef.current?.abort();
-                  resetStreamingBuffer();
-                  setStreamingMessageId(null);
-                  pendingScrollModeRef.current = 'top';
-                  scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'auto' });
-                  setViewMode('conversation');
-                  setMessages([]);
-                  setSessionLoadError(null);
-                  autoLoadedSessionIdRef.current = sessionId;
-                  setCurrentSessionId(sessionId);
-                  void loadSession(sessionId);
-                }}
+                onOpen={handleOpenSession}
                 onRetry={() => void sessionsRequest.reload()}
               />
             </div>

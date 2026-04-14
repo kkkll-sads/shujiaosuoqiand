@@ -8,7 +8,7 @@
 
 ## 页面清单（含路由）
 
-共 80 个页面实现，其中路由挂载页面 77 个，未挂载/保留页面 3 个。
+共 88 个页面实现，其中路由挂载页面 84 个，未挂载/保留页面 4 个。
 
 ### AboutUsPage
 
@@ -17,8 +17,8 @@
 - 领域：消息、客服与社交
 - 导出：`AboutUsPage`
 - 页面作用：负责 消息、客服与社交 相关场景的页面编排与交互响应，承担路由层到业务组件层的桥接。
-- 关键组件依赖：`PageHeader`
-- 关键 Hooks：`useFeedback`、`useNavigate`、`useNetworkStatus`、`useRequest`
+- 关键组件依赖：`PageHeader`、`UpdateModal`、`UpdateModalMode`
+- 关键 Hooks：`useDisplayVersion`、`useFeedback`、`useLatestAppVersion`、`useNavigate`、`useNetworkStatus`、`useRequest`
 - 数据与接口：`appVersionApi`
 
 ### AccumulatedRightsPage
@@ -84,7 +84,7 @@
 - 导出：`AfterSalesPage`
 - 页面作用：负责 订单与交易履约 相关场景的页面编排与交互响应，承担路由层到业务组件层的桥接。
 - 关键组件依赖：`EmptyState`、`ErrorState`、`PageHeader`
-- 关键 Hooks：`useAppNavigate`、`useFeedback`、`useRequest`
+- 关键 Hooks：`useAppNavigate`、`useFeedback`、`useInfiniteScroll`、`useRequest`
 - 数据与接口：`shopOrderApi`
 
 ### AgentAuthPage
@@ -95,8 +95,19 @@
 - 导出：`AgentAuthPage`
 - 页面作用：负责 认证与账号安全 相关场景的页面编排与交互响应，承担路由层到业务组件层的桥接。
 - 关键组件依赖：`Button`、`Card`、`EmptyState`、`ErrorState`、`PageHeader`
-- 关键 Hooks：`useAppNavigate`、`useAuthSession`、`useFeedback`
-- 数据与接口：`uploadApi`、`userApi`
+- 关键 Hooks：`useAppNavigate`、`useAuthSession`、`useFeedback`、`useRequest`
+- 数据与接口：`accountApi`、`uploadApi`、`userApi`
+
+### AiChatPage
+
+- 文件：`src/pages/AiChat/index.tsx`
+- 路由：`/support/ai`
+- 领域：消息、客服与社交
+- 导出：`AiChatPage`
+- 页面作用：负责 消息、客服与社交 相关场景的页面编排与交互响应，承担路由层到业务组件层的桥接。
+- 关键组件依赖：`Card`、`EmptyState`、`ErrorState`、`OfflineBanner`、`PageHeader`、`Skeleton`
+- 关键 Hooks：`useAppNavigate`、`useAuthSession`、`useFeedback`、`useNetworkStatus`、`useRequest`、`useSessionState`
+- 数据与接口：`aiChatApi`
 
 ### AnnouncementDetailPage
 
@@ -117,8 +128,19 @@
 - 导出：`AnnouncementPage`
 - 页面作用：负责 消息、客服与社交 相关场景的页面编排与交互响应，承担路由层到业务组件层的桥接。
 - 关键组件依赖：`EmptyState`、`ErrorState`、`PageHeader`、`PullToRefreshContainer`
-- 关键 Hooks：`useAppNavigate`、`useNetworkStatus`、`useRequest`、`useRouteScrollRestoration`
+- 关键 Hooks：`useAppNavigate`、`useInfiniteScroll`、`useNetworkStatus`、`useRequest`、`useRouteScrollRestoration`
 - 数据与接口：`announcementApi`
+
+### BalanceTreasurePage
+
+- 文件：`src/pages/BalanceTreasure/index.tsx`
+- 路由：`/balance-treasure`
+- 领域：通用页面
+- 导出：`BalanceTreasurePage`
+- 页面作用：负责 通用页面 相关场景的页面编排与交互响应，承担路由层到业务组件层的桥接。
+- 关键组件依赖：`Button`、`Card`、`EmptyState`、`ErrorState`、`PullToRefreshContainer`、`WalletPageHeader`
+- 关键 Hooks：`useAppNavigate`、`useAuthSession`、`useFeedback`、`useGrouping`、`useNetworkStatus`、`useRouteScrollRestoration`
+- 数据与接口：`balanceTreasureApi`
 
 ### BillingPage
 
@@ -208,6 +230,17 @@
 - 关键 Hooks：`useNetworkStatus`、`useRequest`
 - 数据与接口：`commonApi`
 
+### CompanyCertPage
+
+- 文件：`src/pages/CompanyCert/index.tsx`
+- 路由：`/company_cert`
+- 领域：通用页面
+- 导出：`CompanyCertPage`
+- 页面作用：负责 通用页面 相关场景的页面编排与交互响应，承担路由层到业务组件层的桥接。
+- 关键组件依赖：`PageHeader`
+- 关键 Hooks：无自定义 hook 依赖
+- 数据与接口：当前文件未直接引用 API 模块（可能由子组件/Hook 间接处理）
+
 ### ConsignmentCouponPage
 
 - 文件：`src/pages/ConsignmentCoupon/index.tsx`
@@ -227,7 +260,7 @@
 - 导出：`CouponPage`
 - 页面作用：负责 资产与权益管理 相关场景的页面编排与交互响应，承担路由层到业务组件层的桥接。
 - 关键组件依赖：`EmptyState`、`ErrorState`、`PullToRefreshContainer`
-- 关键 Hooks：`useAppNavigate`、`useAuthSession`、`useFeedback`、`useNetworkStatus`、`useRouteScrollRestoration`、`useSessionState`
+- 关键 Hooks：`useAppNavigate`、`useAuthSession`、`useFeedback`、`useInfiniteScroll`、`useNetworkStatus`、`useRouteScrollRestoration`、`useSessionState`
 - 数据与接口：`shopCouponApi`
 
 ### CustomerServicePage
@@ -241,17 +274,6 @@
 - 关键 Hooks：`useAppNavigate`、`useFeedback`、`useSearchParams`
 - 数据与接口：当前文件未直接引用 API 模块（可能由子组件/Hook 间接处理）
 
-### DesignSystemPage
-
-- 文件：`src/pages/DesignSystem/index.tsx`
-- 路由：`/design`
-- 领域：通用页面
-- 导出：`DesignSystemPage`
-- 页面作用：负责 通用页面 相关场景的页面编排与交互响应，承担路由层到业务组件层的桥接。
-- 关键组件依赖：`BottomTab`、`Button`、`Card`、`Input`、`Skeleton`、`Tag`
-- 关键 Hooks：无自定义 hook 依赖
-- 数据与接口：当前文件未直接引用 API 模块（可能由子组件/Hook 间接处理）
-
 ### EditProfilePage
 
 - 文件：`src/pages/EditProfile/index.tsx`
@@ -263,6 +285,17 @@
 - 关键 Hooks：`useAppNavigate`、`useAuthSession`、`useFeedback`、`useRequest`
 - 数据与接口：`accountApi`、`uploadApi`、`userApi`
 
+### ExtendWithdrawPage
+
+- 文件：`src/pages/ExtendWithdraw/index.tsx`
+- 路由：`/extend-withdraw`
+- 领域：资产与权益管理
+- 导出：`ExtendWithdrawPage`
+- 页面作用：负责 资产与权益管理 相关场景的页面编排与交互响应，承担路由层到业务组件层的桥接。
+- 关键组件依赖：`Card`、`EmptyState`、`ErrorState`、`Input`、`PullToRefreshContainer`、`Skeleton`、`WalletPageHeader`
+- 关键 Hooks：`useAppNavigate`、`useAuthSession`、`useFeedback`、`useGrouping`、`useNetworkStatus`、`useRequest`、`useRouteScrollRestoration`
+- 数据与接口：`accountApi`、`rechargeApi`、`userApi`
+
 ### FavoritesPage
 
 - 文件：`src/pages/Favorites/index.tsx`
@@ -271,7 +304,7 @@
 - 导出：`FavoritesPage`
 - 页面作用：负责 通用页面 相关场景的页面编排与交互响应，承担路由层到业务组件层的桥接。
 - 关键组件依赖：`EmptyState`、`ErrorState`、`PullToRefreshContainer`
-- 关键 Hooks：`useAppNavigate`、`useAuthSession`、`useFeedback`、`useNetworkStatus`、`useRouteScrollRestoration`
+- 关键 Hooks：`useAppNavigate`、`useAuthSession`、`useFeedback`、`useInfiniteScroll`、`useNetworkStatus`、`useRouteScrollRestoration`
 - 数据与接口：`shopCartApi`、`shopFavoriteApi`
 
 ### FlashSalePage
@@ -318,6 +351,28 @@
 - 关键 Hooks：`useAppNavigate`、`useFeedback`、`useRouteScrollRestoration`、`useSessionState`
 - 数据与接口：`teamApi`
 
+### GenesisMinerDetailPage
+
+- 文件：`src/pages/GenesisMinerDetail/index.tsx`
+- 路由：`/node-purchase/genesis/miner/:recordId`
+- 领域：通用页面
+- 导出：`GenesisMinerDetailPage`
+- 页面作用：负责 通用页面 相关场景的页面编排与交互响应，承担路由层到业务组件层的桥接。
+- 关键组件依赖：`EmptyState`、`ErrorState`、`PageHeader`、`Skeleton`
+- 关键 Hooks：`useAppNavigate`、`useGrouping`、`useParams`、`useRequest`
+- 数据与接口：`genesisNodeApi`、`userCollectionApi`
+
+### GenesisNodeActivityPage
+
+- 文件：`src/pages/GenesisNodeActivity/index.tsx`
+- 路由：`/node-purchase/genesis`
+- 领域：通用页面
+- 导出：`GenesisNodeActivityPage`
+- 页面作用：负责 通用页面 相关场景的页面编排与交互响应，承担路由层到业务组件层的桥接。
+- 关键组件依赖：`EmptyState`、`ErrorState`、`PageHeader`、`Skeleton`
+- 关键 Hooks：`useAppNavigate`、`useFeedback`、`useGrouping`、`useRequest`
+- 数据与接口：`genesisNodeApi`
+
 ### GrowthRightsPage
 
 - 文件：`src/pages/GrowthRights/Page.tsx`
@@ -337,7 +392,7 @@
 - 导出：`HashrateExchangePage`
 - 页面作用：负责 资产与权益管理 相关场景的页面编排与交互响应，承担路由层到业务组件层的桥接。
 - 关键组件依赖：以原生 JSX 结构为主
-- 关键 Hooks：`useFeedback`、`useNavigate`
+- 关键 Hooks：`useFeedback`、`useGrouping`、`useNavigate`
 - 数据与接口：`accountApi`
 
 ### HelpCenterPage
@@ -358,9 +413,9 @@
 - 领域：通用页面
 - 导出：`HomePage`
 - 页面作用：负责 通用页面 相关场景的页面编排与交互响应，承担路由层到业务组件层的桥接。
-- 关键组件依赖：`ForceAnnouncementModal`、`PullToRefreshContainer`、`Skeleton`
+- 关键组件依赖：`ForceAnnouncementModal`、`GenesisNodeModal`、`PullToRefreshContainer`、`Skeleton`、`UpdateModal`、`UpdateModalMode`
 - 关键 Hooks：`useAppNavigate`、`useFeedback`、`useRequest`、`useRouteScrollRestoration`
-- 数据与接口：`accountApi`、`announcementApi`、`bannerApi`、`reservationApi`
+- 数据与接口：`accountApi`、`announcementApi`、`appVersionApi`、`bannerApi`、`genesisNodeApi`、`reservationApi`
 
 ### InvitePage
 
@@ -389,21 +444,21 @@
 - 文件：`src/pages/Live/index.tsx`
 - 路由：`/live`
 - 领域：交易专区与活动场景
-- 导出：`LivePage`
+- 导出：无显式命名导出（默认导出页面）
 - 页面作用：负责 交易专区与活动场景 相关场景的页面编排与交互响应，承担路由层到业务组件层的桥接。
 - 关键组件依赖：`EmptyState`、`ErrorState`、`PageHeader`
-- 关键 Hooks：`useAppNavigate`、`useFeedback`、`useRequest`
+- 关键 Hooks：`useAppNavigate`、`useFeedback`、`useInfiniteScroll`、`useRequest`
 - 数据与接口：`liveVideoApi`
 
 ### LiveWebViewPage
 
 - 文件：`src/pages/LiveWebView/index.tsx`
-- 路由：`/live/view`
+- 路由：`/live/:id`
 - 领域：交易专区与活动场景
 - 导出：`LiveWebViewPage`
 - 页面作用：负责 交易专区与活动场景 相关场景的页面编排与交互响应，承担路由层到业务组件层的桥接。
-- 关键组件依赖：`EmptyState`、`ErrorState`、`PageHeader`
-- 关键 Hooks：`useAppNavigate`、`useFeedback`、`useRequest`、`useSearchParams`
+- 关键组件依赖：`EmptyState`、`ErrorState`、`OfflineBanner`
+- 关键 Hooks：`useAppNavigate`、`useAuthSession`、`useFeedback`、`useInfiniteScroll`、`useParams`、`useQueryConfigOnly`、`useRequest`、`useSearchParams`
 - 数据与接口：`liveVideoApi`
 
 ### LoginPage
@@ -447,7 +502,7 @@
 - 导出：`MessageCenterPage`
 - 页面作用：负责 消息、客服与社交 相关场景的页面编排与交互响应，承担路由层到业务组件层的桥接。
 - 关键组件依赖：`EmptyState`、`ErrorState`、`OfflineBanner`、`PageHeader`、`PullToRefreshContainer`
-- 关键 Hooks：`useAppNavigate`、`useFeedback`、`useNetworkStatus`、`useRequest`、`useRouteScrollRestoration`、`useSessionState`
+- 关键 Hooks：`useAppNavigate`、`useFeedback`、`useInfiniteScroll`、`useNetworkStatus`、`useRequest`、`useRouteScrollRestoration`、`useSessionState`
 - 数据与接口：`messageApi`
 
 ### MessageDetailPage
@@ -468,7 +523,7 @@
 - 领域：资产与权益管理
 - 导出：`MyCardPacksPage`
 - 页面作用：负责 资产与权益管理 相关场景的页面编排与交互响应，承担路由层到业务组件层的桥接。
-- 关键组件依赖：`Card`、`EmptyState`、`ErrorState`、`PullToRefreshContainer`、`Skeleton`、`WalletPageHeader`
+- 关键组件依赖：`Card`、`EmptyState`、`ErrorState`、`MiningSelectionSheet`、`PullToRefreshContainer`、`Skeleton`、`WalletPageHeader`
 - 关键 Hooks：`useAppNavigate`、`useAuthSession`、`useFeedback`、`useGrouping`、`useNetworkStatus`、`useRequest`、`useRouteScrollRestoration`、`useSessionState`
 - 数据与接口：`accountApi`、`membershipCardApi`、`nodeAmplifyCardApi`
 
@@ -490,9 +545,20 @@
 - 领域：资产与权益管理
 - 导出：`MyCollectionPage`
 - 页面作用：负责 资产与权益管理 相关场景的页面编排与交互响应，承担路由层到业务组件层的桥接。
-- 关键组件依赖：`Card`、`ConsignableCollectionSelectSheet`、`EmptyState`、`ErrorState`、`OfflineBanner`、`PageHeader`、`PullToRefreshContainer`、`Skeleton`
-- 关键 Hooks：`useAppNavigate`、`useFeedback`、`useInfiniteScroll`、`useNetworkStatus`、`useRequest`、`useRouteScrollRestoration`
-- 数据与接口：`collectionConsignmentApi`、`collectionTradeApi`、`membershipCardApi`
+- 关键组件依赖：`PullToRefreshContainer`、`Skeleton`
+- 关键 Hooks：`useAppNavigate`、`useFeedback`、`useInfiniteScroll`、`useLocation`
+- 数据与接口：`collectionConsignmentApi`、`collectionTradeApi`
+
+### MyGenesisNodesPage
+
+- 文件：`src/pages/MyGenesisNodes/index.tsx`
+- 路由：`/node-purchase/genesis/records`
+- 领域：通用页面
+- 导出：`MyGenesisNodesPage`
+- 页面作用：负责 通用页面 相关场景的页面编排与交互响应，承担路由层到业务组件层的桥接。
+- 关键组件依赖：`EmptyState`、`ErrorState`、`PageHeader`、`Skeleton`
+- 关键 Hooks：`useAppNavigate`、`useGrouping`、`useInfiniteScroll`、`useRequest`
+- 数据与接口：`genesisNodeApi`
 
 ### NotFoundPage
 
@@ -524,7 +590,7 @@
 - 导出：`OrderPage`
 - 页面作用：负责 订单与交易履约 相关场景的页面编排与交互响应，承担路由层到业务组件层的桥接。
 - 关键组件依赖：`CollectibleOrderDetail`、`OfflineBanner`、`OrderHeader`、`OrderListContent`、`OrderStatusTabs`、`OrderTypeSwitcher`、`PullToRefreshContainer`
-- 关键 Hooks：`useAppNavigate`、`useFeedback`、`useNetworkStatus`、`useRequest`、`useRouteScrollRestoration`、`useSessionState`
+- 关键 Hooks：`useAppNavigate`、`useFeedback`、`useInfiniteScroll`、`useLocation`、`useNetworkStatus`、`useRequest`、`useRouteScrollRestoration`、`useSessionState`
 - 数据与接口：`collectionTradeApi`、`shopOrderApi`
 
 ### PaymentAccountsPage
@@ -549,6 +615,17 @@
 - 关键 Hooks：`useAppNavigate`、`useFeedback`、`useGrouping`、`useSearchParams`
 - 数据与接口：`rechargeApi`、`shopOrderApi`
 
+### PlatformDocsPage
+
+- 文件：`src/pages/PlatformDocs/index.tsx`
+- 路由：`/platform-docs`
+- 领域：通用页面
+- 导出：`PlatformDocsPage`
+- 页面作用：负责 通用页面 相关场景的页面编排与交互响应，承担路由层到业务组件层的桥接。
+- 关键组件依赖：`PageHeader`
+- 关键 Hooks：无自定义 hook 依赖
+- 数据与接口：当前文件未直接引用 API 模块（可能由子组件/Hook 间接处理）
+
 ### PreOrderPage
 
 - 文件：`src/pages/PreOrder/index.tsx`
@@ -556,8 +633,8 @@
 - 领域：订单与交易履约
 - 导出：`PreOrderPage`
 - 页面作用：负责 订单与交易履约 相关场景的页面编排与交互响应，承担路由层到业务组件层的桥接。
-- 关键组件依赖：`Card`、`EmptyState`、`ErrorState`、`PageHeader`、`PullToRefreshContainer`、`ReservationAgreementDialog`、`Skeleton`、`WheelPicker` 等
-- 关键 Hooks：`useAppNavigate`、`useFeedback`、`useGrouping`、`useMixedPayment`、`useParams`、`useRequest`、`useSearchParams`
+- 关键组件依赖：`Card`、`EmptyState`、`ErrorState`、`PageHeader`、`PreviewSheet`、`PullToRefreshContainer`、`ReservationAgreementDialog`、`Skeleton` 等
+- 关键 Hooks：`useAppNavigate`、`useGrouping`、`useMixedPayment`、`useParams`、`useRequest`、`useSearchParams`
 - 数据与接口：`collectionItemApi`、`reservationApi`
 
 ### ProductDetailPage
@@ -579,7 +656,7 @@
 - 导出：`ProductQAPage`
 - 页面作用：负责 商城与商品浏览 相关场景的页面编排与交互响应，承担路由层到业务组件层的桥接。
 - 关键组件依赖：`EmptyState`、`ErrorState`、`PullToRefreshContainer`
-- 关键 Hooks：`useAppNavigate`、`useAuthSession`、`useFeedback`、`useNetworkStatus`、`useParams`、`useRouteScrollRestoration`、`useSessionState`
+- 关键 Hooks：`useAppNavigate`、`useAuthSession`、`useFeedback`、`useInfiniteScroll`、`useNetworkStatus`、`useParams`、`useRouteScrollRestoration`、`useSessionState`
 - 数据与接口：`shopProductQaApi`
 
 ### QuestionnairePage
@@ -590,7 +667,7 @@
 - 导出：`QuestionnairePage`
 - 页面作用：负责 通用页面 相关场景的页面编排与交互响应，承担路由层到业务组件层的桥接。
 - 关键组件依赖：`Card`、`EmptyState`、`ErrorState`、`PageHeader`、`PullToRefreshContainer`
-- 关键 Hooks：`useAppNavigate`、`useAuthSession`、`useFeedback`、`useNetworkStatus`、`useRequest`、`useRouteScrollRestoration`
+- 关键 Hooks：`useAppNavigate`、`useAuthSession`、`useFeedback`、`useInfiniteScroll`、`useNetworkStatus`、`useRequest`、`useRouteScrollRestoration`
 - 数据与接口：`questionnaireApi`
 
 ### RealNameAuthPage
@@ -689,7 +766,7 @@
 - 导出：`RightsHistoryPage`
 - 页面作用：负责 资产与权益管理 相关场景的页面编排与交互响应，承担路由层到业务组件层的桥接。
 - 关键组件依赖：`Card`、`EmptyState`、`ErrorState`、`PageHeader`、`PullToRefreshContainer`
-- 关键 Hooks：`useAppNavigate`、`useGrouping`、`useRequest`、`useRouteScrollRestoration`
+- 关键 Hooks：`useAppNavigate`、`useGrouping`、`useInfiniteScroll`、`useRequest`、`useRouteScrollRestoration`
 - 数据与接口：`rightsDeclarationApi`
 
 ### RightsPage
@@ -743,7 +820,7 @@
 - 领域：个人中心与设置
 - 导出：`SecurityPage`
 - 页面作用：负责 个人中心与设置 相关场景的页面编排与交互响应，承担路由层到业务组件层的桥接。
-- 关键组件依赖：`PageHeader`、`SettingsActionItem`、`SettingsNotice`、`SettingsSection`、`Skeleton`
+- 关键组件依赖：`ActionSheet`、`AuthPasswordToggle`、`Button`、`Input`、`PageHeader`、`SettingsActionItem`、`SettingsNotice`、`SettingsSection` 等
 - 关键 Hooks：`useAppNavigate`、`useFeedback`、`useRequest`
 - 数据与接口：`accountApi`
 
@@ -776,9 +853,9 @@
 - 领域：个人中心与设置
 - 导出：`SettingsPage`
 - 页面作用：负责 个人中心与设置 相关场景的页面编排与交互响应，承担路由层到业务组件层的桥接。
-- 关键组件依赖：`ActionSheet`、`AuthPasswordToggle`、`Button`、`Input`、`PageHeader`、`SettingsActionItem`、`SettingsNotice`、`SettingsSection`
-- 关键 Hooks：`useAppNavigate`、`useFeedback`、`useFontScale`、`useRequest`、`useTheme`
-- 数据与接口：`accountApi`
+- 关键组件依赖：`ActionSheet`、`PageHeader`、`SettingsActionItem`、`SettingsSection`
+- 关键 Hooks：`useAppNavigate`、`useDisplayVersion`、`useFeedback`、`useFontScale`、`useLatestAppVersion`、`useRequest`、`useTheme`
+- 数据与接口：当前文件未直接引用 API 模块（可能由子组件/Hook 间接处理）
 
 ### SignInPage
 
@@ -842,9 +919,9 @@
 - 领域：个人中心与设置
 - 导出：`UserPage`
 - 页面作用：负责 个人中心与设置 相关场景的页面编排与交互响应，承担路由层到业务组件层的桥接。
-- 关键组件依赖：`ActionSheet`、`Card`、`OfflineBanner`、`ProfileBalanceCard`、`ProfileHeader`、`ProfileSectionGrid`、`PullToRefreshContainer`、`Skeleton`
+- 关键组件依赖：`ActionSheet`、`ActivityPopupModal`、`Card`、`OfflineBanner`、`ProfileBalanceCard`、`ProfileHeader`、`ProfileSectionGrid`、`PullToRefreshContainer` 等
 - 关键 Hooks：`useAppNavigate`、`useAuthSession`、`useFeedback`、`useLocation`、`useNavigate`、`useNetworkStatus`、`useRequest`、`useRouteScrollRestoration`
-- 数据与接口：`accountApi`、`messageApi`、`userApi`
+- 数据与接口：`accountApi`、`activityPopupApi`、`messageApi`、`userApi`
 
 ### WithdrawPage
 
@@ -857,15 +934,26 @@
 - 关键 Hooks：`useAppNavigate`、`useAuthSession`、`useFeedback`、`useGrouping`、`useNetworkStatus`、`useRequest`、`useRouteScrollRestoration`
 - 数据与接口：`accountApi`、`rechargeApi`、`userApi`
 
+### DesignSystemPage
+
+- 文件：`src/pages/DesignSystem/index.tsx`
+- 路由：未直接挂载（可能为保留页或由其他容器间接渲染）
+- 领域：通用页面
+- 导出：`DesignSystemPage`
+- 页面作用：负责 通用页面 相关场景的页面编排与交互响应，承担路由层到业务组件层的桥接。
+- 关键组件依赖：`BottomTab`、`Button`、`Card`、`Input`、`Skeleton`、`Tag`
+- 关键 Hooks：无自定义 hook 依赖
+- 数据与接口：当前文件未直接引用 API 模块（可能由子组件/Hook 间接处理）
+
 ### index
 
 - 文件：`src/pages/GrowthRights/index.tsx`
 - 路由：未直接挂载（可能为保留页或由其他容器间接渲染）
 - 领域：资产与权益管理
-- 导出：`GrowthRightsContent`
+- 导出：无显式命名导出（默认导出页面）
 - 页面作用：负责 资产与权益管理 相关场景的页面编排与交互响应，承担路由层到业务组件层的桥接。
 - 关键组件依赖：`Card`、`Skeleton`
-- 关键 Hooks：`useGrouping`、`useRequest`
+- 关键 Hooks：`useGrouping`、`useLocation`、`useRequest`
 - 数据与接口：`accountApi`
 
 ### NotFoundPage
@@ -892,7 +980,7 @@
 
 ## 组件清单
 
-共 72 个组件文件。
+共 81 个组件文件。
 
 ### AppErrorBoundary
 
@@ -900,6 +988,15 @@
 - 组件分类：通用组件
 - 组件作用：用于 通用组件 场景，承接页面层拆分后的可复用 UI/交互单元。
 - Props 结构：`Props`
+- 依赖子组件：`LineProbeOverlay`
+- 依赖 Hooks：无自定义 hook 依赖
+
+### ActivityPopupModal
+
+- 文件：`src/components/biz/ActivityPopupModal.tsx`
+- 组件分类：业务复用组件
+- 组件作用：用于 业务复用组件 场景，承接页面层拆分后的可复用 UI/交互单元。
+- Props 结构：`ActivityPopupModalProps`
 - 依赖子组件：以基础样式与 DOM 结构为主
 - 依赖 Hooks：无自定义 hook 依赖
 
@@ -972,7 +1069,7 @@
 - 组件分类：业务复用组件
 - 组件作用：用于 业务复用组件 场景，承接页面层拆分后的可复用 UI/交互单元。
 - Props 结构：`CouponBottomSheetProps`
-- 依赖子组件：`Skeleton`
+- 依赖子组件：`BottomSheet`、`Skeleton`
 - 依赖 Hooks：无自定义 hook 依赖
 
 ### CustomerServicePanel
@@ -993,6 +1090,15 @@
 - 依赖子组件：以基础样式与 DOM 结构为主
 - 依赖 Hooks：无自定义 hook 依赖
 
+### GenesisNodeModal
+
+- 文件：`src/components/biz/GenesisNodeModal.tsx`
+- 组件分类：业务复用组件
+- 组件作用：用于 业务复用组件 场景，承接页面层拆分后的可复用 UI/交互单元。
+- Props 结构：`GenesisNodeModalProps`
+- 依赖子组件：以基础样式与 DOM 结构为主
+- 依赖 Hooks：无自定义 hook 依赖
+
 ### ImagePickerActionSheet
 
 - 文件：`src/components/biz/ImagePickerActionSheet.tsx`
@@ -1008,7 +1114,7 @@
 - 组件分类：业务复用组件
 - 组件作用：用于 业务复用组件 场景，承接页面层拆分后的可复用 UI/交互单元。
 - Props 结构：`RegionPickerSheetProps`
-- 依赖子组件：`WheelPicker`、`WheelPickerItem`
+- 依赖子组件：`BottomSheet`、`WheelPicker`、`WheelPickerItem`
 - 依赖 Hooks：无自定义 hook 依赖
 
 ### ReservationAgreementDialog
@@ -1017,7 +1123,7 @@
 - 组件分类：业务复用组件
 - 组件作用：用于 业务复用组件 场景，承接页面层拆分后的可复用 UI/交互单元。
 - Props 结构：`ReservationAgreementDialogProps`
-- 依赖子组件：`EmptyState`、`ErrorState`、`Skeleton`
+- 依赖子组件：`BottomSheet`、`EmptyState`、`ErrorState`、`Skeleton`
 - 依赖 Hooks：无自定义 hook 依赖
 
 ### SettingsActionItem
@@ -1026,6 +1132,15 @@
 - 组件分类：业务复用组件
 - 组件作用：用于 业务复用组件 场景，承接页面层拆分后的可复用 UI/交互单元。
 - Props 结构：`SettingsActionItemProps`、`SettingsNoticeProps`、`SettingsSectionProps`
+- 依赖子组件：以基础样式与 DOM 结构为主
+- 依赖 Hooks：无自定义 hook 依赖
+
+### UpdateModal
+
+- 文件：`src/components/biz/UpdateModal.tsx`
+- 组件分类：业务复用组件
+- 组件作用：用于 业务复用组件 场景，承接页面层拆分后的可复用 UI/交互单元。
+- Props 结构：`UpdateModalProps`
 - 依赖子组件：以基础样式与 DOM 结构为主
 - 依赖 Hooks：无自定义 hook 依赖
 
@@ -1038,13 +1153,22 @@
 - 依赖子组件：`ActionSheet`、`ActionSheetGroup`
 - 依赖 Hooks：无自定义 hook 依赖
 
+### AppLaunchScreen
+
+- 文件：`src/components/layout/AppLaunchScreen.tsx`
+- 组件分类：布局组件
+- 组件作用：用于 布局组件 场景，承接页面层拆分后的可复用 UI/交互单元。
+- Props 结构：`AppLaunchScreenProps`
+- 依赖子组件：以基础样式与 DOM 结构为主
+- 依赖 Hooks：无自定义 hook 依赖
+
 ### AppLayout
 
 - 文件：`src/components/layout/AppLayout.tsx`
 - 组件分类：布局组件
 - 组件作用：用于 布局组件 场景，承接页面层拆分后的可复用 UI/交互单元。
 - Props 结构：未定义独立 Props 接口（可能使用内联类型）
-- 依赖子组件：`BottomTab`、`FeedbackProvider`
+- 依赖子组件：`AppLaunchScreen`、`BottomTab`、`FeedbackProvider`
 - 依赖 Hooks：`useAuthSession`、`useFeedback`、`useLocation`、`useNavigate`、`useSwipeBack`
 
 ### BottomTab
@@ -1098,6 +1222,15 @@
 - 组件分类：基础 UI 组件
 - 组件作用：用于 基础 UI 组件 场景，承接页面层拆分后的可复用 UI/交互单元。
 - Props 结构：`BadgeProps`
+- 依赖子组件：以基础样式与 DOM 结构为主
+- 依赖 Hooks：无自定义 hook 依赖
+
+### BottomSheet
+
+- 文件：`src/components/ui/BottomSheet.tsx`
+- 组件分类：基础 UI 组件
+- 组件作用：用于 基础 UI 组件 场景，承接页面层拆分后的可复用 UI/交互单元。
+- Props 结构：`BottomSheetProps`
 - 依赖子组件：以基础样式与 DOM 结构为主
 - 依赖 Hooks：无自定义 hook 依赖
 
@@ -1170,6 +1303,15 @@
 - 组件分类：基础 UI 组件
 - 组件作用：用于 基础 UI 组件 场景，承接页面层拆分后的可复用 UI/交互单元。
 - Props 结构：未定义独立 Props 接口（可能使用内联类型）
+- 依赖子组件：以基础样式与 DOM 结构为主
+- 依赖 Hooks：无自定义 hook 依赖
+
+### LineProbeOverlay
+
+- 文件：`src/components/ui/LineProbeOverlay.tsx`
+- 组件分类：基础 UI 组件
+- 组件作用：用于 基础 UI 组件 场景，承接页面层拆分后的可复用 UI/交互单元。
+- Props 结构：`LineProbeOverlayProps`
 - 依赖子组件：以基础样式与 DOM 结构为主
 - 依赖 Hooks：无自定义 hook 依赖
 
@@ -1287,7 +1429,7 @@
 - 组件分类：弹层与交互面板组件
 - 组件作用：用于 弹层与交互面板组件 场景，承接页面层拆分后的可复用 UI/交互单元。
 - Props 结构：`ProductAddressFormSheetProps`
-- 依赖子组件：`Button`
+- 依赖子组件：`BottomSheet`、`Button`
 - 依赖 Hooks：无自定义 hook 依赖
 
 ### ProductAddressManageSheet
@@ -1296,7 +1438,7 @@
 - 组件分类：弹层与交互面板组件
 - 组件作用：用于 弹层与交互面板组件 场景，承接页面层拆分后的可复用 UI/交互单元。
 - Props 结构：`ProductAddressManageSheetProps`
-- 依赖子组件：`Button`
+- 依赖子组件：`BottomSheet`、`Button`
 - 依赖 Hooks：无自定义 hook 依赖
 
 ### ProductDetailHeader
@@ -1341,7 +1483,7 @@
 - 组件分类：弹层与交互面板组件
 - 组件作用：用于 弹层与交互面板组件 场景，承接页面层拆分后的可复用 UI/交互单元。
 - Props 结构：`ProductServiceSheetProps`
-- 依赖子组件：以基础样式与 DOM 结构为主
+- 依赖子组件：`BottomSheet`
 - 依赖 Hooks：无自定义 hook 依赖
 
 ### ProductSkuSheet
@@ -1350,7 +1492,7 @@
 - 组件分类：弹层与交互面板组件
 - 组件作用：用于 弹层与交互面板组件 场景，承接页面层拆分后的可复用 UI/交互单元。
 - Props 结构：`ProductSkuSheetProps`
-- 依赖子组件：`Button`
+- 依赖子组件：`BottomSheet`、`Button`
 - 依赖 Hooks：无自定义 hook 依赖
 
 ### ProductTabsSection
@@ -1371,14 +1513,32 @@
 - 依赖子组件：以基础样式与 DOM 结构为主
 - 依赖 Hooks：无自定义 hook 依赖
 
-### GrowthRightsContent
+### DesignSystemPage
+
+- 文件：`src/pages/DesignSystem/index.tsx`
+- 组件分类：通用组件
+- 组件作用：用于 通用组件 场景，承接页面层拆分后的可复用 UI/交互单元。
+- Props 结构：未定义独立 Props 接口（可能使用内联类型）
+- 依赖子组件：`BottomTab`、`Button`、`Card`、`Input`、`Skeleton`、`Tag`
+- 依赖 Hooks：无自定义 hook 依赖
+
+### index
 
 - 文件：`src/pages/GrowthRights/index.tsx`
 - 组件分类：通用组件
 - 组件作用：用于 通用组件 场景，承接页面层拆分后的可复用 UI/交互单元。
-- Props 结构：未定义独立 Props 接口（可能使用内联类型）
+- Props 结构：`GrowthRightsContentProps`
 - 依赖子组件：`Card`、`Skeleton`
-- 依赖 Hooks：`useGrouping`、`useRequest`
+- 依赖 Hooks：`useGrouping`、`useLocation`、`useRequest`
+
+### MiningSelectionSheet
+
+- 文件：`src/pages/MyCardPacks/components/MiningSelectionSheet.tsx`
+- 组件分类：弹层与交互面板组件
+- 组件作用：用于 弹层与交互面板组件 场景，承接页面层拆分后的可复用 UI/交互单元。
+- Props 结构：`MiningSelectionSheetProps`
+- 依赖子组件：`BottomSheet`、`EmptyState`、`Skeleton`
+- 依赖 Hooks：无自定义 hook 依赖
 
 ### ConsignableCollectionSelectSheet
 
@@ -1386,7 +1546,7 @@
 - 组件分类：弹层与交互面板组件
 - 组件作用：用于 弹层与交互面板组件 场景，承接页面层拆分后的可复用 UI/交互单元。
 - Props 结构：`ConsignableCollectionSelectSheetProps`
-- 依赖子组件：`ConsignmentEquityCardSelectSheet`
+- 依赖子组件：`BottomSheet`、`ConsignmentEquityCardSelectSheet`
 - 依赖 Hooks：`useInfiniteScroll`
 
 ### ConsignmentEquityCardSelectSheet
@@ -1395,7 +1555,7 @@
 - 组件分类：弹层与交互面板组件
 - 组件作用：用于 弹层与交互面板组件 场景，承接页面层拆分后的可复用 UI/交互单元。
 - Props 结构：`ConsignmentEquityCardSelectSheetProps`
-- 依赖子组件：以基础样式与 DOM 结构为主
+- 依赖子组件：`BottomSheet`
 - 依赖 Hooks：无自定义 hook 依赖
 
 ### MyCollectionBottomActions
@@ -1422,7 +1582,7 @@
 - 组件分类：弹层与交互面板组件
 - 组件作用：用于 弹层与交互面板组件 场景，承接页面层拆分后的可复用 UI/交互单元。
 - Props 结构：`MyCollectionConsignmentModalProps`
-- 依赖子组件：以基础样式与 DOM 结构为主
+- 依赖子组件：`BottomSheet`
 - 依赖 Hooks：无自定义 hook 依赖
 
 ### MyCollectionDetailHeader
@@ -1442,6 +1602,15 @@
 - Props 结构：未定义独立 Props 接口（可能使用内联类型）
 - 依赖子组件：以基础样式与 DOM 结构为主
 - 依赖 Hooks：无自定义 hook 依赖
+
+### PreviewSheet
+
+- 文件：`src/pages/PreOrder/components/PreviewSheet.tsx`
+- 组件分类：弹层与交互面板组件
+- 组件作用：用于 弹层与交互面板组件 场景，承接页面层拆分后的可复用 UI/交互单元。
+- Props 结构：`PreviewSheetProps`
+- 依赖子组件：`BottomSheet`、`Card`
+- 依赖 Hooks：`useFeedback`、`useMixedPayment`
 
 ### RechargeBankCardConfirmModal
 
@@ -1544,7 +1713,7 @@
 
 ## Hooks 详细说明
 
-共 16 个 hook 文件。
+共 17 个 hook 文件。
 
 ### useAppResumeEffect
 
@@ -1601,6 +1770,14 @@
 - 输入：`targetRef`、`hasMore`、`loading`、`onLoadMore` 及阈值配置。
 - 输出：无返回值；监听命中时自动调用 `onLoadMore`。
 - 依赖：无额外自定义 Hook 依赖
+
+### useDisplayVersion
+
+- 文件：`src/hooks/useLatestAppVersion.ts`
+- 作用：封装跨页面复用的状态管理或副作用逻辑。
+- 输入：请参考函数签名
+- 输出：`CURRENT_APP_VERSION`、`false`、`loading`、`version`、`versionLabel`
+- 依赖：`useRequest`
 
 ### useNetworkStatus
 

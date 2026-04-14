@@ -147,10 +147,16 @@ function getCompanyAccountColor(type: string) {
   }
 }
 
+function getCompanyAccountTypeText(
+  account: Pick<CompanyAccount, 'typeText'> | null | undefined,
+) {
+  return account?.typeText?.trim() || '';
+}
+
 function buildCompanyAccountSubtitle(account: CompanyAccount) {
   if (account.type === 'bank_card' || account.type === 'unionpay') {
-    const bankName = account.bankName || account.typeText || '银行卡';
-    return `${bankName} ${maskAccountNumber(account.accountNumber)}`;
+    const bankName = account.bankName || getCompanyAccountTypeText(account);
+    return bankName ? `${bankName} ${maskAccountNumber(account.accountNumber)}` : maskAccountNumber(account.accountNumber);
   }
 
   return maskAccountNumber(account.accountNumber);
@@ -304,7 +310,7 @@ export function RechargePage() {
         color: getCompanyAccountColor(account.type),
         iconComponent: getCompanyAccountIcon(account.type),
         subtitle: buildCompanyAccountSubtitle(account),
-        title: account.accountName || account.typeText || '收款账户',
+        title: getCompanyAccountTypeText(account),
       })),
     [companyAccounts],
   );
@@ -342,6 +348,8 @@ export function RechargePage() {
 
   const selectedPaymentOption =
     paymentTypeOptions.find((item) => item.type === selectedPaymentType) ?? paymentTypeOptions[0] ?? null;
+  const selectedPaymentLabel = getCompanyAccountTypeText(selectedPaymentOption);
+  const matchedPaymentLabel = getCompanyAccountTypeText(matchedAccount);
   const totalBalance = profile?.userInfo?.balanceAvailable;
   const availableBalance = profile?.userInfo?.balanceAvailable;
   const frozenBalance = profile?.userInfo?.frozenAmount;
@@ -786,14 +794,16 @@ export function RechargePage() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-base font-bold text-gray-900">{matchedAccount.accountName || '--'}</div>
-                  <div className="mt-0.5 text-xs text-gray-500">专属线下收款账户 (UID: {matchedAccount.id})</div>
+                  <div className="mt-0.5 text-xs text-gray-500">
+                    {matchedPaymentLabel} (UID: {matchedAccount.id})
+                  </div>
                 </div>
               </div>
 
               <div className="space-y-2.5">
                 {[
                   { label: '收款账号', value: matchedAccount.accountNumber },
-                  { label: '银行名称', value: matchedAccount.bankName || '支付平台' },
+                  { label: '银行名称', value: matchedAccount.bankName },
                   { label: '开户行', value: matchedAccount.bankBranch },
                   { label: '收款姓名', value: matchedAccount.accountName },
                 ]
@@ -1175,9 +1185,7 @@ export function RechargePage() {
                           )}
                         </div>
                         <div className="min-w-0">
-                          <div className="truncate text-md font-medium text-text-main">
-                            {account.typeText || account.title}
-                          </div>
+                          <div className="truncate text-md font-medium text-text-main">{account.title}</div>
                         </div>
                       </div>
                       <span
@@ -1213,7 +1221,7 @@ export function RechargePage() {
                 <div className="text-xl font-semibold text-text-main">匹配中</div>
                 <div className="mt-2 text-sm leading-6 text-text-sub">
                   正在为你匹配可用的
-                  {selectedPaymentOption?.typeText || '支付'}
+                  {selectedPaymentLabel}
                   充值通道，请稍候。
                 </div>
               </div>
@@ -1240,9 +1248,7 @@ export function RechargePage() {
                 <div className="space-y-4 p-4">
                   <div className="rounded-2xl bg-bg-base p-4">
                     <div className="mb-1 text-sm text-text-sub">支付方式</div>
-                    <div className="text-lg font-semibold text-text-main">
-                      {matchedAccount.typeText || selectedPaymentOption?.typeText || '收款账户'}
-                    </div>
+                    <div className="text-lg font-semibold text-text-main">{matchedPaymentLabel}</div>
                   </div>
                   <div className="rounded-2xl bg-bg-base p-4">
                     <div className="mb-1 text-sm text-text-sub">充值通道</div>

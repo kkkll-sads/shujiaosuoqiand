@@ -7,6 +7,7 @@ import { isTabPage, PATH_TO_TAB } from '../../lib/navigation';
 import { useAuthSession } from '../../hooks/useAuthSession';
 import { persistAuthRedirectPath } from '../../lib/auth';
 import { useSwipeBack } from '../../hooks/useSwipeBack';
+import { AiAssistantFloatingWidget } from '../biz/AiAssistantFloatingWidget';
 import { StorePage } from '../../pages/Store';
 import { RightsPage } from '../../pages/Rights';
 import { OrderPage } from '../../pages/Order';
@@ -205,6 +206,11 @@ function AppLayoutContent() {
         </div>
 
         {showBottomTab && <BottomTab active={activeTab} />}
+
+        <AiAssistantFloatingWidget
+          containerRef={swipeContainerRef}
+          pathname={location.pathname}
+        />
 
         {launchPhase !== 'hidden' && <AppLaunchScreen fading={launchPhase === 'fading'} />}
       </div>

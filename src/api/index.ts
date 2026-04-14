@@ -2,6 +2,7 @@ export * from './modules/address';
 export * from './modules/aiChat';
 export * from './modules/appVersion';
 export * from './modules/account';
+export * from './modules/balanceTreasure';
 export * from './modules/activityCenter';
 export * from './modules/auth';
 export * from './modules/announcement';

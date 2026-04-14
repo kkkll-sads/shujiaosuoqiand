@@ -79,6 +79,7 @@ const MyCollectionDetailPage = lazy(() => import('../pages/MyCollectionDetail').
 const RechargePage = lazy(() => import('../pages/Recharge').then(m => ({ default: m.RechargePage })));
 const ServiceFeeRechargePage = lazy(() => import('../pages/ServiceFeeRecharge').then(m => ({ default: m.ServiceFeeRechargePage })));
 const TransferPage = lazy(() => import('../pages/Transfer').then(m => ({ default: m.TransferPage })));
+const BalanceTreasurePage = lazy(() => import('../pages/BalanceTreasure').then(m => ({ default: m.BalanceTreasurePage })));
 const RightsTransferPage = lazy(() => import('../pages/RightsTransfer').then(m => ({ default: m.RightsTransferPage })));
 const WithdrawPage = lazy(() => import('../pages/Withdraw').then(m => ({ default: m.WithdrawPage })));
 const ExtendWithdrawPage = lazy(() =>
@@ -98,7 +99,6 @@ const LoginPage = lazy(() => import('../pages/Login').then(m => ({ default: m.Lo
 const RegisterPage = lazy(() => import('../pages/Register').then(m => ({ default: m.RegisterPage })));
 const ForgotPasswordPage = lazy(() => import('../pages/ForgotPassword').then(m => ({ default: m.ForgotPasswordPage })));
 const CommonPage = lazy(() => import('../pages/CommonPage').then(m => ({ default: m.CommonPage })));
-const DesignSystemPage = lazy(() => import('../pages/DesignSystem').then(m => ({ default: m.DesignSystemPage })));
 const SignInPage = lazy(() => import('../pages/SignIn').then(m => ({ default: m.SignInPage })));
 const HashrateExchangePage = lazy(() => import('../pages/HashrateExchange').then(m => ({ default: m.HashrateExchangePage })));
 const PlatformDocsPage = lazy(() => import('../pages/PlatformDocs').then(m => ({ default: m.PlatformDocsPage })));
@@ -195,8 +195,7 @@ const RootErrorBoundary = () => {
         </svg>
       </div>
       <h2 className="text-2xl font-bold text-text-main mb-3">糟糕，出了点问题</h2>
-      <p className="text-text-sub text-base mb-2">系统发生了一个意外错误，或许是正在发布新版本。</p>
-      <p className="text-xs text-text-aux mb-8 break-all max-w-full">{error?.message}</p>
+      <p className="text-text-sub text-base mb-8">系统发生了一个意外错误，或许是正在发布新版本，请稍后刷新重试。</p>
       
       <button
         onClick={() => {
@@ -285,6 +284,7 @@ export const router = createHashRouter([
       { path: 'recharge', element: <Lazy><RechargePage /></Lazy> },
       { path: 'service-recharge', element: <Lazy><ServiceFeeRechargePage /></Lazy> },
       { path: 'transfer', element: <Lazy><TransferPage /></Lazy> },
+      { path: 'balance-treasure', element: <Lazy><BalanceTreasurePage /></Lazy> },
       { path: 'withdraw', element: <Lazy><WithdrawPage /></Lazy> },
       { path: 'extend-withdraw', element: <Lazy><ExtendWithdrawPage /></Lazy> },
       { path: 'rights/history', element: <Lazy><RightsHistoryPage /></Lazy> },
@@ -339,9 +339,6 @@ export const router = createHashRouter([
       { path: 'reset-pay-password', element: <Lazy><ResetPayPasswordBySmsPage /></Lazy> },
       { path: 'user_agreement', element: <Lazy><CommonPage pageType="user_agreement" /></Lazy> },
       { path: 'privacy_policy', element: <Lazy><CommonPage pageType="privacy_policy" /></Lazy> },
-
-      // ========== 开发工具 ==========
-      { path: 'design', element: <Lazy><DesignSystemPage /></Lazy> },
 
       // ========== 404 兜底 ==========
       { path: '404', element: <Lazy><NotFoundPage /></Lazy> },

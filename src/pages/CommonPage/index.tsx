@@ -40,11 +40,7 @@ function resolvePageContent(value: unknown): string {
       return resolvePageContent(nextValue);
     }
 
-    try {
-      return JSON.stringify(value, null, 2);
-    } catch {
-      return '';
-    }
+    return Object.values(record).map((item) => resolvePageContent(item)).filter(Boolean).join('\n');
   }
 
   return '';

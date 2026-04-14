@@ -77,6 +77,7 @@ export interface AiChatSessionDetail {
 
 const AI_CHAT_SEND_TIMEOUT = 30000;
 const AI_CHAT_STREAM_TIMEOUT = 45000;
+const AI_CHAT_UNAVAILABLE_MESSAGE = 'AI 助手暂时不可用，请稍后重试。';
 
 interface AiChatConfigRaw {
   enabled?: boolean | number | string;
@@ -279,8 +280,53 @@ function normalizeStreamEvent(raw: AiChatStreamEventRaw | null | undefined) {
   };
 }
 
+function normalizeAiChatErrorMessage(message: unknown, fallback = AI_CHAT_UNAVAILABLE_MESSAGE) {
+  if (typeof message !== 'string') {
+    return fallback;
+  }
+
+  const normalized = message.replace(/\s+/g, ' ').trim();
+  if (!normalized) {
+    return fallback;
+  }
+
+  if (
+    normalized === '请先登录'
+    || normalized === '请输入聊天内容'
+    || normalized === '缺少会话ID'
+  ) {
+    return normalized;
+  }
+
+  if (
+    /api\s*key|deepseek|quota|insufficient|余额|费用|credit|billing|未配置|配置|连接失败|响应异常|服务暂未返回|token|rate limit/i.test(normalized)
+  ) {
+    return fallback;
+  }
+
+  return normalized;
+}
+
+function normalizeAiChatError(error: unknown): ApiError {
+  if (error instanceof ApiError) {
+    return new ApiError(normalizeAiChatErrorMessage(error.message), {
+      code: error.code,
+      details: error.details,
+      status: error.status,
+    });
+  }
+
+  if (error instanceof Error) {
+    return new ApiError(normalizeAiChatErrorMessage(error.message), {
+      details: error,
+    });
+  }
+
+  return new ApiError(AI_CHAT_UNAVAILABLE_MESSAGE, { details: error });
+}
+
 function createStreamError(message: string, details?: unknown) {
-  return new ApiError(message || 'AI 服务暂时不可用，请稍后重试', {
+  return new ApiError(normalizeAiChatErrorMessage(message), {
     details,
   });
 }
@@ -328,7 +374,9 @@ function parseEnvelopeError(raw: string, status?: number) {
       message?: string;
       msg?: string;
     };
-    const message = String(payload?.message ?? payload?.msg ?? '').trim() || 'AI 服务暂时不可用，请稍后重试';
+    const message = normalizeAiChatErrorMessage(
+      String(payload?.message ?? payload?.msg ?? '').trim(),
+    );
 
     return new ApiError(message, {
       status,
@@ -336,7 +384,7 @@ function parseEnvelopeError(raw: string, status?: number) {
       details: payload,
     });
   } catch {
-    return new ApiError(raw.trim() || 'AI 服务暂时不可用，请稍后重试', { status });
+    return new ApiError(normalizeAiChatErrorMessage(raw.trim()), { status });
   }
 }
 
@@ -748,7 +796,7 @@ async function streamViaSse(
     }
 
     throw createStreamError(
-      error instanceof Error ? error.message : 'AI 服务暂时不可用，请稍后重试',
+      error instanceof Error ? error.message : AI_CHAT_UNAVAILABLE_MESSAGE,
       error,
     );
   } finally {
@@ -759,28 +807,36 @@ async function streamViaSse(
 
 export const aiChatApi = {
   async getConfig(signal?: AbortSignal): Promise<AiChatConfig> {
-    const response = await http.get<AiChatConfigRaw>('/api/AiChat/config', {
-      headers: createApiHeaders(),
-      signal,
-      useMock: false,
-    });
+    try {
+      const response = await http.get<AiChatConfigRaw>('/api/AiChat/config', {
+        headers: createApiHeaders(),
+        signal,
+        useMock: false,
+      });
 
-    return normalizeAiChatConfig(response);
+      return normalizeAiChatConfig(response);
+    } catch (error) {
+      throw normalizeAiChatError(error);
+    }
   },
 
   async send(payload: AiChatSendPayload, signal?: AbortSignal): Promise<AiChatSendResult> {
-    const response = await http.post<AiChatSendRaw, ReturnType<typeof buildSendPayload>>(
-      '/api/AiChat/send',
-      buildSendPayload(payload),
-      {
-        headers: createApiHeaders(),
-        signal,
-        timeout: AI_CHAT_SEND_TIMEOUT,
-        useMock: false,
-      },
-    );
+    try {
+      const response = await http.post<AiChatSendRaw, ReturnType<typeof buildSendPayload>>(
+        '/api/AiChat/send',
+        buildSendPayload(payload),
+        {
+          headers: createApiHeaders(),
+          signal,
+          timeout: AI_CHAT_SEND_TIMEOUT,
+          useMock: false,
+        },
+      );
 
-    return normalizeAiChatSendResult(response);
+      return normalizeAiChatSendResult(response);
+    } catch (error) {
+      throw normalizeAiChatError(error);
+    }
   },
 
   async stream(
@@ -797,28 +853,40 @@ export const aiChatApi = {
       }
     }
 
-    return streamViaSse(payload, options);
+    try {
+      return await streamViaSse(payload, options);
+    } catch (error) {
+      throw normalizeAiChatError(error);
+    }
   },
 
   async getSessions(limit = 12, signal?: AbortSignal): Promise<AiChatSessionSummary[]> {
-    const response = await http.get<{ sessions?: AiChatSessionSummaryRaw[] | null }>('/api/AiChat/sessions', {
-      headers: getAuthHeaders(),
-      signal,
-      query: { limit },
-      useMock: false,
-    });
+    try {
+      const response = await http.get<{ sessions?: AiChatSessionSummaryRaw[] | null }>('/api/AiChat/sessions', {
+        headers: getAuthHeaders(),
+        signal,
+        query: { limit },
+        useMock: false,
+      });
 
-    return Array.isArray(response?.sessions) ? response.sessions.map(normalizeSessionSummary) : [];
+      return Array.isArray(response?.sessions) ? response.sessions.map(normalizeSessionSummary) : [];
+    } catch (error) {
+      throw normalizeAiChatError(error);
+    }
   },
 
   async getSessionDetail(sessionId: number, signal?: AbortSignal): Promise<AiChatSessionDetail> {
-    const response = await http.get<AiChatSessionDetailRaw>('/api/AiChat/sessionDetail', {
-      headers: getAuthHeaders(),
-      signal,
-      query: { session_id: sessionId },
-      useMock: false,
-    });
+    try {
+      const response = await http.get<AiChatSessionDetailRaw>('/api/AiChat/sessionDetail', {
+        headers: getAuthHeaders(),
+        signal,
+        query: { session_id: sessionId },
+        useMock: false,
+      });
 
-    return normalizeSessionDetail(response);
+      return normalizeSessionDetail(response);
+    } catch (error) {
+      throw normalizeAiChatError(error);
+    }
   },
 };

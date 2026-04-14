@@ -12,6 +12,7 @@ import {
   WifiOff,
 } from 'lucide-react';
 import { shopOrderApi, rechargeApi } from '../../api';
+import { sanitizeUserFacingMessage } from '../../api/core/errors';
 import { getBillingPath } from '../../lib/billing';
 import { useAppNavigate } from '../../lib/navigation';
 import { copyToClipboard } from '../../lib/clipboard';
@@ -74,7 +75,10 @@ export const PaymentResultPage = () => {
     const orderNo = searchParams.get('order_no') ?? '';
     const orderId = Number(searchParams.get('order_id') ?? '0');
     const amount = Number(searchParams.get('amount') ?? '0');
-    const errorMessage = searchParams.get('error') ?? '支付失败，请稍后重试或联系客服。';
+    const errorMessage = sanitizeUserFacingMessage(
+      searchParams.get('error'),
+      '支付失败，请稍后重试或联系客服。',
+    );
 
     if (scene === 'recharge') {
       const status: CommonStatus =
@@ -491,15 +495,7 @@ export const PaymentResultPage = () => {
       <h2 className="mb-6 text-4xl font-bold text-text-main">支付失败</h2>
 
       <div className="relative mb-10 w-full rounded-xl bg-bg-base p-4">
-        <div className="pr-8 text-base leading-relaxed text-text-sub">{info.errorMessage}</div>
-        <button
-          type="button"
-          onClick={() => handleCopy(info.errorMessage, '已复制错误信息')}
-          className="absolute right-4 top-4 text-text-aux active:text-text-main"
-          title="复制错误信息"
-        >
-          <Copy size={16} />
-        </button>
+        <div className="text-base leading-relaxed text-text-sub">{info.errorMessage}</div>
       </div>
 
       <div className="mb-6 flex w-full space-x-4">

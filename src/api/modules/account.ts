@@ -21,6 +21,7 @@ export type AccountLogViewMode = 'merged' | 'normal';
 
 interface AccountBalanceOverviewRaw {
   balance_available?: string;
+  balance_treasure_total?: string;
   extend_withdrawable_money?: string;
   green_power?: string;
   score?: number | string;
@@ -177,6 +178,7 @@ interface AccountMoneyLogDetailRaw {
 
 export interface AccountBalanceOverview {
   balanceAvailable: string;
+  balanceTreasureTotal: string;
   extendWithdrawableMoney: string;
   greenPower: string;
   score: number;
@@ -533,6 +535,7 @@ function normalizeOverview(payload: AccountOverviewRaw): AccountOverview {
   return {
     balance: {
       balanceAvailable: readString(payload.balance?.balance_available),
+      balanceTreasureTotal: readString(payload.balance?.balance_treasure_total),
       extendWithdrawableMoney: readString(payload.balance?.extend_withdrawable_money),
       greenPower: readString(payload.balance?.green_power),
       score: readNumber(payload.balance?.score),
@@ -1397,4 +1400,3 @@ export const growthRightsAssetApi = {
   },
 
 };
-

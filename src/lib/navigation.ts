@@ -142,6 +142,7 @@ export const VIEW_TO_PATH: Record<string, string> = {
   rights_history: '/rights/history',
   recharge: '/recharge',
   transfer: '/transfer',
+  balance_treasure: '/balance-treasure',
   rights_transfer: '/rights/transfer',
   withdraw: '/withdraw',
   extend_withdraw: '/extend-withdraw',
@@ -162,7 +163,6 @@ export const VIEW_TO_PATH: Record<string, string> = {
   sign_in: '/sign-in',
   login: '/login',
   register: '/register',
-  design: '/design',
 };
 
 /**

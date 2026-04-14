@@ -81,6 +81,13 @@ export const buildConvenientServices = ({
       action: () => navigate('/extend-withdraw'),
     },
     {
+      label: '余额宝',
+      icon: Coins,
+      iconColorClass: 'text-yellow-600',
+      iconBgClass: 'bg-yellow-50',
+      action: () => navigate('/balance-treasure'),
+    },
+    {
       label: '算力补充',
       icon: Zap,
       iconColorClass: 'text-emerald-600',

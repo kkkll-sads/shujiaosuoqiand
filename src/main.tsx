@@ -32,7 +32,7 @@ rewriteLegacyBrowserLocationToHashRoute();
 startAppLifecycleObserver();
 initializeClientLogReporting();
 
-if (import.meta.env.DEV || import.meta.env.PROD) {
+if (import.meta.env.DEV) {
   requestAnimationFrame(() => {
     const root = document.documentElement;
     const cs = getComputedStyle(root);

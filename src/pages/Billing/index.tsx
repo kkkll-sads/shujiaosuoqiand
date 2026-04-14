@@ -90,7 +90,7 @@ interface MergedLogChildrenState {
   total: number;
 }
 
-/** 账户类型筛选选项（全部/供应链专项金/可调度收益/确权金/待激活确权金/消费金/绿色算力/静态收益） */
+/** 账户类型筛选选项（全部/供应链专项金/可调度收益/确权金/待激活确权金/消费金/绿色算力/拓展余额） */
 const ACCOUNT_TYPE_OPTIONS: Array<{ key: AccountLogType; label: string }> = [
   { key: 'all', label: '全部' },
   { key: 'balance_available', label: '供应链专项金' },
@@ -99,7 +99,7 @@ const ACCOUNT_TYPE_OPTIONS: Array<{ key: AccountLogType; label: string }> = [
   { key: 'pending_activation_gold', label: '待激活确权金' },
   { key: 'score', label: '消费金' },
   { key: 'green_power', label: '绿色算力' },
-  { key: 'static_income', label: '静态收益' },
+  { key: 'static_income', label: '拓展余额' },
 ];
 
 /** 收支方向筛选选项（全部/收入/支出） */
@@ -123,7 +123,7 @@ const ACCOUNT_TYPE_LABELS: Record<string, string> = {
   pending_activation_gold: '待激活确权金',
   score: '消费金',
   service_fee_balance: '确权金',
-  static_income: '静态收益',
+  static_income: '拓展余额',
   withdrawable_money: '可调度收益',
 };
 
@@ -131,6 +131,9 @@ const ACCOUNT_TYPE_LABELS: Record<string, string> = {
 const BIZ_TYPE_LABELS: Record<string, string> = {
   admin_delete_collection_refund: '管理员删除藏品退款',
   balance_transfer: '余额划转',
+  balance_treasure_in: '转入余额宝',
+  balance_treasure_out: '转出余额宝',
+  balance_treasure_profit: '余额宝收益结转',
   blind_box_diff_refund: '差价退款',
   blind_box_refund: '未中签退款',
   blind_box_reserve: '确权申请',

@@ -7,6 +7,7 @@ import { useCallback, useMemo } from 'react'; // React 核心 Hook
 import { useParams } from 'react-router-dom';
 import { AlertCircle, CreditCard, Box, MapPin, Copy } from 'lucide-react';
 import { reservationApi } from '../../api';
+import { getErrorMessage } from '../../api/core/errors';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { PullToRefreshContainer } from '../../components/ui/PullToRefreshContainer';
 import { Skeleton } from '../../components/ui/Skeleton';
@@ -60,7 +61,7 @@ export const ReservationDetailPage = () => {
     if (error || !data) {
       return (
         <ErrorState
-          message={error?.message || '无法加载预约详情'}
+          message={getErrorMessage(error) || '无法加载预约详情'}
           onRetry={handleRefresh}
         />
       );

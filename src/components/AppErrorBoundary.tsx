@@ -7,15 +7,15 @@ interface Props {
 
 interface State {
   hasError: boolean;
-  errorMessage: string;
 }
 
 export class AppErrorBoundary extends Component<Props, State> {
   declare props: Props;
-  state: State = { hasError: false, errorMessage: '' };
+  state: State = { hasError: false };
 
   static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, errorMessage: error?.message || '未知错误' };
+    void error;
+    return { hasError: true };
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
@@ -40,8 +40,7 @@ export class AppErrorBoundary extends Component<Props, State> {
           <LineProbeOverlay />
           <div className="mb-4 text-5xl leading-none">⚠️</div>
           <h2 className="mb-2 text-lg font-semibold text-text-main">页面出了点问题</h2>
-          <p className="mb-6 text-sm text-text-sub">请刷新页面重试</p>
-          <p className="text-xs text-text-aux mb-6 break-all max-w-full">{this.state.errorMessage}</p>
+          <p className="mb-6 text-sm text-text-sub">页面暂时无法打开，请刷新页面后重试。</p>
           <button
             onClick={() => window.location.reload()}
             className="rounded-full gradient-primary-r px-6 py-2.5 text-base font-medium text-white shadow-sm active:opacity-90"
