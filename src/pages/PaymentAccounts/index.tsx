@@ -273,6 +273,7 @@ export function PaymentAccountsPage() {
     loading: paymentAccountsLoading,
     reload: reloadPaymentAccounts,
   } = useRequest((signal) => userApi.getPaymentAccountList({ signal }), {
+    authScoped: true,
     cacheKey: 'payment-accounts:list',
     deps: [isAuthenticated],
     manual: !isAuthenticated,
@@ -282,6 +283,7 @@ export function PaymentAccountsPage() {
     loading: realNameStatusLoading,
     reload: reloadRealNameStatus,
   } = useRequest((signal) => userApi.getRealNameStatus({ signal }), {
+    authScoped: true,
     cacheKey: 'global:real-name-status',
     deps: [isAuthenticated],
     manual: !isAuthenticated,
@@ -1108,5 +1110,4 @@ export function PaymentAccountsPage() {
 }
 
 export default PaymentAccountsPage;
-
 

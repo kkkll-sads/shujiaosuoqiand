@@ -33,6 +33,14 @@ function readString(value: unknown): string | undefined {
   return nextValue ? nextValue : undefined;
 }
 
+function readIdentityValue(value: unknown): string | undefined {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? String(value) : undefined;
+  }
+
+  return readString(value);
+}
+
 function pickString(source: UnknownRecord | undefined, keys: string[]): string | undefined {
   if (!source) {
     return undefined;
@@ -215,6 +223,23 @@ export function getAuthSessionSnapshot(): AuthSession | null {
     safeParse(storages.session.getItem(AUTH_SESSION_STORAGE_KEY)) ??
     safeParse(storages.local.getItem(AUTH_SESSION_STORAGE_KEY))
   );
+}
+
+export function resolveAuthCacheScope(session: AuthSession | null | undefined) {
+  if (!session?.isAuthenticated) {
+    return 'guest';
+  }
+
+  const userInfo = isObject(session.userInfo) ? session.userInfo : undefined;
+  const userIdentity =
+    readIdentityValue(userInfo?.id) ??
+    readIdentityValue(userInfo?.uid) ??
+    readIdentityValue(userInfo?.userId) ??
+    readIdentityValue(userInfo?.mobile) ??
+    readString(session.baUserToken) ??
+    readString(session.accessToken);
+
+  return userIdentity ? `member:${userIdentity}` : 'member:anonymous';
 }
 
 export function createAuthSession(

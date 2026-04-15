@@ -63,6 +63,7 @@ export function useOldAssetsUnlock() {
   } = useRequest(
     (signal) => oldAssetsApi.checkStatus({ signal }),
     {
+      authScoped: true,
       cacheKey: 'old-assets:unlock-status',
       manual: !isAuthenticated,
     },

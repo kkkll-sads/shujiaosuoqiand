@@ -60,6 +60,7 @@ export const ReservationsPage = () => {
       return res;
     },
     {
+      authScoped: true,
       cacheKey: `reservations:first-page:${statusFilter}`,
       deps: [statusFilter],
     },

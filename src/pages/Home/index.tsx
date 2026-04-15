@@ -178,7 +178,7 @@ export const HomePage = () => {
   /* ---- 申购记录（延迟 1.5s 加载，不阻塞首屏核心内容） ---- */
   const reservationsRequest = useRequest(
     (signal) => reservationApi.getList({ page: 1, limit: 20 }, signal),
-    { cacheKey: 'home:reservations:20', manual: true },
+    { authScoped: true, cacheKey: 'home:reservations:20', manual: true },
   );
   const reservations = reservationsRequest.data?.list ?? [];
 
@@ -192,7 +192,7 @@ export const HomePage = () => {
   /* ---- 用户资料（头像） ---- */
   const profileRequest = useRequest(
     (signal) => accountApi.getProfile({ signal }),
-    { cacheKey: 'global:profile' },
+    { authScoped: true, cacheKey: 'global:profile' },
   );
   const userAvatar = profileRequest.data?.userInfo?.avatar;
   const genesisActivityRequest = useRequest(

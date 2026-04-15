@@ -72,7 +72,10 @@ export const AfterSalesPage = () => {
 
   const request = useRequest(
     (signal) => shopOrderApi.myOrders({ page: 1, limit: PAGE_SIZE }, signal),
-    { initialData: { list: [], total: 0, page: 1, limit: PAGE_SIZE, balance_available: '0', score: '0' } },
+    {
+      authScoped: true,
+      initialData: { list: [], total: 0, page: 1, limit: PAGE_SIZE, balance_available: '0', score: '0' },
+    },
   );
 
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);

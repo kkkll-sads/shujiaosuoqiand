@@ -278,6 +278,7 @@ export function RechargePage() {
     loading: profileLoading,
     reload: reloadProfile,
   } = useRequest((signal) => accountApi.getProfile({ signal }), {
+    authScoped: true,
     cacheKey: 'global:profile',
     deps: [isAuthenticated],
     manual: !isAuthenticated,
@@ -298,6 +299,7 @@ export function RechargePage() {
     loading: recentOrdersLoading,
     reload: reloadRecentOrders,
   } = useRequest((signal) => rechargeApi.getMyOrderList({ limit: 3, page: 1 }, { signal }), {
+    authScoped: true,
     cacheKey: 'recharge:recent-orders',
     deps: [isAuthenticated],
     manual: !isAuthenticated,

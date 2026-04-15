@@ -877,6 +877,7 @@ export function BillingPage() {
       return response;
     },
     {
+      authScoped: true,
       deps: [
         category,
         flowFilter,
@@ -914,6 +915,7 @@ export function BillingPage() {
           )
         : Promise.resolve(undefined),
     {
+      authScoped: true,
       deps: [
         isAuthenticated,
         isRechargeScene,

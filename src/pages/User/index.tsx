@@ -83,24 +83,28 @@ export const UserPage = () => {
 
   const isLoggedIn = isAuthenticated;
   const profileRequest = useRequest((signal) => accountApi.getProfile({ signal }), {
+    authScoped: true,
     cache: isLoggedIn,
     cacheKey: 'global:profile',
     deps: [isLoggedIn],
     manual: !isLoggedIn,
   });
   const accountOverviewRequest = useRequest((signal) => accountApi.getAccountOverview({ signal }), {
+    authScoped: true,
     cache: isLoggedIn,
     cacheKey: 'global:account-overview',
     deps: [isLoggedIn],
     manual: !isLoggedIn,
   });
   const realNameRequest = useRequest((signal) => userApi.getRealNameStatus({ signal }), {
+    authScoped: true,
     cache: isLoggedIn,
     cacheKey: 'global:real-name-status',
     deps: [isLoggedIn],
     manual: !isLoggedIn,
   });
   const unreadRequest = useRequest((signal) => messageApi.unreadCount(signal), {
+    authScoped: true,
     cache: isLoggedIn,
     cacheKey: 'messages:unread',
     deps: [isLoggedIn],

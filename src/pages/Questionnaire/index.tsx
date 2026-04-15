@@ -67,6 +67,7 @@ export function QuestionnairePage() {
     loading,
     reload,
   } = useRequest((signal) => questionnaireApi.myList({ page: 1, limit: PAGE_SIZE }, { signal }), {
+    authScoped: true,
     cacheKey: 'questionnaire:my-list',
     deps: [isAuthenticated],
     manual: !isAuthenticated,

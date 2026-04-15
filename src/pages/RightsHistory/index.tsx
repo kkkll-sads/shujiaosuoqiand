@@ -86,6 +86,7 @@ export function RightsHistoryPage() {
       );
     },
     {
+      authScoped: true,
       cacheKey: 'rights-declaration:list:' + statusFilter,
       deps: [statusFilter],
     },

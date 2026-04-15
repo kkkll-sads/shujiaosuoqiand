@@ -90,6 +90,7 @@ export const AgentAuthPage = () => {
   const [licenseImage, setLicenseImage] = useState('');
 
   const progressRequest = useRequest((signal) => accountApi.getAgentProgress({ signal }), {
+    authScoped: true,
     deps: [isAuthenticated],
     manual: !isAuthenticated,
   });

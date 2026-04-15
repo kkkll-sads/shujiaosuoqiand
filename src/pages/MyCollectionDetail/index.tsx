@@ -263,6 +263,7 @@ export const MyCollectionDetailPage = () => {
       };
     },
     {
+      authScoped: true,
       deps: [collectionId],
       keepPreviousData: false,
     },

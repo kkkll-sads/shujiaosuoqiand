@@ -67,6 +67,7 @@ export function ServiceFeeRechargePage() {
     loading,
     reload,
   } = useRequest((signal) => accountApi.getProfile({ signal }), {
+    authScoped: true,
     cacheKey: 'global:profile',
     deps: [isAuthenticated],
     manual: !isAuthenticated,

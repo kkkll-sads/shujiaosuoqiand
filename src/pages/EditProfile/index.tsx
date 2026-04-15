@@ -40,6 +40,7 @@ export const EditProfilePage = () => {
 
   const profileRequest = useRequest((signal) => accountApi.getProfile({ signal }), {
     cache: true,
+    authScoped: true,
     cacheKey: 'global:profile',
     deps: [isAuthenticated],
     manual: !isAuthenticated,

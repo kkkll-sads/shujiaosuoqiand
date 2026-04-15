@@ -177,6 +177,7 @@ export const MessageCenterPage = () => {
         signal,
       ),
     {
+      authScoped: true,
       cacheKey: `message-center:list:${activeScope}:${activeCategory}`,
       deps: [activeScope, activeCategory],
       keepPreviousData: false,
@@ -188,6 +189,7 @@ export const MessageCenterPage = () => {
     reload: reloadUnread,
     setData: setUnreadData,
   } = useRequest((signal) => messageApi.unreadCount(signal), {
+    authScoped: true,
     cacheKey: 'messages:unread',
   });
 

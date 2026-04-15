@@ -120,6 +120,7 @@ export const ExtendWithdrawPage = () => {
     loading: accountOverviewLoading,
     reload: reloadAccountOverview,
   } = useRequest((signal) => accountApi.getAccountOverview({ signal }), {
+    authScoped: true,
     cacheKey: 'global:account-overview',
     deps: [isAuthenticated],
     manual: !isAuthenticated,
@@ -131,6 +132,7 @@ export const ExtendWithdrawPage = () => {
     loading: paymentAccountsLoading,
     reload: reloadPaymentAccounts,
   } = useRequest((signal) => userApi.getPaymentAccountList({ signal }), {
+    authScoped: true,
     cacheKey: 'extend-withdraw:payment-accounts',
     deps: [isAuthenticated],
     manual: !isAuthenticated,
@@ -141,6 +143,7 @@ export const ExtendWithdrawPage = () => {
     loading: agentProgressLoading,
     reload: reloadAgentProgress,
   } = useRequest((signal) => accountApi.getAgentProgress({ signal }), {
+    authScoped: true,
     cacheKey: 'global:agent-progress',
     deps: [isAuthenticated],
     manual: !isAuthenticated,

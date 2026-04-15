@@ -30,6 +30,7 @@ export const SecurityPage = () => {
   const { goBack, goTo } = useAppNavigate();
   const { showToast, showLoading, hideLoading } = useFeedback();
   const profileRequest = useRequest((signal) => accountApi.getProfile({ signal }), {
+    authScoped: true,
     cacheKey: 'global:profile',
   });
   const [showCancelAccountForm, setShowCancelAccountForm] = useState(false);

@@ -15,6 +15,7 @@ export function useCartCount() {
   const { data, loading, reload, setData } = useRequest(
     (signal) => shopCartApi.count(signal),
     {
+      authScoped: true,
       cacheKey: 'shop-cart:count',
       deps: [isAuthenticated],
       initialData: EMPTY_CART_COUNT,

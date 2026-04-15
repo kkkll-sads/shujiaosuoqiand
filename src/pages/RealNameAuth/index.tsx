@@ -183,6 +183,7 @@ export const RealNameAuthPage = () => {
     loading,
     reload,
   } = useRequest((signal) => userApi.getRealNameStatus({ signal }), {
+    authScoped: true,
     cacheKey: 'global:real-name-status',
     manual: !isAuthenticated,
   });
@@ -611,5 +612,4 @@ export const RealNameAuthPage = () => {
     </div>
   );
 };
-
 

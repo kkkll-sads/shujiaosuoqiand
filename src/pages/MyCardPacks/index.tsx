@@ -75,11 +75,13 @@ export function MyCardPacksPage() {
     deps: [],
   });
   const profileRequest = useRequest((signal) => accountApi.getProfile({ signal }), {
+    authScoped: true,
     cacheKey: 'global:profile',
     deps: [isAuthenticated],
     manual: !isAuthenticated,
   });
   const myCardsRequest = useRequest((signal) => membershipCardApi.myCards({ signal }), {
+    authScoped: true,
     cacheKey: 'my-card-packs:owned-cards',
     deps: [isAuthenticated],
     manual: !isAuthenticated,

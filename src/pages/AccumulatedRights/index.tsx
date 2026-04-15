@@ -102,6 +102,7 @@ export const AccumulatedRightsPage = () => {
     loading: overviewLoading,
     reload: reloadOverview,
   } = useRequest((signal) => accountApi.getAccountOverview({ signal }), {
+    authScoped: true,
     cacheKey: 'global:account-overview',
     deps: [isAuthenticated],
     manual: !isAuthenticated,

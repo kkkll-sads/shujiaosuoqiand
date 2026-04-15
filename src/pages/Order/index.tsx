@@ -80,6 +80,7 @@ export const OrderPage = () => {
       );
     },
     {
+      authScoped: true,
       deps: [orderType, mallTab, mallStatus, isPendingPayTab, isPendingShipTab, isPendingConfirmTab],
       initialData: emptyMallData,
     },
@@ -93,6 +94,7 @@ export const OrderPage = () => {
       return collectionTradeApi.buyOrders({ page: 1, limit: PAGE_SIZE }, signal);
     },
     {
+      authScoped: true,
       deps: [orderType, validCollectibleTab, isBuyTab],
       initialData: emptyBuyData,
     },
@@ -106,6 +108,7 @@ export const OrderPage = () => {
       return collectionTradeApi.sellOrders({ page: 1, limit: PAGE_SIZE }, signal);
     },
     {
+      authScoped: true,
       deps: [orderType, validCollectibleTab, isSellTab],
       initialData: emptySellData,
     },

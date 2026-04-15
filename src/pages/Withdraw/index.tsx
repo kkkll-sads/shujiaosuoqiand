@@ -114,6 +114,7 @@ export const WithdrawPage = () => {
     loading: accountOverviewLoading,
     reload: reloadAccountOverview,
   } = useRequest((signal) => accountApi.getAccountOverview({ signal }), {
+    authScoped: true,
     cacheKey: 'global:account-overview',
     deps: [isAuthenticated],
     manual: !isAuthenticated,
@@ -125,6 +126,7 @@ export const WithdrawPage = () => {
     loading: paymentAccountsLoading,
     reload: reloadPaymentAccounts,
   } = useRequest((signal) => userApi.getPaymentAccountList({ signal }), {
+    authScoped: true,
     cacheKey: 'withdraw:payment-accounts',
     deps: [isAuthenticated],
     manual: !isAuthenticated,
